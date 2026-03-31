@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - DermaCare AI</title>
+    <meta name="description"
+        content="Create your DermaCare AI account to track your skin health, save scan history, and get personalized recommendations.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body style="background-color: #f1f5f9;">
+
+    <!-- Header -->
+    <!-- Reusable Header -->
+    <div id="header-container"></div>
+
+    <!-- Registration Page -->
+    <section id="register-page" class="fade-in">
+        <div class="register-container">
+
+            <!-- Left Panel - Branding -->
+            <div class="register-branding">
+                <div class="branding-content">
+                    <div class="branding-icon-wrapper">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                    <h1>Join DermaCare <span class="text-gradient">AI</span></h1>
+                    <p>Create your account and start your personalized skin health journey powered by artificial
+                        intelligence.</p>
+
+                    <div class="branding-features">
+                        <div class="branding-feature">
+                            <div class="bf-icon"><i class="fas fa-shield-halved"></i></div>
+                            <div>
+                                <h4>Secure & Private</h4>
+                                <p>Your data is encrypted and never shared with third parties.</p>
+                            </div>
+                        </div>
+                        <div class="branding-feature">
+                            <div class="bf-icon"><i class="fas fa-clock-rotate-left"></i></div>
+                            <div>
+                                <h4>Track Your History</h4>
+                                <p>Save all your scan results and monitor changes over time.</p>
+                            </div>
+                        </div>
+                        <div class="branding-feature">
+                            <div class="bf-icon"><i class="fas fa-user-doctor"></i></div>
+                            <div>
+                                <h4>Expert Recommendations</h4>
+                                <p>Get personalized specialist referrals based on your profile.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Form -->
+            <div class="register-form-panel">
+                <div class="register-form-header">
+                    <h2>Create Your Account</h2>
+                    <p>Fill in your details to get started. Fields marked with <span class="required-star">*</span> are
+                        required.</p>
+                </div>
+
+                <!-- Progress Steps -->
+                <div class="form-progress">
+                    <div class="progress-step active" id="step-indicator-1">
+                        <div class="step-circle">1</div>
+                        <span>Personal Info</span>
+                    </div>
+                    <div class="progress-line" id="progress-line-1"></div>
+                    <div class="progress-step" id="step-indicator-2">
+                        <div class="step-circle">2</div>
+                        <span>Medical Info</span>
+                    </div>
+                    <div class="progress-line" id="progress-line-2"></div>
+                    <div class="progress-step" id="step-indicator-3">
+                        <div class="step-circle">3</div>
+                        <span>Security</span>
+                    </div>
+                </div>
+
+                <form id="register-form" novalidate>
+
+                    <!-- Step 1: Personal Information -->
+                    <div class="form-step active" id="form-step-1">
+                        <div class="form-section-title">
+                            <i class="fas fa-user"></i> Personal Information
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reg-firstname">First Name <span class="required-star">*</span></label>
+                                <div class="input-wrapper">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="reg-firstname" placeholder="Enter your first name" required>
+                                </div>
+                                <span class="field-error" id="error-firstname"></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-lastname">Last Name <span class="required-star">*</span></label>
+                                <div class="input-wrapper">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="reg-lastname" placeholder="Enter your last name" required>
+                                </div>
+                                <span class="field-error" id="error-lastname"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-email">Email Address <span class="required-star">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="reg-email" placeholder="name@example.com" required>
+                            </div>
+                            <span class="field-error" id="error-email"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-contact">Contact Number <span class="required-star">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-phone"></i>
+                                <input type="tel" id="reg-contact" placeholder="+91 XXXXX XXXXX" required>
+                            </div>
+                            <span class="field-error" id="error-contact"></span>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reg-gender">Gender <span class="required-star">*</span></label>
+                                <div class="input-wrapper select-wrapper">
+                                    <i class="fas fa-venus-mars"></i>
+                                    <select id="reg-gender" required>
+                                        <option value="" disabled selected>Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                        <option value="prefer-not">Prefer not to say</option>
+                                    </select>
+                                </div>
+                                <span class="field-error" id="error-gender"></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-dob">Date of Birth <span class="required-star">*</span></label>
+                                <div class="input-wrapper">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <input type="date" id="reg-dob" required>
+                                </div>
+                                <span class="field-error" id="error-dob"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-age">Age <span class="required-star">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-hashtag"></i>
+                                <input type="number" id="reg-age" placeholder="Enter your age" min="1" max="120"
+                                    required>
+                            </div>
+                            <span class="field-error" id="error-age"></span>
+                        </div>
+
+                        <div class="form-nav-buttons">
+                            <div></div>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(1)">
+                                Continue <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Medical Information -->
+                    <div class="form-step" id="form-step-2">
+                        <div class="form-section-title">
+                            <i class="fas fa-notes-medical"></i> Medical Information
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-symptoms">Current Symptoms <span class="required-star">*</span></label>
+                            <div class="input-wrapper textarea-wrapper">
+                                <i class="fas fa-stethoscope"></i>
+                                <textarea id="reg-symptoms" rows="3"
+                                    placeholder="Describe your current skin symptoms (e.g., redness, itching, rash, dry patches...)"
+                                    required></textarea>
+                            </div>
+                            <span class="field-error" id="error-symptoms"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-duration">Duration of Symptoms <span class="required-star">*</span></label>
+                            <div class="duration-options">
+                                <label class="duration-card" for="dur-1">
+                                    <input type="radio" name="symptom-duration" id="dur-1" value="Less than 1 week">
+                                    <div class="duration-card-content">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Less than 1 week</span>
+                                    </div>
+                                </label>
+                                <label class="duration-card" for="dur-2">
+                                    <input type="radio" name="symptom-duration" id="dur-2" value="1-2 weeks">
+                                    <div class="duration-card-content">
+                                        <i class="fas fa-calendar-day"></i>
+                                        <span>1-2 weeks</span>
+                                    </div>
+                                </label>
+                                <label class="duration-card" for="dur-3">
+                                    <input type="radio" name="symptom-duration" id="dur-3" value="1 month">
+                                    <div class="duration-card-content">
+                                        <i class="fas fa-calendar-week"></i>
+                                        <span>1 month</span>
+                                    </div>
+                                </label>
+                                <label class="duration-card" for="dur-4">
+                                    <input type="radio" name="symptom-duration" id="dur-4" value="More than 1 month">
+                                    <div class="duration-card-content">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>More than 1 month</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <span class="field-error" id="error-duration"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Do you have any previous skin conditions? <span
+                                    class="required-star">*</span></label>
+                            <div class="skin-condition-toggle">
+                                <label class="toggle-option" for="prev-yes">
+                                    <input type="radio" name="previous-conditions" id="prev-yes" value="yes">
+                                    <div class="toggle-card">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Yes</span>
+                                    </div>
+                                </label>
+                                <label class="toggle-option" for="prev-no">
+                                    <input type="radio" name="previous-conditions" id="prev-no" value="no">
+                                    <div class="toggle-card">
+                                        <i class="fas fa-times-circle"></i>
+                                        <span>No</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <span class="field-error" id="error-previous"></span>
+                        </div>
+
+                        <!-- Conditional: Previous condition details -->
+                        <div class="form-group hidden" id="prev-condition-details">
+                            <label for="reg-prev-details">Please describe your previous skin condition(s)</label>
+                            <div class="input-wrapper textarea-wrapper">
+                                <i class="fas fa-file-medical"></i>
+                                <textarea id="reg-prev-details" rows="2"
+                                    placeholder="E.g., Eczema diagnosed in 2020, treated with topical steroids..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-nav-buttons">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                Continue <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Security -->
+                    <div class="form-step" id="form-step-3">
+                        <div class="form-section-title">
+                            <i class="fas fa-lock"></i> Create Password
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-password">Password <span class="required-star">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="reg-password" placeholder="Create a strong password"
+                                    required>
+                                <button type="button" class="toggle-password"
+                                    onclick="togglePasswordVisibility('reg-password', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <span class="field-error" id="error-password"></span>
+
+                            <!-- Password Strength Meter -->
+                            <div class="password-strength">
+                                <div class="strength-bars">
+                                    <div class="strength-bar" id="str-bar-1"></div>
+                                    <div class="strength-bar" id="str-bar-2"></div>
+                                    <div class="strength-bar" id="str-bar-3"></div>
+                                    <div class="strength-bar" id="str-bar-4"></div>
+                                </div>
+                                <span class="strength-text" id="strength-text">Password strength</span>
+                            </div>
+
+                            <div class="password-requirements">
+                                <div class="req" id="req-length"><i class="fas fa-circle"></i> At least 8 characters
+                                </div>
+                                <div class="req" id="req-upper"><i class="fas fa-circle"></i> One uppercase letter</div>
+                                <div class="req" id="req-lower"><i class="fas fa-circle"></i> One lowercase letter</div>
+                                <div class="req" id="req-number"><i class="fas fa-circle"></i> One number</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-confirm-password">Confirm Password <span
+                                    class="required-star">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="reg-confirm-password" placeholder="Re-enter your password"
+                                    required>
+                                <button type="button" class="toggle-password"
+                                    onclick="togglePasswordVisibility('reg-confirm-password', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <span class="field-error" id="error-confirm-password"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="reg-terms" required>
+                                <span class="custom-checkbox"></span>
+                                <span>I agree to the <a href="#" class="link-primary">Terms of Service</a> and <a
+                                        href="#" class="link-primary">Privacy Policy</a></span>
+                            </label>
+                            <span class="field-error" id="error-terms"></span>
+                        </div>
+
+                        <div class="form-nav-buttons">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(3)">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg" id="btn-register">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <p class="login-redirect">
+                    Already have an account? <a href="login.html" class="link-primary">Sign in here</a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="history-modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 480px; text-align: center;">
+            <div class="success-animation">
+                <div class="success-checkmark">
+                    <i class="fas fa-check"></i>
+                </div>
+            </div>
+            <h2 style="margin-top: 1.5rem; font-size: 1.75rem;">Welcome to DermaCare AI!</h2>
+            <p style="margin: 1rem 0 0.5rem; font-size: 1.05rem;">
+                Your account has been created successfully.
+            </p>
+            <p style="margin: 0 0 2rem; font-size: 0.9rem; color: #64748b;">
+                <i class="fas fa-spinner fa-spin"></i> Taking you to Sign In automatically...
+            </p>
+            <a href="login.html" class="btn btn-primary btn-lg">
+                <i class="fas fa-sign-in-alt"></i> Sign In Now
+            </a>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/header.js"></script>
+    <script src="js/register.js"></script>
+    <div id="footer"></div>
+    <script src="js/footer.js"></script>
+</body>
+
+</html>
+
+
+</html>

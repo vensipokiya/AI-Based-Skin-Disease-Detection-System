@@ -1,0 +1,374 @@
+2026-03-29 17:37:57,083 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 17:37:59,270 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 17:38:01,256 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 17:38:03,340 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 17:38:03,762 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:38:03,764 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 17:38:05,801 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 17:38:05,801 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:39:31,480 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 17:39:33,582 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 17:39:35,130 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 17:39:37,207 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 17:39:37,449 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:39:37,449 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 17:39:39,505 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 17:39:39,506 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:43:41,220 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:43:41,709 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:43:42,110 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:43:42,110 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:43:42,437 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:43:42,437 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:44:23,825 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:44:24,177 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:44:25,620 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:44:25,930 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:44:26,198 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:44:26,199 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:44:26,548 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:44:26,548 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:47:55,654 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:47:56,006 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:47:56,325 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:47:56,325 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:47:56,618 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:47:56,619 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:48:09,635 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:10,080 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:10,353 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:48:10,353 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:10,606 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:10,606 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:48:20,001 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:20,295 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:20,672 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:48:20,675 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:20,928 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:20,930 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:48:52,085 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:52,356 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:53,932 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:54,230 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:54,516 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:48:54,516 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:54,780 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:54,780 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:48:56,425 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:56,702 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:58,285 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:58,579 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:58,840 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:48:58,843 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:48:59,095 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:48:59,095 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 17:49:23,865 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:49:23,868 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:49:24,220 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:49:32,783 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:49:32,783 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:49:33,323 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:49:44,280 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:49:44,280 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:49:44,730 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:49:51,708 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:49:51,708 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:49:52,094 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:50:36,850 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:50:36,850 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:50:37,363 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:50:42,525 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:50:42,527 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:50:42,920 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:50:49,394 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 17:50:49,396 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:50:49,840 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:55:29,414 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:55:29,722 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:58:08,012 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:58:08,339 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:58:22,311 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:58:22,597 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 17:58:29,347 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 17:58:29,607 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+2026-03-29 18:00:31,282 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:00:31,570 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:00:31,799 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:00:33,208 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:00:33,490 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:00:33,720 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:00:33,808 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:00:33,808 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:00:33,813 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:00:34,050 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:00:34,050 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 18:00:54,605 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:00:54,964 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:00:55,179 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:00:55,249 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:00:55,249 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:00:55,255 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:00:55,519 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:00:55,520 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 18:01:01,285 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:01:01,285 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:01:01,790 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:01:58,356 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:01:58,357 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:01:58,898 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:18:10,817 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:18:11,293 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:18:11,691 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:18:11,793 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:18:11,793 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:18:11,793 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:18:12,199 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:18:12,201 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 18:19:33,795 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:19:33,796 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:19:34,347 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:29:29,597 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:29:29,597 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:29:30,129 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:29:30,702 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:29:30,702 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:29:31,216 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:39:06,222 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:39:06,536 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:39:06,807 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:39:06,889 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:39:06,891 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:39:06,891 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:39:07,152 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:39:07,152 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 18:42:52,823 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:42:52,823 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:42:53,392 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:42:53,983 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:42:53,988 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:42:54,489 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:58:43,320 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:58:43,686 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:58:44,077 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:58:44,173 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:58:44,173 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:58:44,173 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 18:58:44,432 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 18:58:44,432 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 18:59:51,681 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 18:59:51,729 - backend.db.connection - ERROR - Failed to create MySQL pool: 1115 (42000): Unknown character set: 'utf8mb4'
+2026-03-29 18:59:54,655 - main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 18:59:54,659 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 18:59:54,660 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 18:59:54,661 - backend.db.connection - ERROR - Failed to create MySQL pool: 1115 (42000): Unknown character set: 'utf8mb4'
+2026-03-29 18:59:54,661 - main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 19:00:27,882 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 19:00:27,989 - backend.db.connection - INFO - Successfully established MySQL connection pool.
+2026-03-29 19:00:28,890 - backend.db.connection - ERROR - Migration error: 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'JSON,
+                    scan_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       ' at line 7
+2026-03-29 19:00:29,156 - main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:00:29,158 - main - INFO - [OK] MySQL Database strictly connected and tables ensured on start.
+2026-03-29 19:04:54,556 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:04:54,964 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:04:55,342 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:04:56,740 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:04:57,039 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:04:57,264 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:04:57,358 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:04:57,358 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:04:57,358 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:04:57,631 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:04:57,631 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 19:06:07,736 - backend.dao.log_dao - ERROR - DAO Error logging event: 1146 (42S02): Table 'dermacare_db.system_logs' doesn't exist
+2026-03-29 19:30:01,883 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:30:02,391 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:30:02,762 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:30:04,485 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:30:04,824 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:30:05,079 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:30:05,162 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:30:05,165 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:30:05,165 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:30:05,514 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:30:05,514 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 19:30:21,797 - backend.dao.log_dao - ERROR - DAO Error logging event: 1146 (42S02): Table 'dermacare_db.system_logs' doesn't exist
+2026-03-29 19:30:42,651 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:30:42,661 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:30:43,560 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:30:51,084 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:30:51,084 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:30:51,999 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:30:56,091 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:30:56,091 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:30:57,027 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:31:02,351 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:31:02,351 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:31:03,288 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:34:15,262 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:34:15,262 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:34:16,154 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:34:17,149 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:34:17,149 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:34:18,069 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:38:25,115 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:38:25,497 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:38:25,727 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:38:25,803 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:38:25,809 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:38:25,809 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:38:26,108 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:38:26,108 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 19:39:40,915 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 19:39:40,993 - backend.db.connection - INFO - Successfully established MySQL connection pool.
+2026-03-29 19:39:41,054 - backend.db.connection - ERROR - Migration error: 1293 (HY000): Incorrect table definition; there can be only one TIMESTAMP column with CURRENT_TIMESTAMP in DEFAULT or ON UPDATE clause
+2026-03-29 19:40:10,153 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 19:40:10,220 - backend.db.connection - INFO - Successfully established MySQL connection pool.
+2026-03-29 19:40:10,299 - backend.db.connection - INFO - Auto-Migration: Adding 'user_name' column to 'scan_history' table.
+2026-03-29 19:40:10,299 - backend.db.connection - ERROR - Migration error: Unread result found
+2026-03-29 19:40:10,304 - backend.db.connection - ERROR - Failed to create MySQL pool: MySQL Connection not available.
+2026-03-29 19:40:10,305 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:40:10,306 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 19:40:10,327 - backend.db.connection - INFO - Successfully established MySQL connection pool.
+2026-03-29 19:40:10,331 - backend.db.connection - INFO - Auto-Migration: Adding 'user_name' column to 'scan_history' table.
+2026-03-29 19:40:10,331 - backend.db.connection - ERROR - Migration error: Unread result found
+2026-03-29 19:40:10,332 - backend.db.connection - ERROR - Failed to create MySQL pool: MySQL Connection not available.
+2026-03-29 19:40:29,746 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3306
+2026-03-29 19:40:29,808 - backend.db.connection - INFO - Successfully established MySQL connection pool.
+2026-03-29 19:40:29,848 - backend.db.connection - INFO - All MySQL database tables and migrations are synchronized.
+2026-03-29 19:57:04,070 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:57:04,363 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:57:04,603 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:57:05,728 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:57:06,082 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:57:06,312 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:57:06,405 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 19:57:06,405 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:57:06,405 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:57:06,674 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:57:06,674 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 19:57:23,519 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:57:23,519 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:57:24,387 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:57:25,541 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:57:25,541 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:57:26,435 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:58:07,734 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:58:07,736 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:58:08,671 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:58:09,756 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:58:09,758 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:58:10,615 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:58:16,837 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:58:16,838 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:58:17,730 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:58:17,973 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:58:17,973 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:58:18,871 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:58:19,099 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:58:19,099 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:58:20,121 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 19:58:23,249 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 19:58:23,249 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 19:58:24,081 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:01:53,737 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:01:54,088 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:01:54,351 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 20:01:54,427 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 20:01:54,427 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 20:01:54,427 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:01:54,687 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:01:54,688 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 20:02:31,284 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:02:31,549 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:02:31,783 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 20:02:32,962 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:02:33,274 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:02:33,448 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 20:02:33,503 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 20:02:33,509 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 20:02:33,509 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:02:33,749 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:02:33,749 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 20:02:40,794 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 20:02:40,797 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:02:41,648 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:02:41,996 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 20:02:41,998 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:02:42,813 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:08:22,540 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 20:08:22,541 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:08:23,377 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 20:43:22,206 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 20:43:22,206 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 20:43:23,057 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:08:49,899 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:08:49,900 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:08:50,774 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:08:50,779 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:08:50,779 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:08:51,655 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:08:59,380 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:08:59,382 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:09:00,376 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:09:04,549 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:09:04,549 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:09:05,420 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:14:26,726 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:14:26,728 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:14:27,570 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:14:28,508 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:14:28,508 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:14:29,349 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:36:42,377 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:36:42,682 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:36:42,964 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 21:36:44,272 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:36:44,539 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:36:44,749 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 21:36:44,827 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 21:36:44,827 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:36:44,827 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:36:45,082 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:36:45,082 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 21:37:53,801 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:37:53,801 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:37:54,144 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:37:54,567 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:37:54,567 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:37:54,963 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:40:36,710 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:40:36,710 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:40:37,132 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:41:00,732 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:41:00,732 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:41:01,262 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:41:07,762 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:41:07,763 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:41:08,093 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:41:08,093 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:41:08,097 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:41:08,419 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:41:56,056 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:41:56,056 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:41:56,405 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:41:56,805 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:41:56,805 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:41:57,139 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:56:56,283 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:56:56,584 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:56:56,798 - __main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 21:56:58,146 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:56:58,412 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:56:58,649 - __mp_main__ - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 21:56:58,712 - backend.main - WARNING - Static assets directory not found at C:\Users\KC\Downloads\Skin Disease UI\frontend\assets. Skipping mount.
+2026-03-29 21:56:58,720 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:56:58,720 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:56:58,988 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:56:58,989 - backend.main - WARNING - [WARNING] MySQL initialization failed. Make sure DB is running.
+2026-03-29 21:57:58,011 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:57:58,011 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:57:58,541 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2026-03-29 21:57:59,077 - backend.db.connection - ERROR - No active connection pool found. Re-initializing...
+2026-03-29 21:57:59,077 - backend.db.connection - INFO - Initializing MySQL connection pool to localhost:3307
+2026-03-29 21:57:59,432 - backend.db.connection - ERROR - Failed to create MySQL pool: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)

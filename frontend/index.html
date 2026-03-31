@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dermatologist - Skin Scanner & Analysis</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="logo-container">
+            <i class="fas fa-microscope logo-icon"></i>
+            <h2>DermaCare <span class="text-gradient">AI</span></h2>
+            <p>Initializing AI Models...</p>
+        </div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="splash-progress"></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <!-- Reusable Header -->
+    <div id="header-container"></div>
+
+    <!-- Dashboard/Landing -->
+    <!-- Premium App Landing Rehaul -->
+    <section id="dashboard" class="hidden fade-in">
+        <div class="container hero">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-star"></i> Trusted by Top Dermatologists
+                </div>
+                <h1>Your Personal <br><span class="text-gradient">AI Dermatologist</span></h1>
+                <p>Instant, accurate skin analysis powered by advanced artificial intelligence. Take a photo to detect
+                    skin diseases, get suggestions, and find specialists near you instantly.</p>
+                <div class="hero-buttons">
+                    <a href="detection.html" class="btn btn-primary btn-lg" id="btn-start-analysis">
+                        <i class="fas fa-camera"></i> Start Skin Scan
+                    </a>
+                    <a href="javascript:void(0)"
+                        onclick="let lmBtn = document.getElementById('how-it-works-btn'); if(lmBtn){lmBtn.click(); document.querySelector('.tab-buttons').scrollIntoView({behavior: 'smooth'})}"
+                        class="btn btn-secondary btn-lg">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                    alt="AI Skin Scanner App" style="border-radius: 20px; border: 8px solid white;">
+            </div>
+        </div>
+
+        <div class="container" style="text-align: center; margin-top: 2rem; margin-bottom: 1rem;">
+            <div class="tab-buttons"
+                style="display: inline-flex; background: var(--white); padding: 0.5rem; border-radius: var(--border-radius-full); box-shadow: var(--shadow-md); gap: 0.5rem;">
+                <button id="how-it-works-btn" class="btn btn-primary tab-btn-main active"
+                    onclick="switchMainTab('how-it-works', this)" style="border: none; padding: 0.75rem 2rem;">How it
+                    Works</button>
+                <button id="features-btn" class="btn btn-secondary tab-btn-main"
+                    onclick="switchMainTab('features', this)"
+                    style="border: none; padding: 0.75rem 2rem; background: transparent; color: var(--text-light); box-shadow: none;">Features</button>
+            </div>
+        </div>
+
+        <div id="how-it-works" class="works-section main-tab-content">
+            <div class="container">
+                <h2 class="text-gradient">How DermaCare AI Works</h2>
+                <p>In simply 3 steps, our AI engine can identify over 50+ common skin conditions and give you actionable
+                    next steps.</p>
+                <br>
+                <div class="works-grid">
+                    <div class="work-step">
+                        <div class="step-number">1</div>
+                        <i class="fas fa-camera fa-2x text-gradient"></i>
+                        <h3>Take a Photo</h3>
+                        <p>Use your smartphone camera or upload an existing image of the skin condition you want to
+                            analyze.</p>
+                    </div>
+                    <div class="work-step">
+                        <div class="step-number">2</div>
+                        <i class="fas fa-brain fa-2x text-gradient"></i>
+                        <h3>AI Analysis</h3>
+                        <p>Our deep learning algorithm instantly processes the image, comparing it against thousands of
+                            medical records.</p>
+                    </div>
+                    <div class="work-step">
+                        <div class="step-number">3</div>
+                        <i class="fas fa-clipboard-check fa-2x text-gradient"></i>
+                        <h3>Get Results & Advice</h3>
+                        <p>Receive an immediate risk assessment, home remedy suggestions, and nearby dermatologist
+                            recommendations.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="features" class="features-section main-tab-content hidden">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Everything you need for <span class="text-gradient">skin health</span></h2>
+                    <p>Comprehensive tools designed for users seeking quick answers and quality care.</p>
+                </div>
+
+                <div class="features-grid">
+                    <a href="detection.html" class="feature-card">
+                        <div class="feature-icon-wrapper bg-blue">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </div>
+                        <h3>Real-Time Camera Scan</h3>
+                        <p>Scan your skin in real-time. The AI will guide you to get the perfect focus and lighting.</p>
+                    </a>
+                    <a href="detection.html" class="feature-card">
+                        <div class="feature-icon-wrapper bg-teal">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <h3>Photo Diagnostics</h3>
+                        <p>Securely upload pictures from your gallery for instant and private AI evaluation.</p>
+                    </a>
+                    <div class="feature-card" id="btn-nearby-suggestions">
+                        <div class="feature-icon-wrapper bg-purple">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <h3>Dermatologist Suggestions</h3>
+                        <p>Our app maps your location to recommend top-rated, certified specialists nearby.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper bg-orange">
+                            <i class="fas fa-book-medical"></i>
+                        </div>
+                        <h3>Remedies & Insights</h3>
+                        <p>Get immediate suggestions on skincare routines, home remedies, and dietary advice.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <div id="footer"></div>
+
+    <!-- Additional Pages like Login, Nearby, Details hidden by default -->
+    <script src="js/footer.js"></script>
+
+    <!-- Additional Pages like Login, Nearby, Details hidden by default -->
+
+
+
+    <script src="js/dermacare-api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        function switchMainTab(tabId, btn) {
+            // Hide all tab content
+            document.querySelectorAll('.main-tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('fade-in');
+            });
+            // Show the selected tab
+            const target = document.getElementById(tabId);
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.add('fade-in');
+            }
+
+            // Update button styles
+            document.querySelectorAll('.tab-btn-main').forEach(el => {
+                el.className = 'btn btn-secondary tab-btn-main';
+                el.style.background = 'transparent';
+                el.style.color = 'var(--text-light)';
+                el.style.boxShadow = 'none';
+            });
+
+            // Set active button
+            btn.className = 'btn btn-primary tab-btn-main active';
+            btn.style.background = 'linear-gradient(135deg, var(--primary-color), var(--accent-color))';
+            btn.style.color = 'var(--white)';
+            btn.style.boxShadow = 'var(--shadow-md)';
+        }
+    </script>
+    <script src="js/header.js"></script>
+</body>
+
+</html>

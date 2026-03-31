@@ -1,0 +1,11 @@
+{
+    "include": [
+        "backend"
+    ],
+    "extraPaths": [
+        "backend"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.useLibraryCodeForTypes": true
+}

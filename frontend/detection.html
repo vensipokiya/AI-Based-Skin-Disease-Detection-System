@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Scan - DermaCare AI</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet.js for Nearby Dermatologist (Free - No API Key Needed) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body style="background-color: #f1f5f9;">
+
+    <!-- Header -->
+    <!-- Reusable Header -->
+    <div id="header-container"></div>
+
+    <!-- Detection Page -->
+    <section id="detection-page" class="fade-in" style="padding: 2rem 0;">
+        <div class="container" style="max-width: 1200px;">
+
+            <div class="detection-header" style="text-align: center; margin-bottom: 3rem;">
+                <h2>AI Skin <span class="text-gradient">Analysis</span></h2>
+                <p>Upload a photo or use your camera for instant diagnostic insight.</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Left: Scanner Box -->
+                <div class="scanner-box" style="margin: 0;">
+                    <div class="scanner-tabs">
+                        <button class="tab-btn active" id="tab-upload" onclick="switchTab('upload')">
+                            <i class="fas fa-image"></i> Upload
+                        </button>
+                        <button class="tab-btn" id="tab-camera" onclick="switchTab('camera')">
+                            <i class="fas fa-camera"></i> Camera
+                        </button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="upload-view">
+                            <div class="upload-area" id="drop-area" onclick="document.getElementById('fileElem').click()">
+                                <div id="upload-content">
+                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                    <h3>Select Image</h3>
+                                    <p style="font-size: 0.85rem;">Drag & Drop or click to browse</p>
+                                    <input type="file" id="fileElem" accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="camera-view" class="hidden">
+                            <div id="camera-initial" style="text-align: center; padding: 2rem 0;">
+                                <i class="fas fa-mobile-alt upload-icon" style="font-size: 2.5rem;"></i>
+                                <p class="mb-4">Allow camera access to scan</p>
+                                <button class="btn btn-primary" onclick="startCamera()">Start Camera</button>
+                            </div>
+                            <div id="camera-ui" class="hidden">
+                                <video id="camera-feed" class="camera-preview" autoplay playsinline style="border-radius: 12px; width: 100%; max-height: 400px; object-fit: cover;"></video>
+                                <canvas id="camera-canvas" style="display: none;"></canvas>
+                                <div class="camera-controls mt-2">
+                                    <button class="btn btn-secondary btn-sm" onclick="stopCameraAndReset()">Cancel</button>
+                                    <button class="btn btn-primary btn-sm" onclick="captureImage()">Capture</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="upload-status" class="mt-4" style="font-weight: 500; text-align: center;"></div>
+                    </div>
+                </div>
+
+                <!-- Right: Instructions -->
+                <div style="background: white; padding: 2rem; border-radius: var(--border-radius-lg); box-shadow: var(--shadow-sm); height: 100%;">
+                    <h3 style="margin-bottom: 1.5rem; font-size: 1.2rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem;">Scanning Guide</h3>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="color: var(--success); font-size: 1rem; margin-bottom: 0.75rem;"><i class="fas fa-check-circle"></i> Best Practices</h4>
+                        <ul style="font-size: 0.9rem; line-height: 1.6; color: var(--text-light); padding-left: 1.2rem;">
+                            <li>Use bright, natural daylight</li>
+                            <li>Wipe your camera lens first</li>
+                            <li>Ensure the area is centered</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 style="color: var(--error); font-size: 1rem; margin-bottom: 0.75rem;"><i class="fas fa-times-circle"></i> Things to Avoid</h4>
+                        <ul style="font-size: 0.9rem; line-height: 1.6; color: var(--text-light); padding-left: 1.2rem;">
+                            <li>Avoid blurry or shaky shots</li>
+                            <li>Don't use flash if too close</li>
+                            <li>Remove any hair or obstructions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <div id="footer"></div>
+
+    <!-- JS functionality -->
+    <script src="js/footer.js"></script>
+    <script src="js/dermacare-api.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/header.js"></script>
+</body>
+
+</html>

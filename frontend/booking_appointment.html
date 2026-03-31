@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Details - DermaCare AI</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body style="background-color: #f1f5f9;">
+
+    <!-- Header -->
+    <!-- Reusable Header -->
+    <div id="header-container"></div>
+
+    <!-- Doctor Details Section -->
+    <section id="dermatologist-details" class="container fade-in" style="padding: 4rem 1rem;">
+        <div class="result-card" style="text-align: left; max-width: 800px;">
+            <button class="btn btn-secondary mb-8" onclick="window.location.href='nearby-dermatologist.html'">&larr;
+                Back to Doctors</button>
+            <br>
+            <br>
+            <div style="display: flex; gap: 2rem; align-items: center; margin-bottom: 3rem;">
+                <div id="doc-detail-img-container"
+                    style="width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); background: linear-gradient(135deg, #2563eb, #38bdf8);">
+                    <i id="doc-detail-icon" class="fas fa-user-md" style="color: white; font-size: 3rem;"></i>
+                </div>
+                <div>
+                    <h2 id="doc-detail-name" style="font-size: 2rem;">Doctor / Clinic Name</h2>
+                    <p id="doc-detail-title"
+                        style="color: var(--text-light); font-size: 1.1rem; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: bold; font-size: 0.85rem; letter-spacing: 1px;">
+                        Specialty
+                    </p>
+                    <p id="doc-detail-rating" style="color: var(--warning);"><i class="fas fa-star"></i> 4.9 (128
+                        reviews)</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem;">
+                <div>
+                    <h3 class="mb-4"
+                        style="color: var(--text-dark); border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: inline-block;">
+                        About</h3>
+                    <p id="doc-detail-about" style="color: var(--text-light); line-height: 1.8; margin-bottom: 2rem;">
+                        This facility is a specialized skin clinic providing comprehensive dermatological care. Our team
+                        of experts focus on both medical and aesthetic dermatology to ensure your skin health is
+                        prioritized.
+                    </p>
+
+                    <h3 class="mb-4"
+                        style="color: var(--text-dark); border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: inline-block;">
+                        Latest Review</h3>
+                    <div
+                        style="background: white; border-left: 4px solid var(--primary-color); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative;">
+                        <i class="fas fa-quote-left"
+                            style="position: absolute; top: 10px; right: 10px; color: #e2e8f0; font-size: 1.5rem;"></i>
+                        <p id="doc-detail-review"
+                            style="color: var(--text-dark); font-style: italic; margin: 0; line-height: 1.6;">
+                            "The best experience I've had with a dermatologist. Very professional and helpful."
+                        </p>
+                        <p style="margin-top: 10px; font-size: 0.8rem; color: var(--text-light); font-weight: 600;">—
+                            Verified Patient</p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="mb-4"
+                        style="color: var(--text-dark); border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: inline-block;">
+                        Location & Contact</h3>
+                    <div
+                        style="background: #fff; padding: 1.5rem; border-radius: var(--border-radius-md); border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                        <p class="mb-4" style="display:flex; gap:0.75rem; align-items: flex-start;">
+                            <i class="fas fa-map-marker-alt"
+                                style="color: var(--primary-color); width: 20px; margin-top: 4px;"></i>
+                            <span id="doc-detail-address"
+                                style="color: var(--text-dark); font-weight: 500;">Address</span>
+                        </p>
+                        <p class="mb-4" style="display:flex; gap:0.75rem; align-items: center;">
+                            <i class="fas fa-phone" style="color: var(--primary-color); width: 20px;"></i>
+                            <span id="doc-detail-phone" style="color: var(--text-dark); font-weight: 500;">Phone</span>
+                        </p>
+                        <p style="display:flex; gap:0.75rem; align-items: center;">
+                            <i class="fas fa-clock" style="color: var(--primary-color); width: 20px;"></i>
+                            <span id="doc-detail-time" style="color: var(--text-dark); font-weight: 500;">Time</span>
+                        </p>
+                    </div>
+
+                    <div
+                        style="margin-top: 2rem; background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+                        <h4
+                            style="font-size: 0.9rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem;">
+                            Clinic Services</h4>
+                        <ul
+                            style="list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; color: #475569;">
+                            <li><i class="fas fa-check-circle" style="color: #10b981; margin-right: 4px;"></i> Acne Care
+                            </li>
+                            <li><i class="fas fa-check-circle" style="color: #10b981; margin-right: 4px;"></i> Skin
+                                Cancer</li>
+                            <li><i class="fas fa-check-circle" style="color: #10b981; margin-right: 4px;"></i> Laser
+                                Therapy</li>
+                            <li><i class="fas fa-check-circle" style="color: #10b981; margin-right: 4px;"></i>
+                                Consultations</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #e2e8f0; margin-top: 3rem; padding-top: 2rem; text-align: center;">
+                <button onclick="window.location.href='confirm_booking.html'" class="btn btn-primary btn-lg"
+                    style="width: 100%; max-width: 400px; margin: 0 auto; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);">
+                    <i class="fas fa-calendar-check"></i> Proceed to Booking
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- JS functionality -->
+    <script src="js/main.js"></script>
+    <script>
+        // Populate doctor data on load if available in localStorage
+        window.addEventListener('DOMContentLoaded', () => {
+            const dataStr = localStorage.getItem('selectedDoctorDetails');
+            if (dataStr) {
+                try {
+                    const data = JSON.parse(dataStr);
+                    // Populate Details
+                    document.getElementById('doc-detail-name').innerText = data.name;
+                    document.getElementById('doc-detail-address').innerText = data.address || 'N/A';
+                    document.getElementById('doc-detail-phone').innerText = data.phone || 'N/A';
+                    document.getElementById('doc-detail-time').innerText = data.time || 'N/A';
+                    document.getElementById('doc-detail-rating').innerHTML = `<i class="fas fa-star"></i> ${data.rating || '4.5'} (${data.reviews || '0'} reviews)`;
+                    if (data.review) {
+                        document.getElementById('doc-detail-review').innerText = `"${data.review}"`;
+                    }
+
+                    if (data.isSpecialist) {
+                        document.getElementById('doc-detail-title').innerText = 'Skin Specialist / Surgeon';
+                        document.getElementById('doc-detail-img-container').style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+                    } else {
+                        document.getElementById('doc-detail-title').innerText = 'General Dermatologist';
+                        document.getElementById('doc-detail-img-container').style.background = 'linear-gradient(135deg, #2563eb, #38bdf8)';
+                    }
+                } catch (e) {
+                    console.error("Error populating booking page", e);
+                }
+            }
+        });
+    </script>
+    <div id="footer"></div>
+    <script src="js/footer.js"></script>
+    <script src="js/header.js"></script>
+</body>
+
+</html>

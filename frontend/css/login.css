@@ -1,0 +1,95 @@
+/* Warning Banner for unregistered email */
+.login-warning-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #fff5f5, #fed7d7);
+    border: 1px solid #fc8181;
+    border-left: 4px solid #e53e3e;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+    animation: shakeIn 0.5s ease-out;
+}
+
+.login-warning-banner .warning-icon {
+    color: #e53e3e;
+    font-size: 1.25rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.login-warning-banner .warning-text strong {
+    color: #c53030;
+    font-size: 0.95rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.login-warning-banner .warning-text p {
+    color: #742a2a;
+    font-size: 0.85rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.login-warning-banner .warning-text a {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.login-warning-banner .warning-text a:hover {
+    color: #1d4ed8;
+}
+
+.login-warning-banner.hidden {
+    display: none;
+}
+
+/* Forgot Password Link */
+.forgot-password-link {
+    text-align: right;
+    margin-top: 0.4rem;
+}
+
+.forgot-password-link a {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.forgot-password-link a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+@keyframes shakeIn {
+    0% {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+
+    25% {
+        transform: translateX(8px);
+    }
+
+    50% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(3px);
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

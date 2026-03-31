@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - DermaCare</title>
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Component CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body style="background-color: #f8fafc;">
+
+    <!-- Main Admin Dashboard -->
+    <div id="admin-dashboard" style="display: none;">
+        <!-- Admin Sidebar -->
+        <nav class="admin-sidebar" id="admin-sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" style="text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fas fa-microscope" style="color: #2563eb; font-size: 1.5rem;"></i>
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">DermaCare <span style="background: linear-gradient(135deg, #2563eb, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI</span></h2>
+                </a>
+            </div>
+
+
+            <ul class="sidebar-menu">
+                <li class="active" onclick="switchAdminTab('users')">
+                    <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
+                </li>
+                <li onclick="switchAdminTab('scans')">
+                    <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
+                </li>
+                <li onclick="switchAdminTab('medical')">
+                    <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
+                </li>
+                <li onclick="switchAdminTab('appointments')">
+                    <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
+                </li>
+                <li onclick="switchAdminTab('activity')">
+                    <i class="fas fa-chart-line"></i> <span class="nav-text">System Logs</span>
+                </li>
+                <li onclick="switchAdminTab('locations')">
+                    <i class="fas fa-map-marker-alt"></i> <span class="nav-text">User Locations</span>
+                </li>
+                <li onclick="switchAdminTab('otps')">
+                    <i class="fas fa-key"></i> <span class="nav-text">OTP Verifications</span>
+                </li>
+
+            </ul>
+
+            <div class="sidebar-footer">
+                <p class="admin-email" id="admin-active-email">[EMAIL_ADDRESS]</p>
+                <button class="btn btn-secondary w-100" onclick="logoutAdmin()">
+                    <i class="fas fa-sign-out-alt"></i> <span class="nav-text">Secure Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="admin-content">
+            <header class="content-header">
+                <h1 id="page-title">User Management</h1>
+                <div class="header-actions">
+                    <button id="refresh-btn" class="btn btn-primary" onclick="adminLoadUsers()"><i class="fas fa-sync-alt"></i> Refresh
+                        Data</button>
+                </div>
+            </header>
+
+            <div class="content-body" id="admin-users-view">
+                <div class="admin-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Email Address</th>
+                                    <th>Age</th>
+                                    <th>DOB</th>
+                                    <th>Phone</th>
+                                    <th>Patient Area</th>
+                                    <th>Status</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body">
+                                <tr>
+                                    <td colspan="9" class="text-center">Loading users...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body" id="admin-scans-view" style="display: none;">
+                <div class="admin-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Disease</th>
+                                    <th>Confidence</th>
+                                    <th>Conditions Details</th>
+                                    <th>Scan Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scan-table-body">
+                                <tr>
+                                    <td colspan="8" class="text-center">Loading scan history...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body" id="admin-medical-view" style="display: none;">
+                <div class="admin-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Symptoms</th>
+                                    <th>Duration</th>
+                                    <th>Prev. Condition</th>
+                                    <th>Prev. Details</th>
+                                    <th>Created Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="medical-table-body">
+                                <tr>
+                                    <td colspan="8" class="text-center">Loading medical profiles...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body" id="admin-appointments-view" style="display: none;">
+                <div class="admin-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Doctor Name</th>
+                                    <th>Specialty</th>
+                                    <th>Area/Location</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointments-table-body">
+                                <tr>
+                                    <td colspan="9" class="text-center">Loading appointments...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body" id="admin-activity-view" style="display: none;">
+                <div class="admin-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin:0;"><i class="fas fa-terminal"></i> System Activity Logs</h3>
+                        <button class="btn btn-secondary" style="color: #ef4444; border-color: #fca5a5;" onclick="adminClearLogs()">
+                            <i class="fas fa-trash-alt"></i> Clear Logs
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User Email</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center">Loading logs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body" id="admin-locations-view" style="display: none;">
+                <div class="admin-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Patient Name</th>
+                                    <th>Email</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="locations-table-body">
+                                <tr>
+                                    <td colspan="6" class="text-center">Loading locations...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-body" id="admin-otps-view" style="display: none;">
+                <div class="admin-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Contact</th>
+                                    <th>OTP Code</th>
+                                    <th>Expires At</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody id="otps-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center">Loading OTP records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Admin Logic -->
+    <script src="js/admin.js"></script>
+</body>
+
+</html>
