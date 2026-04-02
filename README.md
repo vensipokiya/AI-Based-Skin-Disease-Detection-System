@@ -252,12 +252,6 @@ The admin dashboard provides full control over the platform:
 | 📋 System Logs | Audit trail of all system activity |
 | 🔑 OTP Records | View OTP verification history |
 
-**Default Admin Credentials:**
-```
-Email:    admin@gmail.com
-Password: Admin@1234
-```
-
 ---
 
 ## 🔌 API Endpoints
