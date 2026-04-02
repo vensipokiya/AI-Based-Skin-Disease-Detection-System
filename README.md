@@ -336,27 +336,6 @@ erDiagram
     }
 ```
 
----
-
-## 🖼️ Screenshots
-
-### 🏠 Home Page
-> Modern landing page with hero section, feature cards, and how-it-works guide
-
-### 🔬 AI Scanner
-> Upload or capture skin images for real-time AI analysis
-
-### 📊 Scan Results
-> Split-panel result view with confidence breakdown, remedies, and doctor recommendations
-
-### 🗺️ Nearby Dermatologists
-> Interactive map view with doctor cards, ratings, and one-click booking
-
-### 🛡️ Admin Dashboard
-> Full-featured admin panel with tabbed navigation for all data management
-
----
-
 ## 🧪 Tech Specifications
 
 | Component | Technology |
@@ -375,7 +354,8 @@ erDiagram
 
 ## 👥 Contributors
 
-- **Vensi Pokiya** — Full-Stack Developer & ML Engineer
+- **Vensi Pokiya**
+- Nakshi Patel
 
 ---
 
