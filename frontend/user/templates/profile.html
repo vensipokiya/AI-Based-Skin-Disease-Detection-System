@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - DermaCare AI</title>
+    <meta name="description"
+        content="Manage your DermaCare AI profile — update personal information, contact details, and change your password.">
+
+    <!-- External Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/static/shared/css/header.css">
+    <link rel="stylesheet" href="/static/shared/css/footer.css">
+    <link rel="stylesheet" href="/static/user/css/user_profile.css">
+</head>
+
+<body>
+
+    <!-- ── Reusable Header ── -->
+    <div id="header-container"></div>
+
+    <!-- ── Toast Notifications ── -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ── Dashboard Layout ── -->
+    <main class="dashboard-container">
+
+        <!-- ════════════════════════════════
+             SIDEBAR
+        ════════════════════════════════ -->
+        <aside class="sidebar">
+
+            <!-- User Mini-Card -->
+            <div class="sidebar-user">
+                <div class="sidebar-avatar-wrap">
+                    <img src="https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=100&bold=true"
+                        id="sidebar-avatar" alt="User Avatar">
+                    <span class="sidebar-online-dot"></span>
+                </div>
+                <div class="sidebar-user-info">
+                    <h3 id="sidebar-name">Loading…</h3>
+                    <p id="sidebar-email">Loading…</p>
+                </div>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Navigation Menu -->
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="/" id="nav-dashboard">
+                        <i class="fas fa-th-large"></i> Dashboard
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/profile" id="nav-profile">
+                        <i class="fas fa-user-shield"></i> My Profile
+                    </a>
+                </li>
+                <li>
+                    <a href="/history" id="nav-history">
+                        <i class="fas fa-clock-rotate-left"></i> Scan History
+                    </a>
+                </li>
+                <li>
+                    <a href="/detect" id="nav-scan">
+                        <i class="fas fa-microscope"></i> AI Scanner
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="nav-help">
+                        <i class="fas fa-circle-question"></i> Help
+                    </a>
+                </li>
+                <li class="logout-item">
+                    <a href="#" class="logout-btn-trigger" id="nav-logout">
+                        <i class="fas fa-right-from-bracket"></i> Logout
+                    </a>
+                </li>
+            </ul>
+
+        </aside>
+
+        <!-- ════════════════════════════════
+             MAIN PROFILE CONTENT
+        ════════════════════════════════ -->
+        <div class="profile-content">
+
+            <!-- Page Title -->
+            <div class="profile-page-title">
+                <div>
+                    <h2>My Profile</h2>
+                    <p>Manage your personal information and account settings</p>
+                </div>
+            </div>
+
+            <!-- ── Profile Info Card ── -->
+            <div class="profile-card">
+
+                <!-- Left: Avatar Column -->
+                <div class="avatar-section">
+                    <div class="profile-avatar-container">
+                        <img src="https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=200&bold=true"
+                            id="profile-avatar" class="profile-avatar-large" alt="Profile Avatar">
+                        <button class="btn-edit-avatar" title="Change avatar" type="button">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+
+                    <span class="avatar-name" id="avatar-display-name">Loading…</span>
+                    <span class="status-badge">Active</span>
+
+                    <div class="avatar-section-divider"></div>
+
+                    <!-- Quick Stats -->
+                    <div class="sidebar-stats">
+                        <div class="sidebar-stat">
+                            <span class="sidebar-stat-label"><i class="fas fa-venus-mars"
+                                    style="margin-right:0.4rem;color:#2563eb;"></i>Gender</span>
+                            <span class="sidebar-stat-value" id="stat-gender">—</span>
+                        </div>
+                        <div class="sidebar-stat">
+                            <span class="sidebar-stat-label"><i class="fas fa-birthday-cake"
+                                    style="margin-right:0.4rem;color:#2563eb;"></i>Age</span>
+                            <span class="sidebar-stat-value" id="stat-age">—</span>
+                        </div>
+                        <div class="sidebar-stat">
+                            <span class="sidebar-stat-label"><i class="fas fa-phone"
+                                    style="margin-right:0.4rem;color:#2563eb;"></i>Phone</span>
+                            <span class="sidebar-stat-value" id="stat-phone">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Form -->
+                <form class="profile-form-grid" id="profile-form" novalidate>
+
+                    <!-- Personal Info Section -->
+                    <div class="form-section">
+                        <div class="form-section-heading">
+                            <i class="fas fa-user"></i> Personal Information
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="prof-firstname">First Name</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="prof-firstname" placeholder="First name"
+                                        autocomplete="given-name">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prof-lastname">Last Name</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="prof-lastname" placeholder="Last name"
+                                        autocomplete="family-name">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="margin-top:1.25rem;">
+                            <div class="form-group">
+                                <label for="prof-email">Email Address</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-envelope"></i>
+                                    <input type="email" id="prof-email" placeholder="Email" readonly
+                                        autocomplete="email">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prof-phone">Phone Number</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-phone"></i>
+                                    <input type="tel" id="prof-phone" placeholder="+91 XXXXX XXXXX" autocomplete="tel">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medical / Personal Details Section -->
+                    <div class="form-section">
+                        <div class="form-section-heading">
+                            <i class="fas fa-notes-medical"></i> Personal Details
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="prof-dob">Date of Birth</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <input type="date" id="prof-dob" autocomplete="bday">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prof-age">Age</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-hashtag"></i>
+                                    <input type="number" id="prof-age" placeholder="Age" min="1" max="120">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="margin-top:1.25rem;">
+                            <div class="form-group">
+                                <label for="prof-gender">Gender</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-venus-mars"></i>
+                                    <select id="prof-gender">
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                        <option value="prefer-not">Prefer not to say</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prof-location">Location (City)</label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <input type="text" id="prof-location" placeholder="City / State" autocomplete="address-level2">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save / Cancel Actions -->
+                    <div class="profile-form-actions">
+                        <button type="submit" class="btn-save-profile" id="btn-save-profile">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn-cancel-profile" id="btn-cancel-profile">
+                            Cancel
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- ── Change Password Card ── -->
+            <div class="password-card">
+                <h3><i class="fas fa-lock"></i> Change Password</h3>
+
+                <form id="password-form" novalidate>
+                    <div class="password-form-row">
+                        <div class="form-group">
+                            <label for="pw-current">Current Password</label>
+                            <div class="input-with-icon" style="position:relative;">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="pw-current" placeholder="Current password"
+                                    autocomplete="current-password">
+                                <button type="button"
+                                    style="position:absolute;right:0.75rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;"
+                                    onclick="togglePasswordVis('pw-current', this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="pw-new">New Password</label>
+                            <div class="input-with-icon" style="position:relative;">
+                                <i class="fas fa-key"></i>
+                                <input type="password" id="pw-new" placeholder="New password (min. 8 chars)"
+                                    autocomplete="new-password">
+                                <button type="button"
+                                    style="position:absolute;right:0.75rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;"
+                                    onclick="togglePasswordVis('pw-new', this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="pw-confirm">Confirm Password</label>
+                            <div class="input-with-icon" style="position:relative;">
+                                <i class="fas fa-key"></i>
+                                <input type="password" id="pw-confirm" placeholder="Re-enter new password"
+                                    autocomplete="new-password">
+                                <button type="button"
+                                    style="position:absolute;right:0.75rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;"
+                                    onclick="togglePasswordVis('pw-confirm', this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-form-actions" style="margin-top:1.25rem;">
+                        <button type="submit" class="btn-save-profile" id="btn-change-password">
+                            <i class="fas fa-key"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div><!-- /.profile-content -->
+
+    </main>
+
+    <!-- ── Avatar Selection Modal ── -->
+    <div id="avatar-modal" class="avatar-modal-overlay">
+        <div class="avatar-modal-content">
+            <div class="avatar-modal-header">
+                <h3>Update Profile Picture</h3>
+                <button type="button" class="btn-close-modal" id="btn-close-avatar-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="avatar-modal-body">
+                <div class="avatar-options-grid" id="avatar-options-grid">
+                    <button type="button" class="avatar-option-card" id="btn-upload-photo">
+                        <div class="icon-circle"><i class="fas fa-upload"></i></div>
+                        <h4>Upload Photo</h4>
+                        <p>Choose from your device</p>
+                    </button>
+                    <button type="button" class="avatar-option-card" id="btn-take-photo">
+                        <div class="icon-circle"><i class="fas fa-camera"></i></div>
+                        <h4>Take Photo</h4>
+                        <p>Use your camera</p>
+                    </button>
+                </div>
+
+                <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;">
+
+                <div class="camera-container" id="camera-container">
+                    <video id="camera-stream" autoplay playsinline></video>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                    <div class="camera-controls">
+                        <button type="button" class="btn-capture" id="btn-capture-photo">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button type="button" class="btn-cancel-cam" id="btn-cancel-camera">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Footer ── -->
+    <div id="footer"></div>
+
+    <!-- ── Scripts ── -->
+    <script src="/static/shared/js/dermacare-api.js"></script>
+    <script src="/static/shared/js/footer.js"></script>
+    <script src="/static/shared/js/header.js"></script>
+    <script src="/static/user/js/user_profile.js"></script>
+
+</body>
+
+</html>

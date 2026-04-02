@@ -9,19 +9,19 @@ except ImportError:
     pass
 
 class Config:
-    DATABASE_URL = os.environ.get("DATABASE_URL", "mysql+mysqlconnector://root:password@localhost:3307/dermacare_db")
-    JWT_SECRET = os.environ.get("JWT_SECRET", "DERMACARE_SECRET_2026")
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    JWT_SECRET = os.environ.get("JWT_SECRET")
     
     SMTP_CONFIG = {
-        "server": os.environ.get("SMTP_SERVER", "smtp.gmail.com"),
+        "server": os.environ.get("SMTP_SERVER"),
         "port": int(os.environ.get("SMTP_PORT", 587)),
-        "user": os.environ.get("SMTP_USER", ""),
-        "password": os.environ.get("SMTP_PASSWORD", ""),
+        "user": os.environ.get("SMTP_USER"),
+        "password": os.environ.get("SMTP_PASSWORD"),
         "use_tls": True
     }
     
     # Development bypass settings
     ADMIN_BYPASS = {
-        "email": os.environ.get("ADMIN_BYPASS_EMAIL", "admin@gmail.com"),
-        "password": os.environ.get("ADMIN_BYPASS_PW", "Admin@1234")
+        "email": os.environ.get("ADMIN_BYPASS_EMAIL"),
+        "password": os.environ.get("ADMIN_BYPASS_PW")
     }

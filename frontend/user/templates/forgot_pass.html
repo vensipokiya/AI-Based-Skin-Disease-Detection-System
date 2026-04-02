@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password - DermaCare AI</title>
+    <meta name="description"
+        content="Reset your DermaCare AI account password securely via email or phone number verification.">
+    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/static/shared/css/header.css">
+    <link rel="stylesheet" href="/static/shared/css/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/user/css/forgot_pass.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <div id="header-container"></div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Forgot Password Page -->
+    <section id="forgot-page" class="fade-in">
+        <div class="forgot-card">
+
+            <!-- Step Progress Indicator -->
+            <div class="steps-indicator">
+                <div class="step-dot active" id="dot-1">1</div>
+                <div class="step-line" id="line-1"></div>
+                <div class="step-dot" id="dot-2">2</div>
+                <div class="step-line" id="line-2"></div>
+                <div class="step-dot" id="dot-3">3</div>
+                <div class="step-line" id="line-3"></div>
+                <div class="step-dot" id="dot-4">4</div>
+            </div>
+            <div class="step-labels">
+                <span class="step-label active" id="label-1">Identify</span>
+                <span class="step-label" id="label-2" style="width:60px;text-align:center;">Verify</span>
+                <span class="step-label" id="label-3" style="width:60px;text-align:center;">Reset</span>
+                <span class="step-label" id="label-4">Done</span>
+            </div>
+
+            <!-- ===================== STEP 1: Identify Contact ===================== -->
+            <div class="step-panel active" id="step-1">
+                <div class="forgot-header">
+                    <div class="forgot-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <h2>Forgot Password?</h2>
+                    <p>No worries! Choose how you'd like to receive your verification token.</p>
+                </div>
+
+                <div class="method-selector">
+                    <button class="method-btn selected" id="method-email-btn" onclick="selectMethod('email')"
+                        type="button">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email</span>
+                    </button>
+                    <button class="method-btn" id="method-phone-btn" onclick="selectMethod('phone')" type="button">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>Phone</span>
+                    </button>
+                </div>
+
+                <!-- Email Input -->
+                <div class="fp-group" id="email-input-group">
+                    <label for="fp-email">Email Address</label>
+                    <div class="fp-input-wrap">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="fp-email" placeholder="name@example.com" autocomplete="email">
+                    </div>
+                    <span class="fp-error" id="err-fp-email"></span>
+                </div>
+
+                <!-- Phone Input -->
+                <div class="fp-group" id="phone-input-group" style="display:none;">
+                    <label for="fp-phone">Phone Number</label>
+                    <div class="fp-input-wrap">
+                        <i class="fas fa-phone"></i>
+                        <input type="tel" id="fp-phone" placeholder="+91 98765 43210" autocomplete="tel">
+                    </div>
+                    <span class="fp-error" id="err-fp-phone"></span>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <div>We'll send a <strong>6-digit OTP</strong> to verify your identity. The code expires in
+                        <strong>10 minutes</strong>.
+                    </div>
+                </div>
+
+                <button class="fp-btn fp-btn-primary" id="btn-send-otp" onclick="sendOTP()">
+                    <i class="fas fa-paper-plane"></i> Send Verification Code
+                </button>
+
+                <div class="back-to-login">
+                    <a href="/login"><i class="fas fa-arrow-left"></i> Back to Sign In</a>
+                </div>
+            </div>
+
+            <!-- ===================== STEP 2: Verify OTP ===================== -->
+            <div class="step-panel" id="step-2">
+                <div class="forgot-header">
+                    <div class="forgot-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h2>Verify Your Identity</h2>
+                    <p id="otp-sent-text">Enter the 6-digit code sent to your email.</p>
+                </div>
+
+                <div class="otp-container">
+                    <input type="text" class="otp-input" maxlength="1" id="otp-0" inputmode="numeric" pattern="[0-9]*"
+                        aria-label="OTP digit 1">
+                    <input type="text" class="otp-input" maxlength="1" id="otp-1" inputmode="numeric" pattern="[0-9]*"
+                        aria-label="OTP digit 2">
+                    <input type="text" class="otp-input" maxlength="1" id="otp-2" inputmode="numeric" pattern="[0-9]*"
+                        aria-label="OTP digit 3">
+                    <input type="text" class="otp-input" maxlength="1" id="otp-3" inputmode="numeric" pattern="[0-9]*"
+                        aria-label="OTP digit 4">
+                    <input type="text" class="otp-input" maxlength="1" id="otp-4" inputmode="numeric" pattern="[0-9]*"
+                        aria-label="OTP digit 5">
+                    <input type="text" class="otp-input" maxlength="1" id="otp-5" inputmode="numeric" pattern="[0-9]*"
+                        aria-label="OTP digit 6">
+                </div>
+                <p class="otp-hint">Enter each digit separately</p>
+                <span class="fp-error" id="err-otp" style="text-align:center;display:block;margin-top:0.25rem;"></span>
+
+                <div class="resend-area">
+                    <p>Didn't receive the code?
+                        <button class="resend-btn" id="btn-resend" onclick="resendOTP()" disabled>
+                            Resend in <span id="resend-timer">60s</span>
+                        </button>
+                    </p>
+                </div>
+
+                <button class="fp-btn fp-btn-primary" id="btn-verify-otp" onclick="verifyOTP()"
+                    style="margin-top:1.25rem;">
+                    <i class="fas fa-check-circle"></i> Verify Code
+                </button>
+                <button class="fp-btn fp-btn-secondary" onclick="goToStep(1)">
+                    <i class="fas fa-chevron-left"></i> Change Contact Info
+                </button>
+            </div>
+
+            <!-- ===================== STEP 3: Set New Password ===================== -->
+            <div class="step-panel" id="step-3">
+                <div class="forgot-header">
+                    <div class="forgot-icon">
+                        <i class="fas fa-lock-open"></i>
+                    </div>
+                    <h2>Create New Password</h2>
+                    <p>Your identity is confirmed. Set a strong new password below.</p>
+                </div>
+
+                <div class="fp-group">
+                    <label for="fp-new-password">New Password</label>
+                    <div class="fp-input-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="fp-new-password" placeholder="Min. 8 characters"
+                            autocomplete="new-password" oninput="checkStrength()">
+                        <button class="toggle-pass" type="button" onclick="toggleVis('fp-new-password', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="strength-bar" id="strength-bar">
+                        <span id="s1"></span>
+                        <span id="s2"></span>
+                        <span id="s3"></span>
+                        <span id="s4"></span>
+                    </div>
+                    <div class="strength-text" id="strength-text"></div>
+                    <span class="fp-error" id="err-new-password"></span>
+                </div>
+
+                <div class="fp-group">
+                    <label for="fp-confirm-password">Confirm New Password</label>
+                    <div class="fp-input-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="fp-confirm-password" placeholder="Re-enter new password"
+                            autocomplete="new-password">
+                        <button class="toggle-pass" type="button" onclick="toggleVis('fp-confirm-password', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="fp-error" id="err-confirm-password"></span>
+                </div>
+
+                <div class="info-box">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>Use at least <strong>8 characters</strong> with a mix of letters, numbers &amp; symbols for
+                        maximum security.</div>
+                </div>
+
+                <button class="fp-btn fp-btn-primary" id="btn-reset-password" onclick="resetPassword()">
+                    <i class="fas fa-save"></i> Save New Password
+                </button>
+            </div>
+
+            <!-- ===================== STEP 4: Success ===================== -->
+            <div class="step-panel" id="step-4">
+                <div class="success-screen">
+                    <i class="fas fa-check-circle big-icon"></i>
+                    <h3>Password Reset Successful!</h3>
+                    <p>Your password has been updated. You'll be redirected to the login page automatically.</p>
+
+                    <div class="auto-redirect-bar">
+                        <div class="auto-redirect-progress" id="redirect-progress"></div>
+                    </div>
+                    <p class="redirect-note" id="redirect-countdown">Redirecting in 5 seconds…</p>
+
+                    <button class="fp-btn fp-btn-success" onclick="window.location.href='login.html'"
+                        style="margin-top:1.5rem;">
+                        <i class="fas fa-sign-in-alt"></i> Go to Login Now
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /.forgot-card -->
+    </section>
+
+    <div id="footer"></div>
+    <script src="/static/shared/js/footer.js"></script>
+    <script src="/static/shared/js/header.js"></script>
+    <script src="/static/shared/js/dermacare-api.js"></script>
+    <script src="/static/shared/js/dermacare-api.js"></script>
+    <script src="/static/user/js/forgot_pass.js"></script>
+</body>
+
+</html>

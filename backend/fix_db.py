@@ -5,7 +5,9 @@ import re
 # Ports to try
 ports = [3307, 3306]
 # Passwords to try (Include root as both user/pass)
-passwords = ["root", "password", "Admin@123", "admin", "1234", "123456", ""]
+default_passwords = "root,password,Admin@123,admin,1234,123456"
+passwords = os.environ.get("TEST_DB_PASSWORDS", default_passwords).split(",")
+passwords.append("")
 db_name = "dermacare_db"
 
 def update_env(port, password):

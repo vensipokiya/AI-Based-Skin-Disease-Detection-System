@@ -8,7 +8,7 @@ load_dotenv(env_path)
 
 db_host = os.environ.get("DB_HOST", "localhost")
 db_user = os.environ.get("DB_USER", "root")
-db_pass = os.environ.get("DB_PASSWORD", "MySQL2573")
+db_pass = os.environ.get("DB_PASSWORD", "")
 db_name = os.environ.get("DB_NAME", "darmacare_db")
 db_port = int(os.environ.get("DB_PORT", 3306))
 

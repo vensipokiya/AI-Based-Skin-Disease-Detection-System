@@ -1,0 +1,48 @@
+# Large ML model files (exceed GitHub 100MB limit)
+*.h5
+*.hdf5
+*.pkl
+*.pt
+*.pth
+*.onnx
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+backend/logs/
+
+# Environment variables
+.env
+
+# Temporary debug scripts
+backend/fix_history_table.py
+backend/count_history.py
+backend/list_users.py
+backend/check_dbs.py
+backend/test_login_history.py
+
+# Uploaded user files
+backend/app/uploads/user_uploads/*
+!backend/app/uploads/user_uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db

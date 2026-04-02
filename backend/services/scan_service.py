@@ -1,6 +1,7 @@
 from backend.dao.scan_dao import ScanDao, LocationDao
 from backend.dao.user_dao import UserDao
 import json
+import base64
 from typing import Optional, Dict, Any
 
 class ScanService:
@@ -9,11 +10,11 @@ class ScanService:
         self.user_dao = user_dao if user_dao else UserDao()
         self.location_dao = LocationDao(self.scan_dao.db)
 
-    def save_scan(self, user_id: int, disease: str, confidence: float, remedies: dict) -> dict:
+    def save_scan(self, user_id: int, disease: str, confidence: float, remedies: dict, image_bytes: bytes = None) -> dict:
         user = self.user_dao.get_user_by_id(user_id)
         user_name = f"{user['first_name']} {user['last_name']}" if user else "Unknown User"
         
-        scan_id = self.scan_dao.save_scan(user_id, user_name, disease, confidence, remedies)
+        scan_id = self.scan_dao.save_scan(user_id, user_name, disease, confidence, remedies, image_bytes)
         if scan_id:
              return {"success": True, "scan_id": scan_id}
         return {"success": False, "error": "Database error"}
@@ -28,11 +29,17 @@ class ScanService:
                 try: remedies_data = json.loads(remedies_data)
                 except: remedies_data = None
             
+            # Image data handling: Convert BLOB to Base64
+            img_b64 = None
+            if row.get("image_data"):
+                img_b64 = base64.b64encode(row["image_data"]).decode("utf-8")
+            
             history.append({
                 "id": row["id"],
                 "disease": row["disease"],
                 "confidence": row["confidence"],
                 "remedies": remedies_data,
+                "image_data": img_b64,
                 "date": row["scan_date"].isoformat() if hasattr(row["scan_date"], 'isoformat') else str(row["scan_date"])
             })
             

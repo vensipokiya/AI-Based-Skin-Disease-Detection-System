@@ -129,3 +129,23 @@ class UserDao:
         finally:
             if conn: conn.close()
         return False
+
+    def update_user_profile(self, user_id: int, fname: str, lname: str, phone: str, dob: str, age: int, gender: str, location: str) -> bool:
+        conn = self.db.get_connection()
+        if not conn: return False
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE users 
+                SET first_name = %s, last_name = %s, contact_number = %s, 
+                    date_of_birth = %s, age = %s, gender = %s, user_location = %s
+                WHERE id = %s
+            """, (fname, lname, phone, dob, age, gender, location, user_id))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"DAO Error updating profile: {e}")
+            return False
+        finally:
+            if conn: conn.close()
+        return False

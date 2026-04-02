@@ -1,11 +1,12 @@
 import mysql.connector
+import os
 
 try:
     conn = mysql.connector.connect(
-        host="localhost",
-        port=3306,
-        user="root",
-        password="root",
+        host=os.environ.get("DB_HOST", "localhost"),
+        port=int(os.environ.get("DB_PORT", 3306)),
+        user=os.environ.get("DB_USER", "root"),
+        password=os.environ.get("DB_PASSWORD", ""),
         charset='utf8'
     )
     cursor = conn.cursor()

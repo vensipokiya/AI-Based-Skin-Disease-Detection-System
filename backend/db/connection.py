@@ -33,8 +33,8 @@ class DatabaseSingleton:
         try:
             db_config = {
                 "host": os.environ.get("DB_HOST", "localhost"),
-                "user": os.environ.get("DB_USER", "root"),
-                "password": os.environ.get("DB_PASSWORD", "password"), 
+                "user": os.environ.get("DB_USER"),
+                "password": os.environ.get("DB_PASSWORD"), 
                 "database": os.environ.get("DB_NAME", "dermacare_db"),
                 "port": int(os.environ.get("DB_PORT", 3307)),
                 "charset": "utf8",
@@ -125,6 +125,7 @@ class DatabaseSingleton:
                         disease VARCHAR(100) NOT NULL,
                         confidence FLOAT NOT NULL,
                         remedies TEXT,
+                        image_data LONGBLOB,
                         scan_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                     )
@@ -199,6 +200,24 @@ class DatabaseSingleton:
             except mysql.connector.Error as err:
                 logger.warning(f"System Logs table sync warning: {err}")
 
+            # User Login History
+            try:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS user_login_history (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT,
+                        session_id VARCHAR(255),
+                        login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        logout_time TIMESTAMP NULL,
+                        device_info VARCHAR(255),
+                        ip_address VARCHAR(100),
+                        status ENUM('LOGIN','LOGOUT','ACTIVE') DEFAULT 'LOGIN',
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                """)
+            except mysql.connector.Error as err:
+                logger.warning(f"User Login History table sync warning: {err}")
+
             # -- AUTO MIGRATION LOGIC --
             # Ensure users.user_location column exists
             try:
@@ -221,6 +240,17 @@ class DatabaseSingleton:
                     cursor.fetchall() # Consume
             except Exception as migrate_err:
                 logger.debug(f"Migration check skipped for scans: {migrate_err}")
+            
+            # Ensure scan_history.image_data column exists
+            try:
+                cursor.execute("SHOW COLUMNS FROM scan_history LIKE 'image_data'")
+                if not cursor.fetchone():
+                    logger.info("Auto-Migration: Adding 'image_data' column to 'scan_history' table.")
+                    cursor.execute("ALTER TABLE scan_history ADD COLUMN image_data LONGBLOB")
+                else:
+                    cursor.fetchall()
+            except Exception as migrate_err:
+                logger.debug(f"Migration check skipped for image_data: {migrate_err}")
 
             conn.commit()
             logger.info("All MySQL database tables and migrations are synchronized.")

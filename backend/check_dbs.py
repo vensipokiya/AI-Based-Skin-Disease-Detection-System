@@ -17,4 +17,5 @@ def check_databases(port, user, password):
     except Exception as e:
         print(f"[FAIL] {e}")
 
-check_databases(3306, "root", "root")
+import os
+check_databases(int(os.environ.get("DB_PORT", 3306)), os.environ.get("DB_USER", "root"), os.environ.get("DB_PASSWORD", ""))

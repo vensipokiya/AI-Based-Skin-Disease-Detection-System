@@ -9,16 +9,16 @@ class ScanDao:
     def __init__(self, db=None):
         self.db = db if db else DatabaseSingleton()
 
-    def save_scan(self, user_id: int, user_name: str, disease: str, confidence: float, remedies: dict) -> Optional[int]:
+    def save_scan(self, user_id: int, user_name: str, disease: str, confidence: float, remedies: dict, image_data: bytes = None) -> Optional[int]:
         conn = self.db.get_connection()
         if not conn: return None
         try:
             cursor = conn.cursor()
             remedies_json = json.dumps(remedies) if remedies else None
             cursor.execute("""
-                INSERT INTO scan_history (user_id, user_name, disease, confidence, remedies) 
-                VALUES (%s, %s, %s, %s, %s)
-            """, (user_id, user_name, disease, confidence, remedies_json))
+                INSERT INTO scan_history (user_id, user_name, disease, confidence, remedies, image_data) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (user_id, user_name, disease, confidence, remedies_json, image_data))
             scan_id = cursor.lastrowid
             conn.commit()
             return scan_id
@@ -35,7 +35,7 @@ class ScanDao:
         try:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
-                SELECT id, disease, confidence, remedies, scan_date 
+                SELECT id, disease, confidence, remedies, image_data, scan_date 
                 FROM scan_history 
                 WHERE user_id = %s 
                 ORDER BY scan_date DESC

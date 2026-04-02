@@ -65,3 +65,18 @@ CREATE TABLE IF NOT EXISTS user_locations (
     PRIMARY KEY (id),
     FOREIGN KEY (uid) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- -----------------------------------------------------
+-- Table `user_login_history`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_login_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    session_id VARCHAR(255),
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    logout_time TIMESTAMP NULL,
+    device_info VARCHAR(255),
+    ip_address VARCHAR(100),
+    status ENUM('LOGIN','LOGOUT','ACTIVE') DEFAULT 'LOGIN',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
