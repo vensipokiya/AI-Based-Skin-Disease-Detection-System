@@ -392,7 +392,3 @@ This project is for **educational and research purposes only**.
 > ⚠️ **Medical Disclaimer**: DermaCare AI is NOT a substitute for professional medical advice, diagnosis, or treatment. The AI predictions are for preliminary screening only. Always consult a certified dermatologist for accurate diagnosis and treatment plans.
 
 ---
-
-<p align="center">
-  Made with ❤️ using Python, FastAPI & TensorFlow
-</p>
