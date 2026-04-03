@@ -252,12 +252,6 @@ The admin dashboard provides full control over the platform:
 | 📋 System Logs | Audit trail of all system activity |
 | 🔑 OTP Records | View OTP verification history |
 
-**Default Admin Credentials:**
-```
-Email:    admin@gmail.com
-Password: Admin@1234
-```
-
 ---
 
 ## 🔌 API Endpoints
@@ -342,27 +336,6 @@ erDiagram
     }
 ```
 
----
-
-## 🖼️ Screenshots
-
-### 🏠 Home Page
-> Modern landing page with hero section, feature cards, and how-it-works guide
-
-### 🔬 AI Scanner
-> Upload or capture skin images for real-time AI analysis
-
-### 📊 Scan Results
-> Split-panel result view with confidence breakdown, remedies, and doctor recommendations
-
-### 🗺️ Nearby Dermatologists
-> Interactive map view with doctor cards, ratings, and one-click booking
-
-### 🛡️ Admin Dashboard
-> Full-featured admin panel with tabbed navigation for all data management
-
----
-
 ## 🧪 Tech Specifications
 
 | Component | Technology |
@@ -381,7 +354,8 @@ erDiagram
 
 ## 👥 Contributors
 
-- **Vensi Pokiya** — Full-Stack Developer & ML Engineer
+- **Vensi Pokiya**
+- Nakshi Patel
 
 ---
 
@@ -392,7 +366,3 @@ This project is for **educational and research purposes only**.
 > ⚠️ **Medical Disclaimer**: DermaCare AI is NOT a substitute for professional medical advice, diagnosis, or treatment. The AI predictions are for preliminary screening only. Always consult a certified dermatologist for accurate diagnosis and treatment plans.
 
 ---
-
-<p align="center">
-  Made with ❤️ using Python, FastAPI & TensorFlow
-</p>
