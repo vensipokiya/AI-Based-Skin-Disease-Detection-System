@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userActions) {
                 userActions.innerHTML = `
                     <div class="user-profile-box">
-                        <img src="https://i.pravatar.cc/150?u=${userName}" alt="Avatar" class="user-avatar">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=" alt="Avatar" class="user-avatar">
                         <span class="user-name">${userName}</span>
                         <a href="#" class="logout-link" id="btn-logout">Logout</a>
                     </div>
@@ -381,88 +381,104 @@ async function handleFileUpload(file) {
 }
 
 function displayResult(data) {
-    // ── Disease name & confidence ───────────────────────────────────────────
+    // ── Update Disease Name with Confidence Percentage ──
     const diseaseEl = document.getElementById('disease-name');
-    if (diseaseEl) diseaseEl.innerText = data.disease;
+    if (diseaseEl) {
+        // Clear previous content and set new one with score
+        const confidenceScore = data.confidence || 0;
+        diseaseEl.innerHTML = `${data.disease} <span style="font-size: 0.85em; opacity: 0.85;">(${confidenceScore}%)</span>`;
+    }
 
+    // ── Update Confidence Circle Text ──
     const confidenceText = document.getElementById('confidence-text');
-    if (confidenceText) confidenceText.innerText = data.confidence + "%";
+    if (confidenceText) {
+        confidenceText.innerText = (data.confidence || 0) + "%";
+        confidenceText.style.display = 'block'; // Ensure visibility
+    }
 
-    // ── Show uploaded image ─────────────────────────────────────────────────
+    // ── Show Uploaded Image Preview ──
     const scannedImageFinal = document.getElementById('scanned-image-final');
     if (scannedImageFinal) {
-        // Priority 1: Use base64 returned directly from the AI API
-        // Priority 2: Use locally stored preview as fallback
         const uploadedImg = (data.image_base64) ? `data:image/jpeg;base64,${data.image_base64}` : sessionStorage.getItem('uploaded_image_base64');
-        
         if (uploadedImg) {
             scannedImageFinal.src = uploadedImg;
-            // Show image: new HTML uses a wrapper div
             const imgWrap = document.getElementById('scanned-image-wrap');
             if (imgWrap) imgWrap.style.display = 'block';
             else scannedImageFinal.style.display = 'block';
         }
     }
 
-    // ── Accuracy level & colour ─────────────────────────────────────────────
+    // ── Determine Status Color Based on Accuracy ──
     const accuracyIndicator = document.getElementById('accuracy-indicator');
     const accuracyLevel = document.getElementById('accuracy-level');
-    let accColor = '#3b82f6';
+    let statusColor = '#3b82f6'; // Default Blue
+    let bgOpacity = 'rgba(59, 130, 246, 0.1)';
+
     if (accuracyIndicator && accuracyLevel) {
         accuracyIndicator.style.display = 'inline-block';
-        let accLevelStr = 'LOW';
-        accColor = '#10b981'; // Green for low accuracy
-        let accBg = 'rgba(16, 185, 129, 0.1)';
-
+        let levelLabel = 'LOW';
+        
         if (data.confidence >= 85) {
-            accLevelStr = 'HIGH';
-            accColor = '#ef4444'; // Red for high accuracy
-            accBg = 'rgba(239, 68, 68, 0.1)';
+            levelLabel = 'HIGH';
+            statusColor = '#ef4444'; // Red
+            bgOpacity = 'rgba(239, 68, 68, 0.1)';
         } else if (data.confidence >= 60) {
-            accLevelStr = 'MEDIUM';
-            accColor = '#f59e0b'; // Amber/Yellow for medium accuracy
-            accBg = 'rgba(245, 158, 11, 0.1)';
+            levelLabel = 'MEDIUM';
+            statusColor = '#f59e0b'; // Amber
+            bgOpacity = 'rgba(245, 158, 11, 0.1)';
+        } else {
+            statusColor = '#10b981'; // Green
+            bgOpacity = 'rgba(16, 185, 129, 0.1)';
         }
 
-        accuracyLevel.innerText = accLevelStr;
-        accuracyIndicator.style.backgroundColor = accBg;
-        accuracyIndicator.style.color = accColor;
-        accuracyIndicator.style.border = `1px solid ${accColor}`;
+        accuracyLevel.innerText = levelLabel;
+        accuracyIndicator.style.backgroundColor = bgOpacity;
+        accuracyIndicator.style.color = statusColor;
+        accuracyIndicator.style.border = `1px solid ${statusColor}`;
     }
 
-    // ── Confidence circle ──────────────────────────────────────────────────────
+    // ── Update Circular Confidence Meter ──
     const circle = document.getElementById('confidence-circle');
-    if (circle) circle.style.background = `conic-gradient(${accColor} ${data.confidence}%, #e2e8f0 0%)`;
+    if (circle) {
+        circle.style.background = `conic-gradient(${statusColor} ${data.confidence}%, #e2e8f0 0%)`;
+    }
 
-    // ── "Find Doctors" button ───────────────────────────────────────────────
-    const isNormalSkin = ['normal skin', 'normal'].includes(data.disease.toLowerCase().trim());
+    // ── Find Doctors Button Logic ──
+    const isHealthy = ['normal skin', 'normal'].includes(data.disease.toLowerCase().trim());
     const btnNearby = document.getElementById('btn-find-nearby-doctor');
     if (btnNearby) {
-        btnNearby.style.display = (data.confidence >= 60 && !isNormalSkin) ? 'inline-flex' : 'none';
+        // Show if accuracy is decent and NOT normal skin
+        btnNearby.style.display = (data.confidence >= 60 && !isHealthy) ? 'inline-flex' : 'none';
     }
 
-    // ── Top-3 confidence breakdown ──────────────────────────────────────────
-    const topPanel = document.getElementById('top-predictions-panel');
-    const topList = document.getElementById('top-predictions-list');
-    if (topPanel && topList && data.top_predictions && data.top_predictions.length > 0) {
-        topPanel.style.display = 'block';
-        const barColors = ['#3b82f6', '#94a3b8', '#cbd5e1'];
-        topList.innerHTML = data.top_predictions.map((pred, i) => {
-            const isTop = i === 0;
-            const barColor = barColors[i] || '#e2e8f0';
-            return `
-                <div style="margin-bottom: 0.75rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                        <span style="font-size: 0.85rem; font-weight: ${isTop ? '700' : '500'}; color: ${isTop ? '#1e293b' : '#64748b'};">
-                            ${isTop ? '🏆 ' : ''}${pred.disease}
-                        </span>
-                        <span style="font-size: 0.85rem; font-weight: 700; color: ${isTop ? '#3b82f6' : '#94a3b8'};">${pred.confidence}%</span>
-                    </div>
-                    <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-                        <div style="height: 100%; width: ${Math.min(pred.confidence, 100)}%; background: ${barColor}; border-radius: 3px; transition: width 0.5s ease;"></div>
-                    </div>
-                </div>`;
-        }).join('');
+    // ── Render Top Predictions ─────────────────────────────────────────────
+    const panel = document.getElementById('top-predictions-panel');
+    const listEl = document.getElementById('top-predictions-list');
+    if (panel && listEl && data.top_predictions && data.top_predictions.length > 0) {
+        listEl.innerHTML = '';
+        data.top_predictions.forEach((item, index) => {
+            // Check if it's the top result (primary), we might optionally hide it or show it with a badge
+            const isPrimary = index === 0;
+            const barMaxWidth = 100;
+            const widthPct = (item.confidence / 100) * barMaxWidth;
+            
+            // Generate modern pill-based breakdown
+            listEl.innerHTML += `
+            <div style="padding: 0.6rem 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; border-bottom: 1px solid #f1f5f9;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                    <strong style="color: ${isPrimary ? '#3b82f6' : '#334155'};">${item.disease}</strong>
+                    <span style="font-weight: 700; color: #64748b; font-size: 0.85rem;">${item.confidence}%</span>
+                </div>
+                <div style="width: 100%; background: #e2e8f0; height: 6px; border-radius: 4px; overflow: hidden;">
+                    <div style="width: ${widthPct}%; height: 100%; background: ${isPrimary ? '#3b82f6' : '#cbd5e1'}; border-radius: 4px;"></div>
+                </div>
+            </div>`;
+        });
+        // Remove border from last element
+        if (listEl.lastElementChild) listEl.lastElementChild.style.borderBottom = 'none';
+        panel.style.display = 'block';
+    } else if (panel) {
+        panel.style.display = 'none';
     }
     // ── End Top Predictions ────────────────────────────────────────────────
 

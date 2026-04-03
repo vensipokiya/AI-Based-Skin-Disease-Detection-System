@@ -28,7 +28,20 @@ class UserDao:
         try:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-            return cursor.fetchone()
+            user = cursor.fetchone()
+            
+            if user:
+                loc = user.get("user_location")
+                if not loc or str(loc).strip() == "" or str(loc).strip().lower() == "unknown":
+                    # Fallback to the latest known historical location in user_locations
+                    try:
+                        cursor.execute("SELECT location_name FROM user_locations WHERE uid = %s ORDER BY timestamp DESC LIMIT 1", (user_id,))
+                        loc_record = cursor.fetchone()
+                        if loc_record and loc_record.get("location_name") and loc_record["location_name"].lower() != "unknown":
+                            user["user_location"] = loc_record["location_name"]
+                    except Exception:
+                        pass
+            return user
         except Exception as e:
             logger.error(f"DAO Error: {e}")
             return None

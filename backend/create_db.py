@@ -1,5 +1,9 @@
 import mysql.connector
 import os
+from dotenv import load_dotenv
+
+# Load .env from the backend directory
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 try:
     conn = mysql.connector.connect(
@@ -15,3 +19,4 @@ try:
     conn.close()
 except Exception as e:
     print(f"[FAIL] {e}")
+

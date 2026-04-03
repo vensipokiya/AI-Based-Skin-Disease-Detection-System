@@ -99,13 +99,15 @@ class LocationDao:
     def __init__(self, db=None):
         self.db = db if db else db_singleton
 
-    def save_location(self, user_id: int, lat: float, lng: float) -> Optional[int]:
+    def save_location(self, user_id: int, lat: float, lng: float, location_name: str = None) -> Optional[int]:
         conn = self.db.get_connection()
         if not conn: return None
         try:
             cursor = conn.cursor()
             cursor.execute("INSERT INTO user_locations (uid, latitude, longitude) VALUES (%s, %s, %s)", (user_id, lat, lng))
             loc_id = cursor.lastrowid
+            if location_name:
+                cursor.execute("UPDATE users SET user_location = %s WHERE id = %s", (location_name, user_id))
             conn.commit()
             return loc_id
         except Exception as e:

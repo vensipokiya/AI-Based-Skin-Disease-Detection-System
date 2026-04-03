@@ -2,7 +2,7 @@
    PAGE LAYOUT
 =========================== */
 body {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background: #f8fafc;
     min-height: 100vh;
     font-family: 'Inter', sans-serif;
 }
@@ -19,14 +19,12 @@ body {
    CARD CONTAINER
 =========================== */
 .forgot-card {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #ffffff;
+    
+    -webkit-
+    border: 1px solid rgba(0,0,0,0.05);
     border-radius: 24px;
-    box-shadow:
-        0 25px 50px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
     width: 100%;
     max-width: 480px;
     padding: 2.5rem 2rem;
@@ -68,17 +66,18 @@ body {
 }
 
 .step-dot {
+    background: #fff;
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: #f1f5f9;
+    border: 2px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.35);
+    color: #94a3b8;
     transition: all 0.4s ease;
     position: relative;
     z-index: 1;
@@ -105,7 +104,7 @@ body {
 .step-line {
     flex: 1;
     height: 2px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #e2e8f0;
     max-width: 60px;
     transition: background 0.4s ease;
     position: relative;
@@ -126,7 +125,7 @@ body {
 .step-label {
     font-size: 0.65rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
+    color: #94a3b8;
     text-align: center;
     width: 36px;
     text-transform: uppercase;
@@ -135,11 +134,11 @@ body {
 }
 
 .step-label.active {
-    color: #a5b4fc;
+    color: #4f46e5;
 }
 
 .step-label.completed {
-    color: #6ee7b7;
+    color: #059669;
 }
 
 /* ===========================
@@ -161,7 +160,7 @@ body {
     justify-content: center;
     margin: 0 auto 1.25rem;
     font-size: 1.6rem;
-    color: #a5b4fc;
+    color: #4f46e5;
     box-shadow: 0 0 30px rgba(99, 102, 241, 0.25);
     transition: all 0.4s ease;
 }
@@ -176,14 +175,14 @@ body {
 .forgot-header h2 {
     font-size: 1.55rem;
     font-weight: 800;
-    color: #f1f5f9;
+    color: #0f172a;
     margin: 0 0 0.4rem;
     letter-spacing: -0.02em;
 }
 
 .forgot-header p {
     font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #64748b;
     margin: 0;
     line-height: 1.6;
 }
@@ -225,9 +224,9 @@ body {
 .method-btn {
     padding: 1rem;
     border-radius: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.6);
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -246,13 +245,13 @@ body {
 .method-btn:hover {
     border-color: rgba(99, 102, 241, 0.4);
     background: rgba(99, 102, 241, 0.08);
-    color: #a5b4fc;
+    color: #4f46e5;
 }
 
 .method-btn.selected {
     border-color: #6366f1;
     background: rgba(99, 102, 241, 0.15);
-    color: #a5b4fc;
+    color: #4f46e5;
     box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
 }
 
@@ -267,7 +266,7 @@ body {
     display: block;
     font-size: 0.82rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+    color: #334155;
     margin-bottom: 0.5rem;
     letter-spacing: 0.02em;
     text-transform: uppercase;
@@ -282,7 +281,7 @@ body {
 .fp-input-wrap>i {
     position: absolute;
     left: 1rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: #94a3b8;
     font-size: 0.95rem;
     z-index: 1;
 }
@@ -290,19 +289,19 @@ body {
 .fp-input-wrap input {
     width: 100%;
     padding: 0.85rem 1rem 0.85rem 2.8rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
     border-radius: 12px;
     font-size: 0.95rem;
     font-family: 'Inter', sans-serif;
-    color: #f1f5f9;
+    color: #0f172a;
     outline: none;
     transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
     box-sizing: border-box;
 }
 
 .fp-input-wrap input::placeholder {
-    color: rgba(255, 255, 255, 0.25);
+    color: #cbd5e1;
 }
 
 .fp-input-wrap input:focus {
@@ -321,7 +320,7 @@ body {
     right: 0.9rem;
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.3);
+    color: #94a3b8;
     cursor: pointer;
     padding: 0.3rem;
     font-size: 0.9rem;
@@ -329,7 +328,7 @@ body {
 }
 
 .fp-input-wrap .toggle-pass:hover {
-    color: rgba(255, 255, 255, 0.7);
+    color: #334155;
 }
 
 .fp-error {
@@ -354,7 +353,7 @@ body {
     flex: 1;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #e2e8f0;
     transition: background 0.3s ease;
 }
 
@@ -395,10 +394,10 @@ body {
     font-size: 1.6rem;
     font-weight: 700;
     font-family: 'Inter', sans-serif;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
     border-radius: 12px;
-    color: #f1f5f9;
+    color: #0f172a;
     outline: none;
     transition: all 0.25s ease;
     caret-color: #6366f1;
@@ -412,7 +411,7 @@ body {
 
 .otp-input.filled {
     border-color: #6366f1;
-    color: #a5b4fc;
+    color: #4f46e5;
 }
 
 .otp-input.error {
@@ -460,12 +459,12 @@ body {
 }
 
 .resend-btn:hover:not(:disabled) {
-    color: #a5b4fc;
+    color: #4f46e5;
     text-decoration: underline;
 }
 
 .resend-btn:disabled {
-    color: rgba(255, 255, 255, 0.25);
+    color: #cbd5e1;
     cursor: not-allowed;
 }
 
@@ -477,7 +476,7 @@ body {
 .otp-hint {
     text-align: center;
     font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.35);
+    color: #94a3b8;
     margin-top: 0.25rem;
 }
 
@@ -520,15 +519,15 @@ body {
 }
 
 .fp-btn-secondary {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: #f8fafc;
+    color: #475569;
+    border: 1.5px solid #e2e8f0;
     margin-top: 0.75rem;
 }
 
 .fp-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.85);
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
 .fp-btn-success {
@@ -556,7 +555,7 @@ body {
     gap: 0.6rem;
     margin-bottom: 1.25rem;
     font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: #64748b;
     line-height: 1.5;
 }
 
@@ -568,7 +567,7 @@ body {
 }
 
 .info-box strong {
-    color: #a5b4fc;
+    color: #4f46e5;
 }
 
 /* ===========================
@@ -602,19 +601,19 @@ body {
 .success-screen h3 {
     font-size: 1.4rem;
     font-weight: 800;
-    color: #f1f5f9;
+    color: #0f172a;
     margin: 0 0 0.6rem;
 }
 
 .success-screen p {
     font-size: 0.87rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #64748b;
     margin: 0 0 2rem;
     line-height: 1.6;
 }
 
 .auto-redirect-bar {
-    background: rgba(255, 255, 255, 0.05);
+    background: #f1f5f9;
     border-radius: 8px;
     height: 6px;
     overflow: hidden;
@@ -641,7 +640,7 @@ body {
 
 .redirect-note {
     font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: #94a3b8;
     text-align: center;
 }
 
@@ -652,7 +651,7 @@ body {
     text-align: center;
     margin-top: 1.5rem;
     padding-top: 1.25rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid #f8fafc;
 }
 
 .back-to-login a {
@@ -666,7 +665,7 @@ body {
 }
 
 .back-to-login a:hover {
-    color: #a5b4fc;
+    color: #4f46e5;
 }
 
 /* ===========================
@@ -711,7 +710,7 @@ body {
 .toast-info {
     background: linear-gradient(135deg, #1e1b4b, #312e81);
     border: 1.5px solid rgba(129, 140, 248, 0.3);
-    color: #a5b4fc;
+    color: #4f46e5;
 }
 
 @keyframes slideInRight {

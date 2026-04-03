@@ -41,3 +41,15 @@ class AuthController:
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result.get("error"))
         return result
+
+    async def google_auth(self, request, data: dict):
+        result = self.auth_service.google_login(request, data.get("token"))
+        if not result["success"]:
+            raise HTTPException(status_code=401, detail=result.get("error"))
+        return result
+
+    async def apple_auth(self, request, data: dict):
+        result = self.auth_service.apple_login(request, data.get("token"), data.get("user_info"))
+        if not result["success"]:
+            raise HTTPException(status_code=401, detail=result.get("error"))
+        return result

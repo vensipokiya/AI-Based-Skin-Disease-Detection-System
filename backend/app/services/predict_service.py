@@ -1,7 +1,9 @@
 import tensorflow as tf
 import numpy as np
+import cv2
 import json
 import os
+from tensorflow.keras.applications.efficientnet import preprocess_input
 from ..config.settings import settings
 from ..utils.remedies import get_remedies
 from ..utils.logger import get_logger
@@ -35,44 +37,58 @@ class PredictService:
             raise Exception("AI Assets or labels not available.")
 
         # Replicate preprocessing from predict_routes.py
+        # ── Fix Image Preprocessing ──
         try:
-            # Decode image
-            if extension.lower() in (".png",):
-                img_tensor = tf.image.decode_png(image_bytes, channels=3)
-            else:
-                try:
-                    img_tensor = tf.image.decode_jpeg(image_bytes, channels=3)
-                except:
-                    img_tensor = tf.image.decode_image(image_bytes, channels=3, expand_animations=False)
+            # Decode using cv2 from raw bytes
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if img is None:
+                raise ValueError("Could not decode image.")
 
-            # Resize and process
-            img_tensor = tf.image.resize(img_tensor, (224, 224), method=tf.image.ResizeMethod.BILINEAR)
-            img_array = tf.cast(img_tensor, tf.float32).numpy()
-            img_batch = np.expand_dims(img_array, axis=0)
+            # Convert BGR to RGB (Required for standard Keras models)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-            # Predict
-            predictions = self._model.predict(img_batch, verbose=0)
-            pred_probs = predictions[0]
+            # Resize to 224x224 and preprocess for EfficientNet
+            img = cv2.resize(img, (224, 224))
+            img = preprocess_input(img)
+            img_batch = np.expand_dims(img, axis=0)
 
-            top_idx = int(np.argmax(pred_probs))
-            confidence = float(pred_probs[top_idx]) * 100
-            disease_name = self._labels.get(str(top_idx), "Unknown").replace("_", " ")
-
-            # Top-3 predictions
-            top3_indices = np.argsort(pred_probs)[::-1][:3]
-            top3 = [
+            # ── Fix Prediction Logic ──
+            pred = self._model.predict(img_batch, verbose=0)[0]
+            
+            top_3_idx = pred.argsort()[-3:][::-1]
+            
+            # Extract names
+            classes = [self._labels.get(str(i), "Unknown").replace("_", " ") for i in range(len(self._labels))]
+            
+            top_3 = [
                 {
-                    "disease": self._labels.get(str(int(i)), "Unknown").replace("_", " "),
-                    "confidence": round(float(pred_probs[i]) * 100, 1)
+                    "disease": classes[i] if i < len(classes) else "Unknown", 
+                    "confidence": round(float(pred[i]) * 100, 1)
                 }
-                for i in top3_indices
+                for i in top_3_idx
             ]
+            
+            confidence = float(pred[top_3_idx[0]])
+            
+            # Confidence filter: If very low, say Uncertain, otherwise give best guess
+            if confidence < 0.40:
+                result_disease = "Uncertain"
+            else:
+                result_disease = classes[top_3_idx[0]] if top_3_idx[0] < len(classes) else "Unknown"
+
+            # Alert logic (PRO Level Feature)
+            alert = None
+            if result_disease.lower() == "malignant" or result_disease.lower() == "melanoma":
+                alert = "⚠️ High risk detected. Please consult a doctor immediately."
 
             return {
-                "disease": disease_name,
-                "confidence": round(confidence, 1),
-                "remedies": get_remedies(disease_name),
-                "top_predictions": top3
+                "disease": result_disease,
+                "confidence": round(confidence * 100, 1),
+                "remedies": get_remedies(result_disease),
+                "top_predictions": top_3,
+                "alert": alert
             }
         except Exception as e:
             logger.error(f"Prediction error: {e}")

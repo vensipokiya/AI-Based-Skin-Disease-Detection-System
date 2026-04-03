@@ -10,12 +10,12 @@
 
     <!-- External Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/static/shared/css/header.css">
-    <link rel="stylesheet" href="/static/shared/css/footer.css">
-    <link rel="stylesheet" href="/static/user/css/user_profile.css">
+    <link rel="stylesheet" href="../../user/static/css/style.css"><link rel="stylesheet" href="../../shared/static/css/header.css">
+    <link rel="stylesheet" href="../../shared/static/css/footer.css">
+    <link rel="stylesheet" href="../../user/static/css/user_profile.css">
 </head>
 
 <body>
@@ -240,54 +240,7 @@
                 </form>
             </div>
 
-            <!-- ── Change Password Card ── -->
-            <div class="password-card">
-                <h3><i class="fas fa-lock"></i> Change Password</h3>
 
-                <form id="password-form" novalidate>
-                    <div class="password-form-row">
-                        <div class="form-group">
-                            <label for="pw-current">Current Password</label>
-                            <div class="input-with-icon" style="position:relative;">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" id="pw-current" placeholder="Current password"
-                                    autocomplete="current-password">
-                                <button type="button"
-                                    style="position:absolute;right:0.75rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;"
-                                    onclick="togglePasswordVis('pw-current', this)"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="pw-new">New Password</label>
-                            <div class="input-with-icon" style="position:relative;">
-                                <i class="fas fa-key"></i>
-                                <input type="password" id="pw-new" placeholder="New password (min. 8 chars)"
-                                    autocomplete="new-password">
-                                <button type="button"
-                                    style="position:absolute;right:0.75rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;"
-                                    onclick="togglePasswordVis('pw-new', this)"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="pw-confirm">Confirm Password</label>
-                            <div class="input-with-icon" style="position:relative;">
-                                <i class="fas fa-key"></i>
-                                <input type="password" id="pw-confirm" placeholder="Re-enter new password"
-                                    autocomplete="new-password">
-                                <button type="button"
-                                    style="position:absolute;right:0.75rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:0.9rem;"
-                                    onclick="togglePasswordVis('pw-confirm', this)"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="profile-form-actions" style="margin-top:1.25rem;">
-                        <button type="submit" class="btn-save-profile" id="btn-change-password">
-                            <i class="fas fa-key"></i> Update Password
-                        </button>
-                    </div>
-                </form>
-            </div>
 
         </div><!-- /.profile-content -->
 
@@ -338,10 +291,10 @@
     <div id="footer"></div>
 
     <!-- ── Scripts ── -->
-    <script src="/static/shared/js/dermacare-api.js"></script>
-    <script src="/static/shared/js/footer.js"></script>
-    <script src="/static/shared/js/header.js"></script>
-    <script src="/static/user/js/user_profile.js"></script>
+    <script src="../../shared/static/js/dermacare-api.js"></script>
+    <script src="../../shared/static/js/footer.js"></script>
+    <script src="../../shared/static/js/header.js"></script>
+    <script src="../../user/static/js/user_profile.js?v=2"></script>
 
 </body>
 

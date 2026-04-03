@@ -7,12 +7,12 @@
     <title>Login - DermaCare AI</title>
     <meta name="description"
         content="Sign in to your DermaCare AI account to access your scan history, personalized recommendations, and skin health tracking.">
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/static/shared/css/header.css">
-    <link rel="stylesheet" href="/static/shared/css/footer.css">
+    <link rel="stylesheet" href="../../user/static/css/style.css"><link rel="stylesheet" href="../../shared/static/css/header.css">
+    <link rel="stylesheet" href="../../shared/static/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/user/css/login.css">
+    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
+    <link rel="stylesheet" href="../../user/static/css/login.css">
 </head>
 
 <body style="background-color: #f1f5f9;">
@@ -145,17 +145,36 @@
                         </div>
 
                         <!-- Social Login Buttons -->
-                        <div class="social-login-buttons">
-                            <button type="button" class="social-btn" id="btn-google-login">
-                                <i class="fab fa-google"></i>
-                                <span>Google</span>
-                            </button>
+                        <div class="social-login-buttons-container">
+                            <!-- Google Sign-In (Declarative) -->
+                            <div id="g_id_onload"
+                                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                                 data-callback="handleGoogleLogin"
+                                 data-auto_prompt="false">
+                            </div>
 
-                            <button type="button" class="social-btn" id="btn-apple-login">
-                                <i class="fab fa-apple"></i>
-                                <span>Apple</span>
-                            </button>
+                            <div class="g_id_signin"
+                                 data-type="standard"
+                                 data-shape="rectangular"
+                                 data-theme="outline"
+                                 data-text="sign_in_with"
+                                 data-size="large"
+                                 data-logo_alignment="left"
+                                 style="margin-bottom: 20px; width: 100%; display: flex; justify-content: center;">
+                            </div>
+                            
+                            <!-- Sign in with Apple -->
+                            <div id="appleid-signin" 
+                                 data-color="black" 
+                                 data-border="true" 
+                                 data-type="sign-in"
+                                 style="width: 100%; height: 40px; display: flex; justify-content: center; cursor: pointer;">
+                            </div>
                         </div>
+
+                        <!-- Google & Apple API scripts -->
+                        <script src="https://accounts.google.com/gsi/client" async defer></script>
+                        <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
                     </form>
 
                     <p class="login-redirect">
@@ -166,11 +185,11 @@
         </div>
     </section>
 
-    <script src="/static/shared/js/dermacare-api.js"></script>
-    <script src="/static/shared/js/header.js"></script>
-    <script src="/static/user/js/login.js"></script>
+    <script src="../../shared/static/js/dermacare-api.js"></script>
+    <script src="../../shared/static/js/header.js"></script>
+    <script src="../../user/static/js/login.js"></script>
     <div id="footer"></div>
-    <script src="/static/shared/js/footer.js"></script>
+    <script src="../../shared/static/js/footer.js"></script>
 </body>
 
 </html>

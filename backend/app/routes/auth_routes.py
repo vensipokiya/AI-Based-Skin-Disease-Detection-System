@@ -33,3 +33,11 @@ async def forgot_verify_otp(data: ForgotPasswordVerifyOtpRequest):
 @router.post("/forgot-password/reset")
 async def forgot_reset_password(data: ForgotPasswordResetRequest):
     return await auth_controller.forgot_reset_password(data)
+
+@router.post("/google")
+async def google_auth(data: dict, request: Request):
+    return auth_controller.google_auth(request, data.get("token"))
+
+@router.post("/apple")
+async def apple_auth(data: dict, request: Request):
+    return auth_controller.apple_auth(request, data.get("token"), data.get("user"))
