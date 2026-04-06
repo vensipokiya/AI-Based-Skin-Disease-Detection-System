@@ -121,7 +121,7 @@ class DatabaseSingleton:
                     disease VARCHAR(100) NOT NULL,
                     confidence FLOAT NOT NULL,
                     remedies TEXT,
-                    image_path VARCHAR(500),
+                    image_data LONGBLOB,
                     scan_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )

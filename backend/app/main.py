@@ -134,6 +134,95 @@ async def read_confirm_booking(request: Request):
 async def read_admin(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
+# ── Nearby Doctors Proxy (bypasses browser CORS) ───────────────────────────
+import httpx
+
+@app.get("/api/nearby-doctors")
+async def nearby_doctors(lat: float, lng: float):
+    """Proxy endpoint: searches Nominatim from the server side so the browser
+    never hits CORS / 403 issues with external APIs."""
+    
+    keywords = ["dermatologist", "skin clinic", "skin doctor", "derma clinic", "skin care center"]
+    all_results = []
+    seen_names = set()
+
+    async with httpx.AsyncClient(timeout=12.0, headers={"User-Agent": "DermaCareAI/1.0 (student-project)"}) as client:
+        for kw in keywords:
+            try:
+                url = (
+                    f"https://nominatim.openstreetmap.org/search"
+                    f"?q={kw}"
+                    f"&format=json&limit=15&addressdetails=1"
+                    f"&viewbox={lng-1.5},{lat+1.5},{lng+1.5},{lat-1.5}"
+                    f"&bounded=0"
+                )
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    for item in resp.json():
+                        name = item.get("display_name", "").split(",")[0].strip()
+                        if not name or name.lower() in seen_names:
+                            continue
+                        seen_names.add(name.lower())
+                        all_results.append({
+                            "name": name,
+                            "lat": float(item["lat"]),
+                            "lon": float(item["lon"]),
+                            "city": (item.get("address") or {}).get("city")
+                                    or (item.get("address") or {}).get("town")
+                                    or (item.get("address") or {}).get("village") or "",
+                            "street": (item.get("address") or {}).get("road") or "",
+                            "type": item.get("type", "doctor"),
+                        })
+            except Exception as e:
+                logger.warning(f"Nominatim search failed for '{kw}': {e}")
+                continue
+
+    # If no skin specialists found, search for general clinics/hospitals
+    if len(all_results) < 3:
+        async with httpx.AsyncClient(timeout=12.0, headers={"User-Agent": "DermaCareAI/1.0 (student-project)"}) as client2:
+            for kw in ["clinic", "hospital"]:
+                try:
+                    url = (
+                        f"https://nominatim.openstreetmap.org/search"
+                        f"?q={kw}"
+                        f"&format=json&limit=10&addressdetails=1"
+                        f"&viewbox={lng-1.0},{lat+1.0},{lng+1.0},{lat-1.0}"
+                        f"&bounded=0"
+                    )
+                    resp = await client2.get(url)
+                    if resp.status_code == 200:
+                        for item in resp.json():
+                            name = item.get("display_name", "").split(",")[0].strip()
+                            if not name or name.lower() in seen_names:
+                                continue
+                            seen_names.add(name.lower())
+                            all_results.append({
+                                "name": name,
+                                "lat": float(item["lat"]),
+                                "lon": float(item["lon"]),
+                                "city": (item.get("address") or {}).get("city") or "",
+                                "street": (item.get("address") or {}).get("road") or "",
+                                "type": "clinic",
+                            })
+                except Exception:
+                    continue
+
+    # Sort by distance to user
+    import math
+    def haversine(la1, lo1, la2, lo2):
+        R = 6371
+        d_lat = math.radians(la2 - la1)
+        d_lon = math.radians(lo2 - lo1)
+        a = math.sin(d_lat/2)**2 + math.cos(math.radians(la1)) * math.cos(math.radians(la2)) * math.sin(d_lon/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    for r in all_results:
+        r["distance"] = round(haversine(lat, lng, r["lat"], r["lon"]), 1)
+    
+    all_results.sort(key=lambda x: x["distance"])
+    return all_results[:15]
+
+
 # ── Error Handlers ──────────────────────────────────────────────────────────
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):

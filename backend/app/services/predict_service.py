@@ -50,14 +50,14 @@ class PredictService:
             img_array = tf.cast(img_tensor, tf.float32).numpy()
             img_batch = np.expand_dims(img_array, axis=0)
 
-            # Predict
-            predictions = self._model.predict(img_batch, verbose=0)
-            pred_probs = predictions[0]
+            # Predict using model direct call for speed
+            predictions_tensor = self._model(img_batch, training=False)
+            pred_probs = predictions_tensor[0].numpy()
 
             top_idx = int(np.argmax(pred_probs))
             confidence = float(pred_probs[top_idx]) * 100
-            disease_name = self._labels.get(str(top_idx), "Unknown").replace("_", " ")
-
+            disease_name = self._labels.get(str(top_idx), "Unknown")
+            
             # Top-3 predictions
             top3_indices = np.argsort(pred_probs)[::-1][:3]
             top3 = [
@@ -68,10 +68,13 @@ class PredictService:
                 for i in top3_indices
             ]
 
+            # Use name without underscores for human display and remedy lookup
+            display_name = disease_name.replace("_", " ")
+
             return {
-                "disease": disease_name,
+                "disease": display_name,
                 "confidence": round(confidence, 1),
-                "remedies": get_remedies(disease_name),
+                "remedies": get_remedies(display_name),
                 "top_predictions": top3
             }
         except Exception as e:
