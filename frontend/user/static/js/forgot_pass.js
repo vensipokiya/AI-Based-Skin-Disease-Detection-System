@@ -268,7 +268,10 @@ async function verifyOTP() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…';
 
     try {
-        const payload = { otp, method: currentMethod, contact: contactValue };
+        const payload = { otp };
+        if (currentMethod === 'email') payload.email = contactValue;
+        else payload.phone = contactValue;
+        
         const res = await fetch(API_BASE + '/api/auth/forgot-password/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -393,14 +396,14 @@ async function resetPassword() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
 
     try {
+        const payload = { password: newPw };
+        if (currentMethod === 'email') payload.email = contactValue;
+        else payload.phone = contactValue;
+
         const res = await fetch(API_BASE + '/api/auth/forgot-password/reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                reset_token: resetToken,
-                new_password: newPw,
-                confirm_password: confPw
-            })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
 

@@ -14,7 +14,7 @@ class ScanController:
             raise HTTPException(status_code=404, detail=result.get("error"))
         return result
 
-    async def save_user_location(self, user_id: int, lat: float, lng: float):
+    async def save_user_location(self, user_id: int, lat: float, lng: float, location_name: str = None):
         if lat is None or lng is None:
             raise HTTPException(status_code=400, detail="Latitude and Longitude are required.")
-        return self.scan_service.save_location(user_id, lat, lng)
+        return self.scan_service.save_location(user_id, lat, lng, location_name)

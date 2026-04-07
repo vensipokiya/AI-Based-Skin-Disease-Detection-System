@@ -23,6 +23,36 @@ const API_URL = (typeof window !== 'undefined' && window.DERMACARE_API_BASE)
     ? window.DERMACARE_API_BASE
     : (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? window.location.origin : 'http://127.0.0.1:8000');
 
+// Websocket initialization
+const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsHost = API_URL.replace(/^http(s?):\/\//, '');
+const socket = new WebSocket(`${wsProto}//${wsHost}/ws`);
+
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    if (data.action === "delete") {
+        const row = document.getElementById(`${data.table}-row-${data.id}`);
+        if (row) {
+            row.remove();
+        }
+    }
+};
+
+function showToast(message, type="success") {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.innerText = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
 
@@ -147,11 +177,11 @@ async function adminLoadUsers() {
 
                 // Hide delete button for admins
                 const actionsHtml = u.role !== 'Admin'
-                    ? `<button class="btn-icon" onclick="adminDeleteUser(${u.id}, '${u.first_name}')" title="Delete User"><i class="fas fa-trash"></i></button>`
+                    ? `<button class="btn-icon" onclick="deleteRecord('users', ${u.id})" title="Delete User"><i class="fas fa-trash"></i></button>`
                     : ``;
 
                 const row = `
-                    <tr>
+                    <tr id="users-row-${u.id}">
                         <td>#${u.id}</td>
                         <td><strong>${u.first_name} ${u.last_name}</strong></td>
                         <td>${u.email}</td>
@@ -222,19 +252,19 @@ async function adminLoadScans() {
                 }
 
                 const row = `
-                    <tr>
+                    <tr id="scan_history-row-${s.id}">
                         <td>#${s.id}</td>
                         <td><strong>${s.user_name}</strong></td>
                         <td>${s.user_id}</td>
                         <td><span class="badge ${s.disease === 'Malignant' ? 'status-offline' : 's-active'}">${s.disease}</span></td>
                         <td>
-                            ${s.image_base64 ? `<img src="${s.image_path ? `http://localhost:8000${s.image_path}` : ""}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;">` : '<span class="text-muted" style="font-size:0.7rem;">No Image</span>'}
+                            ${s.image_base64 ? `<img src="${s.image_path}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;">` : '<span class="text-muted" style="font-size:0.7rem;">No Image</span>'}
                         </td>
                         <td>${confidenceHtml}</td>
                         <td title="${conditionDetails}"><span class="badge ${conditionClass}">${conditionDetails.substring(0, 30)}${conditionDetails.length > 30 ? '...' : ''}</span></td>
                         <td>${date}</td>
                         <td>
-                            <button class="btn-icon" onclick="adminDeleteScan(${s.id})" title="Delete Record">
+                            <button class="btn-icon" onclick="deleteRecord('scan_history', ${s.id})" title="Delete Record">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -252,54 +282,31 @@ async function adminLoadScans() {
 
 }
 
-async function adminDeleteUser(userId, name) {
-    if (!confirm(`Are you absolutely sure you want to permanently delete patient ${name} (ID: ${userId})? This deletes all scan history and logs.`)) {
-        return;
-    }
+async function deleteRecord(table, id) {
+    if (!confirm(`Are you sure you want to delete record #${id} from ${table}?`)) return;
 
-    const token = localStorage.getItem('admin_token');
     try {
-        const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
-            method: 'DELETE',
+        const token = localStorage.getItem('admin_token');
+        const res = await fetch(`${API_URL}/api/admin/delete/${table}/${id}`, {
+            method: "DELETE",
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
+
         const data = await res.json();
 
-        if (res.ok && data.success) {
-            alert("User deleted successfully.");
-            adminLoadUsers(); // Refresh the table
+        if (res.ok && data.status === "success") {
+            showToast(data.message, "success");
+
+            // Remove instantly on this client too just in case ws is slow
+            const row = document.getElementById(`${table}-row-${id}`);
+            if (row) row.remove();
         } else {
-            alert(`Error deleting user: ${data.detail || data.error}`);
+            showToast(data.message || data.detail || "Error deleting record", "error");
         }
     } catch (err) {
-        alert("Network Error");
-    }
-}
-
-async function adminDeleteScan(scanId) {
-    if (!confirm(`Are you sure you want to delete scan record #${scanId}?`)) {
-        return;
-    }
-
-    const token = localStorage.getItem('admin_token');
-    try {
-        const res = await fetch(`${API_URL}/api/admin/scans/${scanId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-            adminLoadScans(); // Refresh
-        } else {
-            alert(`Error: ${data.detail || data.error}`);
-        }
-    } catch (err) {
-        alert("Network Error");
+        showToast("Network Error", "error");
     }
 }
 
@@ -336,7 +343,7 @@ async function adminLoadMedicalProfiles() {
                 const prevDetails = p.previous_condition_details || "N/A";
 
                 const row = `
-                    <tr>
+                    <tr id="medical_profiles-row-${p.id}">
                         <td>#${p.id}</td>
                         <td><strong>${p.patient_name}</strong></td>
                         <td title="${p.symptoms}">${p.symptoms.substring(0, 30)}${p.symptoms.length > 30 ? '...' : ''}</td>
@@ -345,7 +352,7 @@ async function adminLoadMedicalProfiles() {
                         <td title="${prevDetails}">${prevDetails.substring(0, 30)}${prevDetails.length > 30 ? '...' : ''}</td>
                         <td>${date}</td>
                         <td>
-                            <button class="btn-icon" onclick="adminDeleteMedicalProfile(${p.id})" title="Delete Profile">
+                            <button class="btn-icon" onclick="deleteRecord('medical_profiles', ${p.id})" title="Delete Profile">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -363,30 +370,7 @@ async function adminLoadMedicalProfiles() {
 
 }
 
-async function adminDeleteMedicalProfile(profileId) {
-    if (!confirm(`Are you sure you want to delete medical profile #${profileId}?`)) {
-        return;
-    }
 
-    const token = localStorage.getItem('admin_token');
-    try {
-        const res = await fetch(`${API_URL}/api/admin/medical-profiles/${profileId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-            adminLoadMedicalProfiles(); // Refresh
-        } else {
-            alert(`Error: ${data.detail || data.error}`);
-        }
-    } catch (err) {
-        alert("Network Error");
-    }
-}
 
 async function adminLoadLogs() {
     const token = localStorage.getItem('admin_token');
@@ -414,8 +398,8 @@ async function adminLoadLogs() {
                     <tr>
                         <td style="font-size: 0.85rem; color: #64748b;">${date}</td>
                         <td><strong>${log.user_email || 'System'}</strong></td>
-                        <td><span class="badge ${log.action.includes('Delete') ? 'status-offline' : 's-active'}">${log.action}</span></td>
-                        <td title="${log.details}" style="font-size: 0.85rem;">${log.details.substring(0, 50)}${log.details.length > 50 ? '...' : ''}</td>
+                        <td><span class="badge ${(log.action || '').includes('Delete') ? 'status-offline' : 's-active'}">${log.action || 'Action'}</span></td>
+                        <td title="${log.details || ''}" style="font-size: 0.85rem;">${(log.details || '').substring(0, 50)}${(log.details || '').length > 50 ? '...' : ''}</td>
                         <td style="font-family: monospace; font-size: 0.8rem;">${log.ip_address || '-'}</td>
                     </tr>
                 `;
@@ -466,7 +450,10 @@ async function adminLoadAppointments() {
             }
             tbody.innerHTML = '';
             data.appointments.forEach(a => {
-                const statusClass = a.status === 'Confirmed' ? 'status-online' : 'status-offline';
+                const statusHtml = a.status === 'Done' 
+                    ? '<span class="status done">✅ Completed</span>' 
+                    : '<span class="status pending">⏳ Upcoming</span>';
+
                 tbody.innerHTML += `
                     <tr>
                         <td style="font-size: 0.8rem; color: #64748b;">#${a.id}</td>
@@ -483,7 +470,7 @@ async function adminLoadAppointments() {
 
                         <td style="font-size: 0.85rem;">${a.appointment_date}</td>
                         <td style="font-size: 0.85rem;">${a.appointment_time}</td>
-                        <td><span class="badge ${statusClass}">${a.status}</span></td>
+                        <td>${statusHtml}</td>
                         <td>
                              <button class="btn-icon" style="color: #64748b" title="Complete Record">
                                 <i class="fas fa-check-circle"></i>
@@ -522,13 +509,14 @@ async function adminLoadLocations() {
             }
             data.locations.forEach(l => {
                 const date = new Date(l.timestamp).toLocaleString();
+                const coordsHtml = `<span style="font-size:0.75rem; color:#64748b;" title="${l.latitude}, ${l.longitude}">[View Map]</span>`;
                 tbody.innerHTML += `
                     <tr>
                         <td>#${l.id}</td>
                         <td><strong>${l.patient_name}</strong></td>
                         <td>${l.email}</td>
-                        <td>${l.latitude.toFixed(6)}</td>
-                        <td>${l.longitude.toFixed(6)}</td>
+                        <td style="font-weight: 500;">${l.location_name || 'Unknown'}</td>
+                        <td><a href="https://maps.google.com/?q=${l.latitude},${l.longitude}" target="_blank" style="text-decoration:none;">${coordsHtml}</a></td>
                         <td style="font-size: 0.85rem; color: #64748b;">${date}</td>
                     </tr>
                 `;

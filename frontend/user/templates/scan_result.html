@@ -5,17 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan Result - DermaCare AI</title>
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/static/shared/css/header.css">
-    <link rel="stylesheet" href="/static/shared/css/footer.css">
+    <link rel="stylesheet" href="../../user/static/css/style.css">
+    <link rel="stylesheet" href="../../shared/static/css/header.css">
+    <link rel="stylesheet" href="../../shared/static/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
 
     <style>
         /* ── Layout ─────────────────────────────────────────────────────────── */
         body {
-            background: #f1f5f9;
+            background: #fff;
             overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
         #result-page {
@@ -23,48 +27,53 @@
             margin: 0;
             width: 100vw;
             max-width: 100%;
+            background: #fff;
         }
 
-        .result-wrapper {
+        .main-container {
             display: flex;
-            min-height: calc(100vh - 72px);
+            min-height: calc(100vh - 140px);
+            /* Leave room for header and bottom buttons */
             width: 100%;
             background: white;
             position: relative; /* Ensure the auth overlay can position correctly */
         }
 
-        /* ── Left Panel ──────────────────────────────────────────────────────── */
-        .result-left {
-            flex: 0 0 380px;
-            background: white;
-            border-right: 1px solid #e2e8f0;
-            padding: 2.5rem 2rem;
+        /* ── Left Section (Image + Result) ──────────────────────────────────────────────────────── */
+        .left-section {
+            width: 320px;
+            flex-shrink: 0;
+            background: #fff;
+            border-right: 1px solid #f1f5f9;
+            padding: 2.5rem 1rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.25rem;
+            gap: 1.5rem;
             overflow-y: auto;
         }
 
         .scan-badge {
             display: inline-block;
-            padding: 0.4rem 1.2rem;
+            padding: 0.5rem 1.5rem;
             background: #EEF2FF;
             color: #4F46E5;
             border-radius: 20px;
             font-weight: 700;
             font-size: 0.75rem;
             letter-spacing: 0.8px;
+            text-transform: uppercase;
         }
 
         .scanned-image-wrap {
-            width: 150px;
-            height: 150px;
-            border-radius: 16px;
+            width: 140px;
+            height: 140px;
+            border-radius: 12px;
             overflow: hidden;
-            border: 3px solid #e2e8f0;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            background: #000;
             display: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            /* very soft shadow */
         }
 
         .scanned-image-wrap img {
@@ -140,20 +149,24 @@
 
         /* Accuracy badge */
         #accuracy-indicator {
-            padding: 0.35rem 1rem;
+            padding: 0.4rem 1.2rem;
             border-radius: 6px;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             display: none;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            background: transparent;
         }
 
         /* ── Disease name box ────────────────────────────────────────────────── */
         .disease-box {
-            width: 100%;
-            padding: 1.5rem;
-            background: #F8FAFF;
-            border: 1px solid #e0e7ff;
-            border-radius: 14px;
+            width: 90%;
+            padding: 1.5rem 1rem;
+            background: #fff;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border-radius: 12px;
             text-align: center;
         }
 
@@ -163,84 +176,29 @@
             font-weight: 700;
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.8rem;
         }
 
         .disease-box h2 {
-            font-size: 1.75rem;
+            font-size: 1.6rem;
             color: #3b82f6;
             font-weight: 800;
             margin: 0;
         }
 
-        /* ── Top predictions breakdown ───────────────────────────────────────── */
-        #top-predictions-panel {
-            width: 100%;
-            padding: 1.25rem;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            display: none;
-        }
-
-        #top-predictions-panel .panel-title {
-            font-size: 0.7rem;
-            color: #94a3b8;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            margin-bottom: 1rem;
-        }
-
-        .pred-row {
-            margin-bottom: 0.9rem;
-        }
-
-        .pred-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .pred-row-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.3rem;
-        }
-
-        .pred-disease-name {
-            font-size: 0.85rem;
-        }
-
-        .pred-pct {
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
-
-        .pred-bar-bg {
-            height: 7px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .pred-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.8s cubic-bezier(.4, 0, .2, 1);
-        }
-
-        /* ── Right Panel ─────────────────────────────────────────────────────── */
-        .result-right {
+        /* ── Right Section (Analysis Report) ─────────────────────────────────────────────────────── */
+        .right-section {
             flex: 1;
-            padding: 2.5rem 3rem;
+            padding: 2.5rem 4rem;
             background: #f8fafc;
+            /* Very subtle offwhite */
             display: flex;
             flex-direction: column;
             overflow-y: auto;
         }
 
-        .result-right h3 {
-            font-size: 1.3rem;
+        .right-section>h3 {
+            font-size: 1.4rem;
             font-weight: 800;
             color: #0f172a;
             margin: 0 0 2rem 0;
@@ -255,9 +213,10 @@
 
         .remedy-card {
             background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 1.5rem;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            border-radius: 12px;
+            padding: 1.8rem;
         }
 
         .remedy-card h4 {
@@ -265,8 +224,8 @@
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin: 0 0 1rem 0;
+            gap: 0.6rem;
+            margin: 0 0 1.25rem 0;
             color: #3b82f6;
         }
 
@@ -285,77 +244,54 @@
         }
 
         .remedy-card ul li {
-            font-size: 0.92rem;
-            color: #334155;
-            line-height: 1.7;
-            padding: 0.35rem 0;
-            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.6;
+            padding: 0.4rem 0;
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
         }
 
-        .remedy-card ul li:last-child {
-            border-bottom: none;
-        }
-
         .remedy-card ul li::before {
-            content: '›';
-            color: #3b82f6;
-            font-weight: 700;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .remedy-card.warning-card ul li {
-            background: #FFF8F5;
-            color: #9A3412;
-            border-color: #fed7aa;
-            border-radius: 4px;
-            padding: 0.35rem 0.5rem;
-            margin-bottom: 4px;
-        }
-
-        .remedy-card.warning-card ul li::before {
-            color: #E65100;
+            content: none;
         }
 
         /* ── Bottom Bar ──────────────────────────────────────────────────────── */
-        .result-action-bar {
+        .global-action-bar {
             background: white;
             padding: 1.5rem 2rem;
-            border-top: 1px solid #e2e8f0;
             display: flex;
-            gap: 1rem;
+            gap: 1.5rem;
             justify-content: center;
             align-items: center;
-            flex-wrap: wrap;
         }
 
-        .result-action-bar button,
-        .result-action-bar a {
-            padding: 0.9rem 3rem;
+        .global-action-bar button,
+        .global-action-bar a {
+            padding: 0.8rem 2.5rem;
             border-radius: 30px;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            gap: 0.6rem;
         }
 
         .btn-scan-new {
             background: #3b82f6;
             color: white;
             border: none;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
 
         .btn-scan-new:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
         }
 
         .btn-find-doctors {
@@ -385,18 +321,18 @@
 
         /* ── Responsive ──────────────────────────────────────────────────────── */
         @media (max-width: 900px) {
-            .result-wrapper {
+            .main-container {
                 flex-direction: column;
             }
 
-            .result-left {
-                flex: none;
+            .left-section {
                 width: 100%;
                 border-right: none;
                 border-bottom: 1px solid #e2e8f0;
             }
 
-            .result-right {
+            .right-section {
+                width: 100%;
                 padding: 1.5rem;
             }
 
@@ -413,10 +349,10 @@
     <section id="result-page" class="fade-in">
         <div style="position: relative;">
             <div id="result-content-container">
-                <div class="result-wrapper">
+                <div class="main-container">
 
-                    <!-- ── Left Panel ──────────────────────────────────── -->
-                    <div class="result-left">
+                    <!-- ── Left Section (Image + Result) ─────────────────────────────────── -->
+                    <div class="left-section">
                         <div class="scan-badge">SCAN COMPLETE</div>
 
                         <!-- Uploaded image -->
@@ -447,15 +383,10 @@
                             <h2 id="disease-name">Analyzing…</h2>
                         </div>
 
-                        <!-- Top-3 Confidence Breakdown -->
-                        <div id="top-predictions-panel">
-                            <div class="panel-title">AI Confidence Breakdown</div>
-                            <div id="top-predictions-list"></div>
-                        </div>
                     </div>
 
                     <!-- ── Right Panel ─────────────────────────────────── -->
-                    <div class="result-right">
+                    <div class="right-section">
                         <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.35rem; color: #0f172a;">Analysis Report</h3>
                         
                         <div id="disease-description" style="margin-bottom: 2rem; padding: 1.25rem; background: #EEF2FF; border-left: 4px solid #3b82f6; border-radius: 8px; color: #312e81; font-size: 1rem; line-height: 1.6; font-weight: 500;">
@@ -464,33 +395,22 @@
 
                         <div class="remedy-grid" id="remedy-grid">
                             <!-- Injected via JS -->
-
-                            <!-- Disclaimer always shown -->
-                            <div class="remedy-card disclaimer-card">
-                                <h4><i class="fas fa-exclamation-circle"></i> Disclaimer</h4>
-                                <div style="font-size: 0.92rem; color: #334155; line-height: 1.7;">
-                                    This AI-based diagnosis is <strong>not a substitute</strong> for professional
-                                    medical advice. Always consult a licensed dermatologist for a confirmed diagnosis
-                                    and treatment plan.
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Action Bar inside right panel -->
-                        <div class="result-action-bar"
-                            style="margin-top: auto; padding: 1.5rem 0 0 0; border-top: none;">
-                            <button class="btn-scan-new" onclick="window.location.href='/detect'">
-                                <i class="fas fa-camera"></i> Scan New Image
-                            </button>
-                            <button id="btn-find-nearby-doctor"
-                                onclick="window.location.href='/nearby'" class="btn-find-doctors"
-                                style="display:none;">
-                                <i class="fas fa-map-marker-alt" style="color:#3b82f6;"></i> Find Doctors Nearby
-                            </button>
                         </div>
                     </div>
 
                 </div>
+
+                <!-- Action Bar outside main-container at the bottom -->
+                <div class="global-action-bar">
+                    <button class="btn-scan-new" onclick="window.location.href='/detect'">
+                        Scan New
+                    </button>
+                    <button id="btn-find-nearby-doctor" onclick="window.location.href='/nearby'"
+                        class="btn-find-doctors" style="display:none;">
+                        <i class="fas fa-map-marker-alt" style="color:#3b82f6;"></i> Find Doctors
+                    </button>
+                </div>
+
             </div>
 
             <!-- Auth Overlay (Improved - Fixed Viewport Centering) -->
@@ -527,9 +447,10 @@
     </section>
 
     <div id="footer"></div>
-    <script src="/static/shared/js/footer.js"></script>
-    <script src="/static/user/js/main.js"></script>
-    <script src="/static/shared/js/header.js"></script>
+    <script src="../../shared/static/js/footer.js"></script>
+    <script src="../../user/static/js/main.js"></script>
+    <script src="../../shared/static/js/header.js"></script>
+
 </body>
 
 </html>

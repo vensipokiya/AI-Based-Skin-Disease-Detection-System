@@ -20,16 +20,18 @@ class RegisterRequest(BaseModel):
     previous_condition_details: Optional[str] = ""
 
 class ForgotPasswordSendOtpRequest(BaseModel):
-    email: EmailStr
-    contact_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
 
 class ForgotPasswordVerifyOtpRequest(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
     otp: str
 
 class ForgotPasswordResetRequest(BaseModel):
-    email: EmailStr
-    new_password: str
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    password: str
 
 class UserProfileResponse(BaseModel):
     first_name: str

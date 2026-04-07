@@ -7,11 +7,12 @@
     <title>Register - DermaCare AI</title>
     <meta name="description"
         content="Create your DermaCare AI account to track your skin health, save scan history, and get personalized recommendations.">
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/static/shared/css/header.css">
-    <link rel="stylesheet" href="/static/shared/css/footer.css">
+    <link rel="stylesheet" href="../../user/static/css/style.css">
+    <link rel="stylesheet" href="../../shared/static/css/header.css">
+    <link rel="stylesheet" href="../../shared/static/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
 </head>
 
 <body style="background-color: #f1f5f9;">
@@ -340,6 +341,27 @@
                                 <i class="fas fa-user-plus"></i> Create Account
                             </button>
                         </div>
+
+                        <!-- Social Registration Divider -->
+                        <div class="login-divider" style="margin-top: 1.5rem;">
+                            <span>or join with</span>
+                        </div>
+
+                        <!-- Social Registration Buttons -->
+                        <div class="social-login-buttons-container"
+                            style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 1.25rem;">
+                            <div id="google-register-btn"></div>
+
+                            <!-- Sign in with Apple -->
+                            <div id="appleid-signin" data-color="black" data-border="true" data-type="sign-up"
+                                style="width: 280px; height: 40px; cursor: pointer;">
+                            </div>
+                        </div>
+
+                        <!-- Google & Apple API scripts -->
+                        <script src="https://accounts.google.com/gsi/client" async defer></script>
+                        <script type="text/javascript"
+                            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
                     </div>
                 </form>
                 <p class="login-redirect">
@@ -371,11 +393,11 @@
         </div>
     </div>
 
-    <script src="/static/shared/js/dermacare-api.js"></script>
-    <script src="/static/shared/js/header.js"></script>
-    <script src="/static/user/js/register.js"></script>
+    <script src="../../shared/static/js/dermacare-api.js"></script>
+    <script src="../../shared/static/js/header.js"></script>
+    <script src="../../user/static/js/register.js"></script>
     <div id="footer"></div>
-    <script src="/static/shared/js/footer.js"></script>
+    <script src="../../shared/static/js/footer.js"></script>
 </body>
 
 </html>

@@ -59,17 +59,14 @@ app.add_middleware(
 # ── Static file mounts ──────────────────────────────────────────────────────
 FRONTEND = os.path.join(os.getcwd(), "frontend")
 
-# ── Static file mounts ──────────────────────────────────────────────────────
-FRONTEND = os.path.join(os.getcwd(), "frontend")
-
 # User static assets  → /static/user/css, /static/user/js
 app.mount("/static/user", StaticFiles(directory=os.path.join(FRONTEND, "user", "static")), name="static_user")
 
-# Admin static assets → /static/admin/css, /static/admin/js
-app.mount("/static/admin", StaticFiles(directory=os.path.join(FRONTEND, "admin", "static")), name="static_admin")
+# Admin static assets → /admin/static/css, /admin/static/js
+app.mount("/admin/static", StaticFiles(directory=os.path.join(FRONTEND, "admin", "static")), name="static_admin")
 
-# Shared static assets → /static/shared/css, /static/shared/js, /static/shared/images
-app.mount("/static/shared", StaticFiles(directory=os.path.join(FRONTEND, "shared", "static")), name="static_shared")
+# Shared static assets → /shared/static/css, /shared/static/js, /shared/static/images
+app.mount("/shared/static", StaticFiles(directory=os.path.join(FRONTEND, "shared", "static")), name="static_shared")
 
 # Serve uploaded scan images → /uploads/user_uploads/<file>
 UPLOAD_DIR = os.path.join(os.getcwd(), "backend", "app", "uploads", "user_uploads")
@@ -148,7 +145,6 @@ async def read_confirm_booking(request: Request):
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
-
 
 # ── Nearby Doctors Proxy (Optimized with asyncio.gather) ───────────────────
 import httpx

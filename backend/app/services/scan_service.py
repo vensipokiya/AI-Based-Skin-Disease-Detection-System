@@ -52,8 +52,8 @@ class ScanService:
             return {"success": True, "message": "Record deleted"}
         return {"success": False, "error": "Record not found"}
 
-    def save_location(self, user_id: int, lat: float, lng: float) -> dict:
-        loc_id = self.location_dao.save_location(user_id, lat, lng)
+    def save_location(self, user_id: int, lat: float, lng: float, location_name: str = None) -> dict:
+        loc_id = self.location_dao.save_location(user_id, lat, lng, location_name)
         if loc_id:
             return {"success": True, "location_id": loc_id}
         return {"success": False, "error": "Database error"}
