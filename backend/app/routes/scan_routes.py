@@ -20,4 +20,5 @@ async def save_user_location(
 ):
     lat = data.get("latitude")
     lng = data.get("longitude")
-    return await scan_controller.save_user_location(current_user["user_id"], lat, lng)
+    location_name = data.get("location_name")
+    return await scan_controller.save_user_location(current_user["user_id"], lat, lng, location_name)

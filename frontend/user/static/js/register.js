@@ -347,6 +347,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ---------------------------
+    // 6. Apple Sign-In Implementation
+    // ---------------------------
+    const APPLE_CLIENT_ID = "com.your.app.service"; 
+    const APPLE_REDIRECT_URL = window.location.origin + "/register";
+
+    window.handleAppleRegister = async (response) => {
+        const idToken = response.id_token;
+        const appleUser = response.user; 
+
+        console.log("[OK] Received Apple ID Token (Register)");
+
+        try {
+            const apiRes = await fetch(API_BASE + '/api/auth/apple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    token: idToken,
+                    user: appleUser 
+                })
+            });
+
+            const result = await apiRes.json();
+            if (apiRes.ok && result.success) {
+                handleSuccessfulLogin(result.token, result.refresh_token, result.user);
+            } else {
+                alert(result.error || 'Apple registration failed.');
+            }
+        } catch (error) {
+            console.error('[ERROR] Apple Reg error:', error);
+        }
+    };
+
+    if (typeof AppleID !== 'undefined') {
+        AppleID.auth.init({
+            clientId: APPLE_CLIENT_ID,
+            scope: 'name email',
+            redirectURI: APPLE_REDIRECT_URL,
+            state: 'reg_state',
+            usePopup: true
+        });
+
+        document.addEventListener('AppleIDSignInOnSuccess', (event) => {
+            window.handleAppleRegister(event.detail.data);
+        });
+    }
+
     // Set Login/Logout Button state
     const navAuthBtn = document.getElementById('nav-login-hist');
     const token = localStorage.getItem('dermacare_token');
@@ -382,6 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+
 
 window.closeSuccessModal = function() {
     const successModal = document.getElementById('success-modal');

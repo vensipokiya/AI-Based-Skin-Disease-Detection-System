@@ -175,3 +175,69 @@ class AdminDao:
             return cursor.rowcount > 0
         finally:
             if conn: conn.close()
+
+    def get_all_user_locations(self) -> List[Dict[str, Any]]:
+        conn = self.db.get_connection()
+        if not conn: return []
+        try:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Performance Fix: Add column if it doesn't exist dynamically
+            cursor.execute("SHOW COLUMNS FROM user_locations LIKE 'location_name'")
+            if not cursor.fetchone():
+                try:
+                    cursor.execute("ALTER TABLE user_locations ADD COLUMN location_name VARCHAR(255)")
+                except Exception:
+                    pass
+
+            cursor.execute("""
+                SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) as patient_name, u.email 
+                FROM user_locations l 
+                JOIN users u ON l.uid = u.id 
+                ORDER BY l.timestamp DESC LIMIT 200
+            """)
+            rows = cursor.fetchall() or []
+            
+            import requests
+            updated = False
+            for r in rows:
+                loc_val = r.get("location_name")
+                if not loc_val or loc_val == "Unknown":
+                    # Use OpenStreetMap Nominatim (Free, no API key required)
+                    url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={r['latitude']}&lon={r['longitude']}"
+                    try:
+                        resp = requests.get(url, headers={"User-Agent": "DermaCare-App/1.0"}, timeout=2)
+                        if resp.status_code == 200:
+                            addr = resp.json().get("address", {})
+                            city = addr.get("city") or addr.get("town") or addr.get("municipality") or addr.get("village") or addr.get("county") or addr.get("city_district") or ""
+                            area = addr.get("suburb") or addr.get("neighbourhood") or ""
+                            state = addr.get("state") or ""
+                            
+                            # Construct Area, City, State
+                            parts = []
+                            if area: parts.append(area)
+                            if city: parts.append(city)
+                            if state: parts.append(state)
+                            
+                            loc = ", ".join(parts) if parts else "Unknown"
+                            r["location_name"] = loc
+                            cursor.execute("UPDATE user_locations SET location_name=%s WHERE id=%s", (loc, r["id"]))
+                            updated = True
+                    except Exception as e:
+                        r["location_name"] = "Unknown"
+            
+            if updated:
+                conn.commit()
+            return rows
+        finally:
+            if conn: conn.close()
+
+    def get_all_otp_verifications(self) -> List[Dict[str, Any]]:
+        conn = self.db.get_connection()
+        if not conn: return []
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM otp_verification ORDER BY created_at DESC LIMIT 200")
+            return cursor.fetchall() or []
+        finally:
+            if conn: conn.close()

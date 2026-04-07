@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from fastapi import WebSocket
 
 class ConnectionManager:
@@ -15,8 +15,12 @@ class ConnectionManager:
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message: Dict):
         for connection in self.active_connections:
-            await connection.send_text(message)
+            try:
+                await connection.send_json(message)
+            except Exception:
+                # Handle cases where connection might have closed abruptly
+                pass
 
 manager = ConnectionManager()

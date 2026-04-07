@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 import os
 import sys
@@ -20,6 +21,7 @@ except ImportError:
 
 from .config.database import DatabaseSingleton
 from .utils.logger import get_logger
+from .config.settings import settings
 from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin_routes
 
 logger = get_logger(__name__)
@@ -56,6 +58,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
 # ── Static file mounts ──────────────────────────────────────────────────────
 FRONTEND = os.path.join(os.getcwd(), "frontend")
 
@@ -65,11 +69,11 @@ FRONTEND = os.path.join(os.getcwd(), "frontend")
 # User static assets  → /static/user/css, /static/user/js
 app.mount("/static/user", StaticFiles(directory=os.path.join(FRONTEND, "user", "static")), name="static_user")
 
-# Admin static assets → /static/admin/css, /static/admin/js
-app.mount("/static/admin", StaticFiles(directory=os.path.join(FRONTEND, "admin", "static")), name="static_admin")
+# Admin static assets → /admin/static/css, /admin/static/js
+app.mount("/admin/static", StaticFiles(directory=os.path.join(FRONTEND, "admin", "static")), name="static_admin")
 
-# Shared static assets → /static/shared/css, /static/shared/js, /static/shared/images
-app.mount("/static/shared", StaticFiles(directory=os.path.join(FRONTEND, "shared", "static")), name="static_shared")
+# Shared static assets → /shared/static/css, /shared/static/js, /shared/static/images
+app.mount("/shared/static", StaticFiles(directory=os.path.join(FRONTEND, "shared", "static")), name="static_shared")
 
 # Serve uploaded scan images → /uploads/user_uploads/<file>
 UPLOAD_DIR = os.path.join(os.getcwd(), "backend", "app", "uploads", "user_uploads")
@@ -148,7 +152,6 @@ async def read_confirm_booking(request: Request):
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
-
 
 # ── Nearby Doctors Proxy (Optimized with asyncio.gather) ───────────────────
 import httpx

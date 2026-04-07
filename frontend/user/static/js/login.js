@@ -60,8 +60,10 @@ function handleSuccessfulLogin(token, refreshToken, user) {
     }
 
     // Show success feedback
-    btn.innerHTML = '<i class="fas fa-check-circle"></i> Login Successful!';
-    btn.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Login Successful!';
+        btn.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+    }
 
     console.log('[OK] Login successful!', user.name || user.email);
 
@@ -78,106 +80,49 @@ function handleSuccessfulLogin(token, refreshToken, user) {
 }
 
 // ---------------------------
-// Email/Password Login -> Backend API
+// Main Logic
 // ---------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Immediately pre-fill email if coming from registration (Highest Priority)
+    // 1. Pre-fill email if coming from registration
     const registeredEmail = sessionStorage.getItem('registered_email');
-    console.log('[DEBUG] Initial check for registered email:', registeredEmail);
-    
     if (registeredEmail) {
         const emailInput = document.getElementById('login-email');
         if (emailInput) {
             emailInput.value = registeredEmail;
-            console.log('[DEBUG] Pre-filled email input:', registeredEmail);
-            
-            // Set a small delay to ensure it's not cleared by autocomplete
             setTimeout(() => {
-                if (emailInput.value !== registeredEmail) {
-                    emailInput.value = registeredEmail;
-                    console.log('[DEBUG] Reinforced pre-filled email.');
-                }
-                
-                // Focus the password field so the user only needs to type their password
                 const passwordInput = document.getElementById('login-password');
-                if (passwordInput) {
-                    passwordInput.focus();
-                    console.log('[DEBUG] Focused password input.');
-                }
+                if (passwordInput) passwordInput.focus();
             }, 300);
-            
-            // Note: sessionStorage.removeItem('registered_email') is handled below or after success
         }
     }
 
-    // 2. Show success banner if arriving from registration
+    // 2. Success banner for registration
     if (sessionStorage.getItem('just_registered') === 'true') {
         sessionStorage.removeItem('just_registered');
-        // If we found an email, keep it for a bit longer just in case of reload, but then remove
         sessionStorage.removeItem('registered_email');
 
-        // Inject a styled success banner at the top of the form
         const banner = document.createElement('div');
-        banner.id = 'reg-success-banner';
-        banner.style.cssText = [
-            'background: linear-gradient(135deg, #10b981, #34d399)',
-            'color: white',
-            'padding: 1rem 1.5rem',
-            'border-radius: 12px',
-            'margin-bottom: 1.5rem',
-            'display: flex',
-            'align-items: center',
-            'gap: 0.75rem',
-            'font-weight: 600',
-            'font-size: 0.95rem',
-            'box-shadow: 0 4px 15px rgba(16,185,129,0.3)'
-        ].join(';');
-        banner.innerHTML = '<i class="fas fa-check-circle" style="font-size:1.4rem"></i>' +
-            '<div><div>Account created successfully!</div>' +
-            '<div style="font-weight:400;font-size:0.85rem;opacity:0.9">Please sign in with your new credentials below.</div></div>';
+        banner.style.cssText = 'background:linear-gradient(135deg,#10b981,#34d399);color:white;padding:1rem;border-radius:12px;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.75rem;font-weight:600;box-shadow:0 4px 15px rgba(16,185,129,0.3)';
+        banner.innerHTML = '<i class="fas fa-check-circle"></i> Account created successfully! Please sign in.';
 
         const loginForm = document.getElementById('login-form');
         if (loginForm) loginForm.parentElement.insertBefore(banner, loginForm);
-
-        // Auto-scroll banner into view
-        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    // 3. Email Login Form Submission
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async function (e) {
             e.preventDefault();
             clearErrors();
 
-            const emailInput = document.getElementById('login-email');
-            const passwordInput = document.getElementById('login-password');
-            if(!emailInput || !passwordInput) return;
+            const email = document.getElementById('login-email')?.value.trim();
+            const password = document.getElementById('login-password')?.value;
 
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
-            let isValid = true;
+            if (!email || !isValidEmail(email)) return showError('error-login-email', 'Please enter a valid email');
+            if (!password || password.length < 6) return showError('error-login-password', 'Password too short');
 
-            if (!email) {
-                showError('error-login-email', 'Email address is required');
-                isValid = false;
-            } else if (!isValidEmail(email)) {
-                showError('error-login-email', 'Please enter a valid email address');
-                isValid = false;
-            }
-
-            if (!password) {
-                showError('error-login-password', 'Password is required');
-                isValid = false;
-            } else if (password.length < 6) {
-                showError('error-login-password', 'Password must be at least 6 characters');
-                isValid = false;
-            }
-
-            if (!isValid) return;
-
-            // Show loading state
             const btn = document.getElementById('btn-login');
-            if(!btn) return;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
             btn.disabled = true;
 
@@ -193,76 +138,112 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok && result.success) {
                     handleSuccessfulLogin(result.token, result.refresh_token, result.user);
                 } else {
-                    // Support both FastAPI's 'detail' and custom 'error' fields
-                    const errorMsg = result.error || result.detail || 'Login failed. Please try again.';
-
                     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
                     btn.disabled = false;
-
-                    if (errorMsg === 'Email not registered' || errorMsg === 'User not found') {
-                        showError('error-login-email', 'This email is not registered. Please register first.');
-                        const registerPrompt = document.getElementById('register-prompt');
-                        if (registerPrompt) registerPrompt.classList.remove('hidden');
-                    } else if (errorMsg === 'Incorrect password' || errorMsg === 'Invalid email or password') {
-                        showError('error-login-password', 'Incorrect password or email. Please try again.');
-                    } else {
-                        showError('error-login-password', errorMsg);
-                    }
+                    showError('error-login-password', result.error || 'Login failed.');
                 }
             } catch (error) {
-                console.error('[ERROR] Login error:', error);
                 btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
                 btn.disabled = false;
-                showError('error-login-password', 'Could not connect to server. Make sure the backend is running.');
+                showError('error-login-password', 'Server connection error.');
             }
         });
     }
 
-    // Set Login/Logout Button based on Auth
+    // 4. Navbar Auth Button Toggle
     const navAuthBtn = document.getElementById('nav-login-hist');
-    const token = localStorage.getItem('dermacare_token');
-
+    const tokenToken = localStorage.getItem('dermacare_token');
     if (navAuthBtn) {
-        if (token) {
-            // User is logged in
+        if (tokenToken) {
             let userName = '';
             try {
                 const user = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
                 userName = user.first_name || user.name || '';
             } catch (e) { }
-
-            navAuthBtn.innerText = userName ? `Logout (${userName})` : 'Logout';
-            navAuthBtn.href = '#';
-            navAuthBtn.className = 'btn btn-secondary';
-
-            navAuthBtn.addEventListener('click', async (e) => {
+            navAuthBtn.innerText = `Logout (${userName})`;
+            navAuthBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                try {
-                    await fetch(API_BASE + '/api/auth/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                } catch (err) {
-                    console.error('Logout error:', err);
-                } finally {
-                    localStorage.removeItem('dermacare_token');
-                    window.location.href = '/';
-                }
+                localStorage.removeItem('dermacare_token');
+                window.location.href = '/';
             });
-        } else {
-            // User is NOT logged in
-            navAuthBtn.innerText = 'Login';
-            navAuthBtn.href = '/login';
-            navAuthBtn.className = 'btn btn-secondary';
         }
     }
-    
-    // Google/Apple placeholders
-    const gBtn = document.getElementById('btn-google-login');
-    if(gBtn) gBtn.addEventListener('click', () => alert('Google login requires OAuth2 setup.\nThis feature will be available soon.'));
-    
-    const aBtn = document.getElementById('btn-apple-login');
-    if(aBtn) aBtn.addEventListener('click', () => alert('Apple login requires OAuth2 setup.\nThis feature will be available soon.'));
+
+    // ---------------------------
+    // 6. Apple Sign-In Implementation
+    // ---------------------------
+    const APPLE_CLIENT_ID = "com.your.app.service"; 
+    const APPLE_REDIRECT_URL = window.location.origin + "/login";
+
+    window.handleAppleLogin = async (response) => {
+        const idToken = response.id_token;
+        const appleUser = response.user; 
+
+        console.log("[OK] Received Apple ID Token");
+
+        try {
+            const apiRes = await fetch(API_BASE + '/api/auth/apple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    token: idToken,
+                    user: appleUser 
+                })
+            });
+
+            const result = await apiRes.json();
+            if (apiRes.ok && result.success) {
+                if (typeof showToast === 'function') showToast("Apple Login Successful ✅", "success");
+                handleSuccessfulLogin(result.token, result.refresh_token, result.user);
+            } else {
+                alert(result.error || 'Apple login failed ❌');
+            }
+        } catch (error) {
+            console.error('[ERROR] Apple Login error:', error);
+        }
+    };
+
+    if (typeof AppleID !== 'undefined') {
+        AppleID.auth.init({
+            clientId: APPLE_CLIENT_ID,
+            scope: 'name email',
+            redirectURI: APPLE_REDIRECT_URL,
+            state: 'login_state',
+            usePopup: true
+        });
+
+        document.addEventListener('AppleIDSignInOnSuccess', (event) => {
+            window.handleAppleLogin(event.detail.data);
+        });
+        document.addEventListener('AppleIDSignInOnFailure', (event) => {
+            console.error('Apple Sign-In failed:', event.detail.error);
+        });
+    }
+});
+
+// ---------------------------
+// 7. Google Sign-In Trigger
+// ---------------------------
+window.googleLogin = function() {
+    window.location.href = API_BASE + "/api/auth/google/login";
+};
+
+// Handle OAuth Return from Backend Redirect
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const userStr = urlParams.get('user');
+
+    if (token) {
+        try {
+            const user = userStr ? JSON.parse(decodeURIComponent(userStr)) : { role: 'User' };
+            // Clear the URL so we don't have token sitting in history
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            if (typeof showToast === 'function') showToast("Google Login Successful ✅", "success");
+            handleSuccessfulLogin(token, token, user);
+        } catch(e) {
+            console.error("Failed to parse Google login data:", e);
+        }
+    }
 });

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!document.querySelector('link[href*="header.css"]')) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = '/static/shared/css/header.css';
+        link.href = '../../shared/static/css/header.css';
         document.head.appendChild(link);
     }
 
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <!-- Logged In State -->
             <div id="user-profile-menu" class="user-profile-dropdown" style="display: none;">
                 <div class="profile-trigger" id="profile-trigger">
-                    <img src="https://i.pravatar.cc/150" alt="User Avatar" id="header-avatar" class="header-avatar">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=" alt="User Avatar" id="header-avatar" class="header-avatar">
                     <span id="header-username" class="header-user-name">User</span>
                     <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i>
                 </div>
@@ -134,7 +134,7 @@ function initializeHeader() {
 
         const avatarKey = `dermacare_avatar_${user.email || 'guest'}`;
         const savedAvatar = localStorage.getItem(avatarKey);
-        const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=2563eb&color=fff&size=150&bold=true`;
+        const fallbackAvatar = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=";
         if (headerAvatar) {
             headerAvatar.src = savedAvatar ? savedAvatar : fallbackAvatar;
         }

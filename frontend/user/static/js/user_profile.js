@@ -60,12 +60,12 @@ async function loadProfile() {
 
     } catch (err) {
         // Fallback to localStorage
-        console.warn('API error, using localStorage fallback:', err);
+        console.warn('Profile load error:', err);
         const cached = localStorage.getItem('dermacare_current_user');
         if (cached) {
             populateProfile(JSON.parse(cached));
         } else {
-            showToast('Could not load profile. Please try again.', 'error');
+            showToast('Unable to load profile from server. Using local data if available.', 'error');
         }
     }
 }
@@ -80,7 +80,7 @@ function populateProfile(data) {
     // Check for saved local avatar first, fallback to initial generator
     const avatarKey = `dermacare_avatar_${email}`;
     const savedAvatar = localStorage.getItem(avatarKey);
-    const avatarUrl = savedAvatar ? savedAvatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=200&bold=true`;
+    const avatarUrl = savedAvatar ? savedAvatar : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=";
 
     // Sidebar
     setText('sidebar-name', fullName || 'User');
@@ -106,7 +106,7 @@ function populateProfile(data) {
         genderSel.value = val || 'male';
     }
 
-    setValue('prof-location', data.location || '');
+    setValue('prof-location', (!data.location || data.location === 'Unknown') ? '' : data.location);
 
     // Quick stats in avatar column
     const genderLabel = (data.gender || '').charAt(0).toUpperCase() + (data.gender || '').slice(1);
@@ -116,6 +116,47 @@ function populateProfile(data) {
 
     // Store for cancel reset
     window._originalProfile = { ...data };
+
+    // 🔥 Auto-Detect Location logic 
+    const isOldFormat = data.location && data.location.includes(',') && data.location.split(',').length < 3;
+    if (!data.location || data.location === 'Unknown' || data.location === '' || isOldFormat) {
+        const locInput = document.getElementById('prof-location');
+        if (locInput) {
+            locInput.placeholder = "Detecting location...";
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    try {
+                        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+                        const resp = await fetch(url, { headers: { "Accept-Language": "en-US,en;q=0.9" } });
+                        if (resp.ok) {
+                            const resData = await resp.json();
+                            const addr = resData.address || {};
+                            const area = addr.suburb || addr.neighbourhood || addr.residential || '';
+                            const city = addr.city || addr.town || addr.municipality || addr.village || addr.county || addr.city_district || '';
+                            const state = addr.state || '';
+
+                            const parts = [];
+                            if (area) parts.push(area);
+                            if (city) parts.push(city);
+                            if (state) parts.push(state);
+
+                            const finalLoc = parts.length > 0 ? parts.join(', ') : 'Unknown';
+                            if (finalLoc !== 'Unknown') {
+                                locInput.value = finalLoc;
+                                showToast("Location successfully auto-detected!", "success");
+                            }
+                        }
+                    } catch (err) {
+                        locInput.placeholder = "City / State";
+                    }
+                }, (error) => {
+                    locInput.placeholder = "City / State";
+                });
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -162,33 +203,44 @@ async function saveProfile(e) {
 
         if (res.ok && data.success) {
             showToast('Profile updated successfully!', 'success');
-            // Update localStorage cache
-            const cached = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
-            const updatedUser = { ...cached, ...payload };
-            localStorage.setItem('dermacare_current_user', JSON.stringify(updatedUser));
+            
+            // Safe Local Storage Updates
+            try {
+                const cached = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
+                const updatedUser = { ...cached, ...payload };
+                localStorage.setItem('dermacare_current_user', JSON.stringify(updatedUser));
 
-            // Permanently save the avatar if one was staged
-            if (window.pendingAvatarUrl) {
-                const avatarKey = `dermacare_avatar_${updatedUser.email || 'guest'}`;
-                localStorage.setItem(avatarKey, window.pendingAvatarUrl);
-                setAttr('sidebar-avatar', 'src', window.pendingAvatarUrl);
-                setAttr('header-avatar', 'src', window.pendingAvatarUrl);
-                window.pendingAvatarUrl = null; // Clear staged avatar
+                // Permanently save the avatar if one was staged
+                if (window.pendingAvatarUrl) {
+                    const avatarKey = `dermacare_avatar_${updatedUser.email || 'guest'}`;
+                    localStorage.setItem(avatarKey, window.pendingAvatarUrl);
+                    setAttr('sidebar-avatar', 'src', window.pendingAvatarUrl);
+                    setAttr('header-avatar', 'src', window.pendingAvatarUrl);
+                    window.pendingAvatarUrl = null; // Clear staged avatar
+                }
+            } catch (storageErr) {
+                console.warn('LocalStorage Quota exceeded or update error:', storageErr);
+                // We don't show a toast here to not confuse the user, 
+                // as the server update was successful.
             }
 
-            // Refresh display
-            loadProfile();
+            // Refresh display from server
+            await loadProfile();
         } else {
             let errorMsg = data.error;
             if (!errorMsg && data.detail) {
                 if (typeof data.detail === 'string') errorMsg = data.detail;
                 else if (Array.isArray(data.detail)) errorMsg = data.detail[0].loc.join('.') + ': ' + data.detail[0].msg;
             }
-            showToast(errorMsg || 'Update failed. Please try again.', 'error');
+            showToast(errorMsg || 'Update failed. Please check your information.', 'error');
         }
     } catch (err) {
-        console.error('Save profile error:', err);
-        showToast('Could not connect to server. Check if backend is running.', 'error');
+        console.error('Save profile exception:', err);
+        if (err.name === 'QuotaExceededError') {
+            showToast('Local storage full. Profile saved but avatar might not persist locally.', 'info');
+        } else {
+            showToast('Could not connect to server. Check if backend is running.', 'error');
+        }
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
@@ -206,60 +258,7 @@ function cancelEdit() {
     }
 }
 
-// ─────────────────────────────────────────────
-// CHANGE PASSWORD
-// ─────────────────────────────────────────────
-async function changePassword(e) {
-    e.preventDefault();
-    const token = localStorage.getItem('dermacare_token');
-    if (!token) { window.location.href = '/login'; return; }
 
-    const currentPw = getValue('pw-current');
-    const newPw = getValue('pw-new');
-    const confirmPw = getValue('pw-confirm');
-
-    if (!currentPw || !newPw || !confirmPw) {
-        showToast('All password fields are required.', 'error');
-        return;
-    }
-    if (newPw.length < 8) {
-        showToast('New password must be at least 8 characters.', 'error');
-        return;
-    }
-    if (newPw !== confirmPw) {
-        showToast('New passwords do not match.', 'error');
-        return;
-    }
-
-    const btn = document.getElementById('btn-change-password');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating…';
-
-    try {
-        const res = await fetch(`${API_URL}/api/auth/password/update`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ current_password: currentPw, new_password: newPw })
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-            showToast('Password changed successfully!', 'success');
-            document.getElementById('password-form').reset();
-        } else {
-            showToast(data.error || 'Password update failed.', 'error');
-        }
-    } catch (err) {
-        showToast('Could not connect to server.', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-key"></i> Update Password';
-    }
-}
 
 // ─────────────────────────────────────────────
 // LOGOUT
@@ -285,21 +284,7 @@ async function handleLogout(e) {
     }
 }
 
-// ─────────────────────────────────────────────
-// TOGGLE PASSWORD VISIBILITY
-// ─────────────────────────────────────────────
-function togglePasswordVis(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
-    if (!input) return;
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
-    }
-}
+
 
 // ─────────────────────────────────────────────
 // DOM HELPERS
@@ -328,9 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelBtn = document.getElementById('btn-cancel-profile');
     if (cancelBtn) cancelBtn.addEventListener('click', cancelEdit);
 
-    // Bind password form
-    const passwordForm = document.getElementById('password-form');
-    if (passwordForm) passwordForm.addEventListener('submit', changePassword);
 
     // Bind logout links
     document.querySelectorAll('.logout-btn-trigger').forEach(el => {

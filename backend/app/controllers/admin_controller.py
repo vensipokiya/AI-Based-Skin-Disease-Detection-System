@@ -37,3 +37,9 @@ class AdminController:
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result.get("error"))
         return result
+
+    async def get_user_locations(self):
+        return self.admin_service.get_user_locations()
+
+    async def get_otp_verifications(self):
+        return self.admin_service.get_otp_verifications()

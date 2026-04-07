@@ -31,8 +31,24 @@ class AdminService:
 
     def get_appointments(self) -> dict:
         appointments = self.admin_dao.get_all_appointments()
+        from datetime import datetime, date, timedelta
         for a in appointments:
-            if a.get("appointment_date"): a["appointment_date"] = a["appointment_date"].isoformat()
+            dt = a.get("appointment_date")
+            tm = a.get("appointment_time")
+            
+            # Calculate dynamic status
+            try:
+                # Attempt to combine date and time if available
+                if isinstance(dt, date) and isinstance(tm, timedelta):
+                    appointment_dt = datetime.combine(dt, datetime.min.time()) + tm
+                    a["status"] = "Done" if datetime.now() >= appointment_dt else "Pending"
+                else:
+                    appointment_dt = datetime.strptime(f"{dt} {tm}", "%Y-%m-%d %H:%M:%S")
+                    a["status"] = "Done" if datetime.now() >= appointment_dt else "Pending"
+            except Exception:
+                a["status"] = "Pending"
+
+            if a.get("appointment_date"): a["appointment_date"] = a["appointment_date"].isoformat() if hasattr(a["appointment_date"], 'isoformat') else str(a["appointment_date"])
             if a.get("appointment_time"): a["appointment_time"] = str(a["appointment_time"])
         return {"success": True, "appointments": appointments}
 
@@ -63,3 +79,16 @@ class AdminService:
         if self.admin_dao.force_logout(session_id):
             return {"success": True, "message": "Session terminated and user logged out."}
         return {"success": False, "error": "Session not found."}
+
+    def get_user_locations(self) -> dict:
+        locations = self.admin_dao.get_all_user_locations()
+        for l in locations:
+            if l.get("timestamp"): l["timestamp"] = l["timestamp"].isoformat()
+        return {"success": True, "locations": locations}
+
+    def get_otp_verifications(self) -> dict:
+        otps = self.admin_dao.get_all_otp_verifications()
+        for o in otps:
+            if o.get("created_at"): o["created_at"] = o["created_at"].isoformat()
+            if o.get("expires_at"): o["expires_at"] = o["expires_at"].isoformat()
+        return {"success": True, "otps": otps}
