@@ -24,13 +24,25 @@ from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin
 
 logger = get_logger(__name__)
 
+from .services.predict_service import PredictService
+import asyncio
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Pre-initialize DB
     db = DatabaseSingleton()
     if db.get_connection():
-        logger.info("[OK] MySQL Database connected and tables synchronized.")
+        logger.info("[OK] MySQL Database connected.")
     else:
-        logger.warning("[WARNING] MySQL initialization failed. Check DB is running on port 3306.")
+        logger.warning("[WARNING] MySQL failed.")
+        
+    # Pre-load AI model to avoid first-request slowness
+    try:
+        PredictService.load_assets()
+        logger.info("[OK] AI Model & Classes pre-loaded.")
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to pre-load AI assets: {e}")
+        
     yield
 
 app = FastAPI(title="DermaCare AI", version="2.0.0", lifespan=lifespan)
@@ -43,6 +55,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Static file mounts ──────────────────────────────────────────────────────
+FRONTEND = os.path.join(os.getcwd(), "frontend")
 
 # ── Static file mounts ──────────────────────────────────────────────────────
 FRONTEND = os.path.join(os.getcwd(), "frontend")
@@ -134,87 +149,70 @@ async def read_confirm_booking(request: Request):
 async def read_admin(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
-# ── Nearby Doctors Proxy (bypasses browser CORS) ───────────────────────────
+
+# ── Nearby Doctors Proxy (Optimized with asyncio.gather) ───────────────────
 import httpx
 
 @app.get("/api/nearby-doctors")
 async def nearby_doctors(lat: float, lng: float):
-    """Proxy endpoint: searches Nominatim from the server side so the browser
-    never hits CORS / 403 issues with external APIs."""
+    """Proxy endpoint: searches Nominatim in parallel for faster results."""
     
     keywords = ["dermatologist", "skin clinic", "skin doctor", "derma clinic", "skin care center"]
     all_results = []
     seen_names = set()
 
-    async with httpx.AsyncClient(timeout=12.0, headers={"User-Agent": "DermaCareAI/1.0 (student-project)"}) as client:
+    headers = {"User-Agent": "DermaCareAI/1.0 (student-project)"}
+    
+    async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
+        # Create all request tasks
+        tasks = []
         for kw in keywords:
-            try:
-                url = (
-                    f"https://nominatim.openstreetmap.org/search"
-                    f"?q={kw}"
-                    f"&format=json&limit=15&addressdetails=1"
-                    f"&viewbox={lng-1.5},{lat+1.5},{lng+1.5},{lat-1.5}"
-                    f"&bounded=0"
-                )
-                resp = await client.get(url)
-                if resp.status_code == 200:
+            url = (
+                f"https://nominatim.openstreetmap.org/search"
+                f"?q={kw}&format=json&limit=10&addressdetails=1"
+                f"&viewbox={lng-1.0},{lat+1.0},{lng+1.0},{lat-1.0}&bounded=0"
+            )
+            tasks.append(client.get(url))
+        
+        # Execute in parallel
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for resp in responses:
+            if isinstance(resp, httpx.Response) and resp.status_code == 200:
+                for item in resp.json():
+                    name = item.get("display_name", "").split(",")[0].strip()
+                    if not name or name.lower() in seen_names: continue
+                    seen_names.add(name.lower())
+                    all_results.append({
+                        "name": name,
+                        "lat": float(item["lat"]),
+                        "lon": float(item["lon"]),
+                        "city": (item.get("address") or {}).get("city") or (item.get("address") or {}).get("town") or "",
+                        "type": item.get("type", "doctor"),
+                    })
+
+    # Fallback to general if too few results
+    if len(all_results) < 3:
+        async with httpx.AsyncClient(timeout=10.0, headers=headers) as client2:
+            f_tasks = [client2.get(f"https://nominatim.openstreetmap.org/search?q={kw}&format=json&limit=5&addressdetails=1&viewbox={lng-1},{lat+1},{lng+1},{lat-1}") for kw in ["clinic", "hospital"]]
+            f_resps = await asyncio.gather(*f_tasks, return_exceptions=True)
+            for resp in f_resps:
+                if isinstance(resp, httpx.Response) and resp.status_code == 200:
                     for item in resp.json():
                         name = item.get("display_name", "").split(",")[0].strip()
-                        if not name or name.lower() in seen_names:
-                            continue
+                        if not name or name.lower() in seen_names: continue
                         seen_names.add(name.lower())
                         all_results.append({
-                            "name": name,
-                            "lat": float(item["lat"]),
-                            "lon": float(item["lon"]),
-                            "city": (item.get("address") or {}).get("city")
-                                    or (item.get("address") or {}).get("town")
-                                    or (item.get("address") or {}).get("village") or "",
-                            "street": (item.get("address") or {}).get("road") or "",
-                            "type": item.get("type", "doctor"),
+                            "name": name, "lat": float(item["lat"]), "lon": float(item["lon"]), "city": (item.get("address") or {}).get("city") or "", "type": "clinic",
                         })
-            except Exception as e:
-                logger.warning(f"Nominatim search failed for '{kw}': {e}")
-                continue
 
-    # If no skin specialists found, search for general clinics/hospitals
-    if len(all_results) < 3:
-        async with httpx.AsyncClient(timeout=12.0, headers={"User-Agent": "DermaCareAI/1.0 (student-project)"}) as client2:
-            for kw in ["clinic", "hospital"]:
-                try:
-                    url = (
-                        f"https://nominatim.openstreetmap.org/search"
-                        f"?q={kw}"
-                        f"&format=json&limit=10&addressdetails=1"
-                        f"&viewbox={lng-1.0},{lat+1.0},{lng+1.0},{lat-1.0}"
-                        f"&bounded=0"
-                    )
-                    resp = await client2.get(url)
-                    if resp.status_code == 200:
-                        for item in resp.json():
-                            name = item.get("display_name", "").split(",")[0].strip()
-                            if not name or name.lower() in seen_names:
-                                continue
-                            seen_names.add(name.lower())
-                            all_results.append({
-                                "name": name,
-                                "lat": float(item["lat"]),
-                                "lon": float(item["lon"]),
-                                "city": (item.get("address") or {}).get("city") or "",
-                                "street": (item.get("address") or {}).get("road") or "",
-                                "type": "clinic",
-                            })
-                except Exception:
-                    continue
-
-    # Sort by distance to user
+    # Sort by distance
     import math
     def haversine(la1, lo1, la2, lo2):
         R = 6371
-        d_lat = math.radians(la2 - la1)
-        d_lon = math.radians(lo2 - lo1)
-        a = math.sin(d_lat/2)**2 + math.cos(math.radians(la1)) * math.cos(math.radians(la2)) * math.sin(d_lon/2)**2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        d_lat, d_lon = math.radians(la2-la1), math.radians(lo2-lo1)
+        a = math.sin(d_lat/2)**2 + math.cos(math.radians(la1))*math.cos(math.radians(la2))*math.sin(d_lon/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     
     for r in all_results:
         r["distance"] = round(haversine(lat, lng, r["lat"], r["lon"]), 1)
@@ -222,6 +220,19 @@ async def nearby_doctors(lat: float, lng: float):
     all_results.sort(key=lambda x: x["distance"])
     return all_results[:15]
 
+
+# ── Websocket Endpoint ──────────────────────────────────────────────────────
+from fastapi import WebSocket, WebSocketDisconnect
+from backend.app.utils.websocket import manager
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 # ── Error Handlers ──────────────────────────────────────────────────────────
 @app.exception_handler(404)
@@ -231,3 +242,4 @@ async def not_found_handler(request: Request, exc):
 @app.exception_handler(500)
 async def server_error_handler(request: Request, exc):
     return templates.TemplateResponse("500.html", {"request": request}, status_code=500)
+

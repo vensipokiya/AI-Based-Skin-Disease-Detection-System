@@ -420,21 +420,21 @@ function displayResult(data) {
     let accColor = '#3b82f6';
     if (accuracyIndicator && accuracyLevel) {
         accuracyIndicator.style.display = 'inline-block';
-        let accLevelStr = 'LOW';
-        accColor = '#ef4444'; // Red for LOW
+        let levelLabel = 'LOW';
+        let accColor = '#ef4444'; // Red for LOW
         let accBg = 'rgba(239, 68, 68, 0.1)';
 
         if (data.confidence >= 80) {
-            accLevelStr = 'HIGH';
+            levelLabel = 'HIGH';
             accColor = '#3b82f6'; // Blue
             accBg = 'rgba(59, 130, 246, 0.1)';
         } else if (data.confidence >= 50) {
-            accLevelStr = 'MEDIUM';
+            levelLabel = 'MEDIUM';
             accColor = '#f59e0b'; // Amber
             accBg = 'rgba(245, 158, 11, 0.1)';
         }
 
-        accuracyLevel.innerText = accLevelStr;
+        accuracyLevel.innerText = levelLabel;
         accuracyIndicator.style.backgroundColor = accBg;
         accuracyIndicator.style.color = accColor;
         accuracyIndicator.style.border = `1px solid ${accColor}`;
@@ -760,26 +760,40 @@ function loadGoogleMapsNearby() {
     if (list) list.style.display = 'none';
     if (loading) loading.style.display = 'block';
 
-    // If browser has geolocation, use it as starting point
+    // ── Better Location Strategy ──
+    const handleSuccess = (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy || 1000;
+        console.log(`[Geo] Success: ${lat}, ${lng} (acc: ${acc}m)`);
+        initMapAtPosition(lat, lng, list, mapContainer, loading, acc);
+    };
+
+    const handleFallback = async () => {
+        console.warn('[Geo] Using IP fallback...');
+        try {
+            const resp = await fetch('https://ipapi.co/json/');
+            const data = await resp.json();
+            if (data.latitude && data.longitude) {
+                console.log(`[Geo] IP Fallback: ${data.city}, ${data.region}`);
+                initMapAtPosition(data.latitude, data.longitude, list, mapContainer, loading, 10000); // 10km accuracy for IP
+            } else {
+                throw new Error('IP Geo failed');
+            }
+        } catch (e) {
+            // Final fallback: Ahmedabad
+            initMapAtPosition(23.0225, 72.5714, list, mapContainer, loading, 99999);
+        }
+    };
+
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                const acc = pos.coords.accuracy;
-                console.log(`[Location] lat=${lat}, lng=${lng}, accuracy=${acc}m`);
-                initMapAtPosition(lat, lng, list, mapContainer, loading, acc);
-            },
-            err => {
-                console.warn('Geolocation error:', err.message);
-                // Fallback: centre on Ahmedabad & let user set location
-                initMapAtPosition(23.0225, 72.5714, list, mapContainer, loading, 99999);
-            },
-            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-        );
+        navigator.geolocation.getCurrentPosition(handleSuccess, handleFallback, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
     } else {
-        // No geolocation API at all
-        initMapAtPosition(23.0225, 72.5714, list, mapContainer, loading, 99999);
+        handleFallback();
     }
 }
 
@@ -791,18 +805,21 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
 
     // Create / recreate map
     if (leafletMap) { leafletMap.remove(); leafletMap = null; }
-    leafletMap = L.map('map').setView([lat, lng], 15);
+    leafletMap = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
+    
+    // Add zoom control top right
+    L.control.zoom({ position: 'topright' }).addTo(leafletMap);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        attribution: '© OpenStreetMap, © CARTO',
         subdomains: 'abcd', maxZoom: 20
     }).addTo(leafletMap);
 
     // ── User marker (draggable so user can correct it) ──────────────────────
     const userIcon = L.divIcon({
         className: 'user-location-marker',
-        html: `<div style="width:22px;height:22px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(37,99,235,0.25),0 2px 10px rgba(0,0,0,0.3);cursor:grab;"></div>`,
-        iconSize: [22, 22], iconAnchor: [11, 11]
+        html: `<div style="width:24px;height:24px;background:#2563eb;border:4px solid white;border-radius:50%;box-shadow:0 0 0 8px rgba(37,99,235,0.15), 0 4px 15px rgba(0,0,0,0.3);cursor:grab;"></div>`,
+        iconSize: [24, 24], iconAnchor: [12, 12]
     });
 
     if (userMarker) { try { leafletMap.removeLayer(userMarker); } catch(e){} }
@@ -814,7 +831,6 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     // When user drags the pin → re-search
     userMarker.on('dragend', function () {
         const pos = userMarker.getLatLng();
-        console.log('[Drag] New position:', pos.lat, pos.lng);
         leafletMap.setView([pos.lat, pos.lng], 15);
         refreshDoctorSearch(pos.lat, pos.lng, list);
     });
@@ -823,12 +839,11 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     leafletMap.on('click', function (e) {
         const { lat: cLat, lng: cLng } = e.latlng;
         userMarker.setLatLng([cLat, cLng]);
-        leafletMap.setView([cLat, cLng], 15);
-        userMarker.bindPopup('<strong>📍 Your Location (updated)</strong>').openPopup();
+        userMarker.bindPopup('<strong>📍 Location Updated</strong>').openPopup();
         refreshDoctorSearch(cLat, cLng, list);
     });
 
-    // ── Location search box (overlay on map) ────────────────────────────────
+    // ── Display Location Search Overlay ──
     addLocationSearchBox(list);
 
     // ── Google Maps bar ─────────────────────────────────────────────────────
@@ -839,53 +854,50 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
         gBar.style.display = 'block';
     }
 
-    // ── Location hint — ALWAYS show on page load since desktops have no GPS ──
-    // Desktop browsers use WiFi/IP and falsely report high accuracy at ISP hub
+    // ── Helpful Hint (Prominent) ──
     const hint = document.createElement('div');
     hint.id = 'location-accuracy-hint';
-    hint.style.cssText = 'padding:0.85rem 1rem;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;border-radius:12px;margin-bottom:1rem;font-size:0.88rem;color:#1e40af;display:flex;align-items:flex-start;gap:0.6rem;';
+    hint.style.cssText = 'padding:1.25rem;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:16px;margin-bottom:1.5rem;font-size:0.9rem;color:#0369a1;display:flex;align-items:flex-start;gap:0.75rem;box-shadow:0 2px 6px rgba(0,0,0,0.03);';
     hint.innerHTML = `
-        <i class="fas fa-map-marker-alt" style="margin-top:2px;flex-shrink:0;font-size:1.1rem;"></i>
-        <span>Location may not be exact. <strong>Use the search box on the map</strong> to type your actual location, or <strong>click/drag the pin</strong> on the map to correct it.</span>`;
-    if (list) list.insertBefore(hint, list.firstChild);
+        <div style="background:#0284c7;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas fa-map-marker-alt" style="font-size:0.9rem;"></i>
+        </div>
+        <div>
+            <strong style="display:block;margin-bottom:4px;color:#0c4a6e;">Location Incorrect?</strong>
+            <span>Search your area using the <strong>box on the map</strong> or simply <strong>click anywhere on the map</strong> to find doctors there.</span>
+        </div>`;
+    if (list) {
+        const existing = document.getElementById('location-accuracy-hint');
+        if (existing) existing.remove();
+        list.insertBefore(hint, list.firstChild);
+    }
 
-    // Auto-focus the search input after a short delay
-    setTimeout(() => {
-        const searchInput = document.getElementById('loc-search-input');
-        if (searchInput) searchInput.focus();
-    }, 500);
-
-    // ── Run initial search ──────────────────────────────────────────────────
+    // Run initial search
     searchNearbyDermatologists(lat, lng, list);
-
-    // Save to backend
     saveLocationToBackend(lat, lng);
-
     mapLoaded = true;
 }
 
-// ──── Location search box on map ────────────────────────────────────────────
+// ──── Search Box with Global Support ─────────────────────────────────────────
 function addLocationSearchBox(listEl) {
-    // Don't add twice
     if (document.getElementById('location-search-box')) return;
 
     const wrapper = document.createElement('div');
     wrapper.id = 'location-search-box';
-    wrapper.style.cssText = 'position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:1001;width:90%;max-width:480px;';
+    wrapper.style.cssText = 'position:absolute;top:20px;left:20px;z-index:2000;width:calc(100% - 40px);max-width:400px;';
     wrapper.innerHTML = `
-        <div style="display:flex;gap:0;box-shadow:0 4px 16px rgba(0,0,0,0.15);border-radius:12px;overflow:hidden;">
-            <input id="loc-search-input" type="text" placeholder="Search your location (e.g. Silver Oak University)"
-                style="flex:1;padding:0.7rem 1rem;border:none;outline:none;font-size:0.9rem;font-family:inherit;background:white;" />
-            <button id="loc-search-btn" style="padding:0.7rem 1.2rem;background:#2563eb;color:white;border:none;cursor:pointer;font-size:0.9rem;font-weight:600;">
+        <div style="display:flex;gap:0;box-shadow:0 8px 24px rgba(0,0,0,0.12);border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+            <input id="loc-search-input" type="text" placeholder="Enter your city or area..."
+                style="flex:1;padding:0.9rem 1.25rem;border:none;outline:none;font-size:0.95rem;font-family:inherit;background:white;" />
+            <button id="loc-search-btn" style="padding:0.9rem 1.4rem;background:#2563eb;color:white;border:none;cursor:pointer;font-size:1rem;transition:background 0.2s;">
                 <i class="fas fa-search"></i>
             </button>
         </div>
-        <div id="loc-search-results" style="display:none;background:white;border-radius:0 0 12px 12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;"></div>`;
+        <div id="loc-search-results" style="display:none;background:white;margin-top:8px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.15);max-height:220px;overflow-y:auto;border:1px solid #f1f5f9;"></div>`;
 
     const mapPanel = document.querySelector('.right-panel-map');
     if (mapPanel) mapPanel.appendChild(wrapper);
 
-    // Search handler
     const input = document.getElementById('loc-search-input');
     const btn   = document.getElementById('loc-search-btn');
     const resultsDiv = document.getElementById('loc-search-results');
@@ -896,46 +908,41 @@ function addLocationSearchBox(listEl) {
 
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1&countrycodes=in`, {
+            // Global search (removed country restriction)
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`, {
                 headers: { 'User-Agent': 'DermaCareAI/1.0' }
             });
             const data = await res.json();
 
             if (!data || data.length === 0) {
-                resultsDiv.innerHTML = '<div style="padding:0.75rem 1rem;color:#64748b;font-size:0.85rem;">No results found. Try a different search.</div>';
+                resultsDiv.innerHTML = '<div style="padding:1rem;text-align:center;color:#64748b;">No results found.</div>';
                 resultsDiv.style.display = 'block';
                 return;
             }
 
-            resultsDiv.innerHTML = data.map((item, i) => `
+            resultsDiv.innerHTML = data.map(item => `
                 <div class="loc-result-item" data-lat="${item.lat}" data-lon="${item.lon}"
-                    style="padding:0.65rem 1rem;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:0.85rem;transition:background 0.15s;"
-                    onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='white'">
-                    <i class="fas fa-map-marker-alt" style="color:#2563eb;margin-right:0.5rem;"></i>
-                    ${item.display_name.substring(0, 80)}${item.display_name.length > 80 ? '...' : ''}
+                    style="padding:0.8rem 1.2rem;cursor:pointer;border-bottom:1px solid #f8fafc;font-size:0.9rem;transition:all 0.2s;"
+                    onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='white'">
+                    <div style="font-weight:600;margin-bottom:2px;">${item.display_name.split(',')[0]}</div>
+                    <div style="font-size:0.75rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.display_name}</div>
                 </div>`).join('');
             resultsDiv.style.display = 'block';
 
-            // Click a result → move map + re-search
             resultsDiv.querySelectorAll('.loc-result-item').forEach(el => {
                 el.addEventListener('click', () => {
                     const rLat = parseFloat(el.dataset.lat);
                     const rLon = parseFloat(el.dataset.lon);
                     userMarker.setLatLng([rLat, rLon]);
                     leafletMap.setView([rLat, rLon], 15);
-                    userMarker.bindPopup('<strong>📍 Your Location (updated)</strong>').openPopup();
+                    userMarker.bindPopup('<strong>📍 Location Updated</strong>').openPopup();
                     resultsDiv.style.display = 'none';
-                    input.value = '';
-
-                    // Remove accuracy hint
-                    const hint = document.getElementById('location-accuracy-hint');
-                    if (hint) hint.remove();
-
+                    input.value = el.querySelector('div').innerText;
                     refreshDoctorSearch(rLat, rLon, listEl);
                 });
             });
         } catch (err) {
-            console.error('Location search error:', err);
+            console.error('Search error:', err);
         } finally {
             btn.innerHTML = '<i class="fas fa-search"></i>';
         }
@@ -943,11 +950,7 @@ function addLocationSearchBox(listEl) {
 
     btn.addEventListener('click', doSearch);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
-
-    // Hide results when clicking outside
-    document.addEventListener('click', e => {
-        if (!wrapper.contains(e.target)) resultsDiv.style.display = 'none';
-    });
+    document.addEventListener('click', e => { if (wrapper && !wrapper.contains(e.target)) resultsDiv.style.display = 'none'; });
 }
 
 // ──── Save location to backend ──────────────────────────────────────────────
