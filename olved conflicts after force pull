@@ -1,0 +1,309 @@
+[1mdiff --git a/backend/.env b/backend/.env[m
+[1mindex f5021ea..010eb46 100644[m
+[1m--- a/backend/.env[m
+[1m+++ b/backend/.env[m
+[36m@@ -3,7 +3,7 @@[m [mDATABASE_URL=mysql+mysqlconnector://root:admin123@localhost:3306/dermacare_db[m
+ DB_HOST=localhost[m
+ DB_PORT=3306[m
+ DB_USER=root[m
+[31m-DB_PASSWORD=admin123[m
+[32m+[m[32mDB_PASSWORD=MySQL2573[m
+ DB_NAME=dermacare_db[m
+ JWT_SECRET=your_super_secret_key_here[m
+ ADMIN_BYPASS_EMAIL=admin@gmail.com[m
+[1mdiff --git a/backend/app/controllers/auth_controller.py b/backend/app/controllers/auth_controller.py[m
+[1mindex 7150ef9..64f7714 100644[m
+[1m--- a/backend/app/controllers/auth_controller.py[m
+[1m+++ b/backend/app/controllers/auth_controller.py[m
+[36m@@ -25,21 +25,16 @@[m [mclass AuthController:[m
+         return self.auth_service.refresh_token_session(current_user)[m
+ [m
+     async def forgot_send_otp(self, data: ForgotPasswordSendOtpRequest):[m
+[32m+[m[32m        # Return JSON directly so frontend always gets {success, error} — never a bare 400[m
+         result = self.auth_service.send_forgot_password_otp(data)[m
+[31m-        if not result["success"]:[m
+[31m-            raise HTTPException(status_code=400, detail=result.get("error"))[m
+         return result[m
+ [m
+     async def forgot_verify_otp(self, data: ForgotPasswordVerifyOtpRequest):[m
+         result = self.auth_service.verify_forgot_password_otp(data)[m
+[31m-        if not result["success"]:[m
+[31m-            raise HTTPException(status_code=400, detail=result.get("error"))[m
+         return result[m
+ [m
+     async def forgot_reset_password(self, data: ForgotPasswordResetRequest):[m
+         result = self.auth_service.reset_forgotten_password(data)[m
+[31m-        if not result["success"]:[m
+[31m-            raise HTTPException(status_code=400, detail=result.get("error"))[m
+         return result[m
+ [m
+     async def google_auth(self, request, data: dict):[m
+[1mdiff --git a/backend/app/schemas/user_schema.py b/backend/app/schemas/user_schema.py[m
+[1mindex 431d435..358b186 100644[m
+[1m--- a/backend/app/schemas/user_schema.py[m
+[1m+++ b/backend/app/schemas/user_schema.py[m
+[36m@@ -32,6 +32,7 @@[m [mclass ForgotPasswordResetRequest(BaseModel):[m
+     email: Optional[EmailStr] = None[m
+     phone: Optional[str] = None[m
+     password: str[m
+[32m+[m[32m    reset_token: str[m
+ [m
+ class UserProfileResponse(BaseModel):[m
+     first_name: str[m
+[1mdiff --git a/backend/app/services/auth_service.py b/backend/app/services/auth_service.py[m
+[1mindex 583215f..08855d2 100644[m
+[1m--- a/backend/app/services/auth_service.py[m
+[1m+++ b/backend/app/services/auth_service.py[m
+[36m@@ -111,40 +111,78 @@[m [mclass AuthService:[m
+ [m
+     def send_forgot_password_otp(self, data: ForgotPasswordSendOtpRequest) -> dict:[m
+         conn = self.user_dao.db.get_connection()[m
+[31m-        if not conn: return {"success": False, "error": "Database connection error"}[m
+[32m+[m[32m        if not conn: return {"success": False, "error": "Database connection error. Please try again."}[m
+         try:[m
+             cursor = conn.cursor(dictionary=True)[m
+[32m+[m
+[32m+[m[32m            # Auto-create otp_verification table if it doesn't exist[m
+[32m+[m[32m            cursor.execute("""[m
+[32m+[m[32m                CREATE TABLE IF NOT EXISTS otp_verification ([m
+[32m+[m[32m                    id INT AUTO_INCREMENT PRIMARY KEY,[m
+[32m+[m[32m                    uid INT NOT NULL,[m
+[32m+[m[32m                    contact VARCHAR(255) NOT NULL,[m
+[32m+[m[32m                    otp VARCHAR(6) NOT NULL,[m
+[32m+[m[32m                    is_verified TINYINT(1) DEFAULT 0,[m
+[32m+[m[32m                    reset_token VARCHAR(128) DEFAULT NULL,[m
+[32m+[m[32m                    expires_at DATETIME NOT NULL,[m
+[32m+[m[32m                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP[m
+[32m+[m[32m                )[m
+[32m+[m[32m            """)[m
+[32m+[m[32m            conn.commit()[m
+[32m+[m[32m            # Safe migration for existing tables created before reset_token support[m
+[32m+[m[32m            cursor.execute("SHOW COLUMNS FROM otp_verification LIKE 'reset_token'")[m
+[32m+[m[32m            if not cursor.fetchone():[m
+[32m+[m[32m                cursor.execute("ALTER TABLE otp_verification ADD COLUMN reset_token VARCHAR(128) DEFAULT NULL")[m
+[32m+[m[32m                conn.commit()[m
+[32m+[m
+             if data.email:[m
+                 cursor.execute("SELECT * FROM users WHERE email = %s", (data.email,))[m
+             elif data.phone:[m
+                 cursor.execute("SELECT * FROM users WHERE contact_number = %s", (data.phone,))[m
+             else:[m
+[31m-                return {"success": False, "error": "Email or phone required"}[m
+[31m-                [m
+[32m+[m[32m                return {"success": False, "error": "Email or phone is required."}[m
+[32m+[m
+             user = cursor.fetchone()[m
+             if not user:[m
+[31m-                return {"success": False, "error": "User not found"}[m
+[31m-                [m
+[32m+[m[32m                return {"success": False, "error": "No account found with that email address. Please check and try again."}[m
+[32m+[m
+             otp = ''.join(secrets.choice(string.digits) for _ in range(6))[m
+             expiry = datetime.now() + timedelta(minutes=10)[m
+             contact = data.email if data.email else data.phone[m
+[31m-            [m
+[32m+[m
+[32m+[m[32m            # Delete any old OTPs for this user first[m
+[32m+[m[32m            cursor.execute("DELETE FROM otp_verification WHERE uid = %s", (user["id"],))[m
+[32m+[m
+             cursor.execute("""[m
+[31m-                INSERT INTO otp_verification (uid, contact, otp, is_verified, expires_at, created_at)[m
+[31m-                VALUES (%s, %s, %s, %s, %s, %s)[m
+[31m-            """, (user["id"], contact, otp, 0, expiry, datetime.now()))[m
+[31m-            [m
+[32m+[m[32m                INSERT INTO otp_verification (uid, contact, otp, is_verified, reset_token, expires_at, created_at)[m
+[32m+[m[32m                VALUES (%s, %s, %s, %s, %s, %s, %s)[m
+[32m+[m[32m            """, (user["id"], contact, otp, 0, None, expiry, datetime.now()))[m
+[32m+[m
+             conn.commit()[m
+[31m-            [m
+[31m-            # Simulated send[m
+[31m-            print(f">>> [DEV] OTP for {contact} is {otp} <<<")[m
+[32m+[m
+[32m+[m[32m            # Always print OTP to server console for debugging[m
+[32m+[m[32m            print(f">>> [DEV] OTP for {contact} is: {otp} <<<")[m
+[32m+[m
+[32m+[m[32m            # Try to send email — but don't fail if SMTP is not configured[m
+[32m+[m[32m            email_sent = False[m
+             if data.email:[m
+[31m-                CommunicationService.send_otp_email(contact, otp)[m
+[31m-                [m
+[31m-            # Send dev_otp in response so frontend demo works smoothly if SMTP is not configured[m
+[31m-            return {"success": True, "message": "OTP sent successfully", "dev_otp": otp}[m
+[32m+[m[32m                try:[m
+[32m+[m[32m                    email_sent = CommunicationService.send_otp_email(contact, otp)[m
+[32m+[m[32m                except Exception as email_err:[m
+[32m+[m[32m                    print(f">>> [INFO] Email not sent (SMTP not configured): {email_err}")[m
+[32m+[m[32m                    email_sent = False[m
+[32m+[m
+[32m+[m[32m            # Always return the OTP in dev_otp field so the frontend can show it[m
+[32m+[m[32m            # (In production with SMTP configured, remove dev_otp from the response)[m
+[32m+[m[32m            return {[m
+[32m+[m[32m                "success": True,[m
+[32m+[m[32m                "message": "OTP sent successfully",[m
+[32m+[m[32m                "dev_otp": otp,[m
+[32m+[m[32m                "email_sent": email_sent[m
+[32m+[m[32m            }[m
+         except Exception as e:[m
+[31m-            return {"success": False, "error": str(e)}[m
+[32m+[m[32m            print(f">>> [ERROR] send_forgot_password_otp failed: {e}")[m
+[32m+[m[32m            return {"success": False, "error": f"Server error: {str(e)}"}[m
+         finally:[m
+             conn.close()[m
+ [m
+[36m@@ -167,16 +205,18 @@[m [mclass AuthService:[m
+                 [m
+             if datetime.now() > record["expires_at"]:[m
+                 return {"success": False, "error": "OTP expired"}[m
+[32m+[m
+[32m+[m[32m            reset_token = secrets.token_urlsafe(32)[m
+             [m
+             # mark verified[m
+             cursor.execute("""[m
+                 UPDATE otp_verification [m
+[31m-                SET is_verified=1 [m
+[32m+[m[32m                SET is_verified=1, reset_token=%s[m
+                 WHERE id=%s[m
+[31m-            """, (record["id"],))[m
+[32m+[m[32m            """, (reset_token, record["id"]))[m
+             conn.commit()[m
+                 [m
+[31m-            return {"success": True, "message": "OTP verified"}[m
+[32m+[m[32m            return {"success": True, "message": "OTP verified", "reset_token": reset_token}[m
+         except Exception as e:[m
+             return {"success": False, "error": str(e)}[m
+         finally:[m
+[36m@@ -187,6 +227,23 @@[m [mclass AuthService:[m
+         if not conn: return {"success": False, "error": "DB err"}[m
+         try:[m
+             cursor = conn.cursor(dictionary=True)[m
+[32m+[m[32m            contact = data.email if data.email else data.phone[m
+[32m+[m[32m            if not contact:[m
+[32m+[m[32m                return {"success": False, "error": "Email or phone is required."}[m
+[32m+[m
+[32m+[m[32m            cursor.execute("""[m
+[32m+[m[32m                SELECT id, uid, expires_at[m
+[32m+[m[32m                FROM otp_verification[m
+[32m+[m[32m                WHERE contact=%s AND reset_token=%s AND is_verified=1[m
+[32m+[m[32m                ORDER BY created_at DESC[m
+[32m+[m[32m                LIMIT 1[m
+[32m+[m[32m            """, (contact, data.reset_token))[m
+[32m+[m[32m            verification = cursor.fetchone()[m
+[32m+[m[32m            if not verification:[m
+[32m+[m[32m                return {"success": False, "error": "Invalid or missing reset session. Please verify OTP again."}[m
+[32m+[m[32m            if datetime.now() > verification["expires_at"]:[m
+[32m+[m[32m                return {"success": False, "error": "Reset session expired. Please request a new OTP."}[m
+[32m+[m
+             new_hashed = SecurityService.get_password_hash(data.password)[m
+             [m
+             if data.email:[m
+[36m@@ -199,6 +256,12 @@[m [mclass AuthService:[m
+                     "UPDATE users SET password_hash=%s WHERE contact_number=%s",[m
+                     (new_hashed, data.phone)[m
+                 )[m
+[32m+[m
+[32m+[m[32m            if cursor.rowcount == 0:[m
+[32m+[m[32m                return {"success": False, "error": "Account not found for the provided contact."}[m
+[32m+[m
+[32m+[m[32m            # Invalidate all OTP records for this user after successful password reset[m
+[32m+[m[32m            cursor.execute("DELETE FROM otp_verification WHERE uid=%s", (verification["uid"],))[m
+             conn.commit()[m
+             return {"success": True, "message": "Password updated successfully"}[m
+         except Exception as e:[m
+[1mdiff --git a/backend/check_db.py b/backend/check_db.py[m
+[1mindex e69de29..b49bfcf 100644[m
+[1m--- a/backend/check_db.py[m
+[1m+++ b/backend/check_db.py[m
+[36m@@ -0,0 +1,24 @@[m
+[32m+[m[32mimport mysql.connector[m
+[32m+[m
+[32m+[m[32mconn = mysql.connector.connect([m
+[32m+[m[32m    host='localhost', user='root', password='MySQL2573', database='dermacare_db'[m
+[32m+[m[32m)[m
+[32m+[m[32mcur = conn.cursor()[m
+[32m+[m
+[32m+[m[32mprint("=== Users in DB ===")[m
+[32m+[m[32mcur.execute("SELECT id, email FROM users LIMIT 10")[m
+[32m+[m[32mrows = cur.fetchall()[m
+[32m+[m[32mfor r in rows:[m
+[32m+[m[32m    print(f"  ID={r[0]}  email={r[1]}")[m
+[32m+[m
+[32m+[m[32mprint("\n=== otp_verification table ===")[m
+[32m+[m[32mcur.execute("SHOW TABLES LIKE 'otp_verification'")[m
+[32m+[m[32mt = cur.fetchone()[m
+[32m+[m[32mprint("  Exists:", bool(t))[m
+[32m+[m[32mif t:[m
+[32m+[m[32m    cur.execute("DESCRIBE otp_verification")[m
+[32m+[m[32m    cols = cur.fetchall()[m
+[32m+[m[32m    for c in cols:[m
+[32m+[m[32m        print(" ", c)[m
+[32m+[m
+[32m+[m[32mconn.close()[m
+[1mdiff --git a/frontend/admin/templates/dashboard.html b/frontend/admin/templates/dashboard.html[m
+[1mindex 29f35dd..a78a59a 100644[m
+[1m--- a/frontend/admin/templates/dashboard.html[m
+[1m+++ b/frontend/admin/templates/dashboard.html[m
+[36m@@ -7,11 +7,11 @@[m
+     <title>Admin Dashboard - DermaCare</title>[m
+     <!-- Fonts and Icons -->[m
+     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">[m
+[31m-    <link rel="stylesheet" href="../../shared/static/css/all.min.css">[m
+[32m+[m[32m    <link rel="stylesheet" href="/shared/static/css/all.min.css">[m
+ [m
+     <!-- Component CSS -->[m
+[31m-    <link rel="stylesheet" href="../../user/static/css/style.css"><link rel="stylesheet" href="../../shared/static/css/header.css">[m
+[31m-    <link rel="stylesheet" href="../../admin/static/css/admin.css">[m
+[32m+[m[32m    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/shared/static/css/header.css">[m
+[32m+[m[32m    <link rel="stylesheet" href="/admin/static/css/admin.css">[m
+ [m
+     <!-- Toast UI CSS -->[m
+     <style>[m
+[36m@@ -351,7 +351,7 @@[m
+     </div>[m
+ [m
+     <!-- Admin Logic -->[m
+[31m-    <script src="../../admin/static/js/admin.js?v=4"></script>[m
+[32m+[m[32m    <script src="/admin/static/js/admin.js?v=4"></script>[m
+ </body>[m
+ [m
+[31m-</html>[m
+\ No newline at end of file[m
+[32m+[m[32m</html>[m
+[1mdiff --git a/frontend/shared/static/js/header.js b/frontend/shared/static/js/header.js[m
+[1mindex c70d3bf..20c8790 100644[m
+[1m--- a/frontend/shared/static/js/header.js[m
+[1m+++ b/frontend/shared/static/js/header.js[m
+[36m@@ -3,7 +3,7 @@[m [mdocument.addEventListener('DOMContentLoaded', () => {[m
+     if (!document.querySelector('link[href*="header.css"]')) {[m
+         const link = document.createElement('link');[m
+         link.rel = 'stylesheet';[m
+[31m-        link.href = '../../shared/static/css/header.css';[m
+[32m+[m[32m        link.href = '/shared/static/css/header.css';[m
+         document.head.appendChild(link);[m
+     }[m
+ [m
+[1mdiff --git a/frontend/shared/templates/404.html b/frontend/shared/templates/404.html[m
+[1mindex 7082b34..222c899 100644[m
+[1m--- a/frontend/shared/templates/404.html[m
+[1m+++ b/frontend/shared/templates/404.html[m
+[36m@@ -4,7 +4,7 @@[m
+     <meta charset="UTF-8">[m
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">[m
+     <title>404 - Page Not Found</title>[m
+[31m-    <link rel="stylesheet" href="/static/css/style.css">[m
+[32m+[m[32m    <link rel="stylesheet" href="/static/user/css/style.css">[m
+     <style>[m
+         body { display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; background: #f8fafc; font-family: 'Inter', sans-serif; }[m
+         .error-container { max-width: 500px; padding: 2rem; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }[m
+[1mdiff --git a/frontend/shared/templates/500.html b/frontend/shared/templates/500.html[m
+[1mindex 1ec154c..74a8ea4 100644[m
+[1m--- a/frontend/shared/templates/500.html[m
+[1m+++ b/frontend/shared/templates/500.html[m
+[36m@@ -4,7 +4,7 @@[m
+     <meta charset="UTF-8">[m
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">[m
+     <title>500 - Internal Server Error</title>[m
+[31m-    <link rel="stylesheet" href="/static/css/style.css">[m
+[32m+[m[32m    <link rel="stylesheet" href="/static/user/css/style.css">[m
+     <style>[m
+         body 
