@@ -2,32 +2,30 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 
-load_dotenv("backend/.env")
+load_dotenv()
 
-def test_conn(host, port, user, password, database):
-    print(f"Testing {user}@{host}:{port} db={database} password={password}")
-    try:
-        conn = mysql.connector.connect(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            database=database
-        )
-        print(f"[SUCCESS] Connected to {database} on port {port}")
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"[FAIL] Port {port}: {e}")
-        return False
-
-# Common scenarios
-scenarios = [
-    (3307, "root", "password"),
-    (3307, "root", ""),
-    (3307, "root", "root")
+configs = [
+    {
+        "host": "localhost",
+        "port": 3306,
+        "user": "root",
+        "password": "MySQL2573",
+        "database": "dermacare_db"
+    },
+    {
+        "host": "localhost",
+        "port": 3307,
+        "user": "root",
+        "password": "MySQL2573",
+        "database": "dermacare_db"
+    }
 ]
 
-for p, u, pw in scenarios:
-    test_conn("localhost", p, u, pw, "skin_disease")
-    print("-" * 20)
+for config in configs:
+    print(f"Testing connection to {config['host']}:{config['port']} (Database: {config['database']})")
+    try:
+        conn = mysql.connector.connect(**config)
+        print(f"SUCCESS: Connected to {config['host']}:{config['port']}")
+        conn.close()
+    except mysql.connector.Error as err:
+        print(f"FAILURE: {err}")

@@ -54,33 +54,29 @@ class PredictService:
             img = preprocess_input(img)
             img_batch = np.expand_dims(img, axis=0)
 
-            # ── Fix Prediction Logic ──
-            pred = self._model.predict(img_batch, verbose=0)[0]
+            # Predict using model direct call for speed
+            predictions_tensor = self._model(img_batch, training=False)
+            pred_probs = predictions_tensor[0].numpy()
             
-            top_3_idx = pred.argsort()[-3:][::-1]
+            top_3_idx = pred_probs.argsort()[-3:][::-1]
             
-            # Extract names
+            # Map labels to human-readable names
             classes = [self._labels.get(str(i), "Unknown").replace("_", " ") for i in range(len(self._labels))]
             
             top_3 = [
                 {
                     "disease": classes[i] if i < len(classes) else "Unknown", 
-                    "confidence": round(float(pred[i]) * 100, 1)
+                    "confidence": round(float(pred_probs[i]) * 100, 1)
                 }
                 for i in top_3_idx
             ]
             
-            confidence = float(pred[top_3_idx[0]])
-            
-            # Confidence filter: If very low, say Uncertain, otherwise give best guess
-            if confidence < 0.40:
-                result_disease = "Uncertain"
-            else:
-                result_disease = classes[top_3_idx[0]] if top_3_idx[0] < len(classes) else "Unknown"
+            confidence = float(pred_probs[top_3_idx[0]])
+            result_disease = classes[top_3_idx[0]] if top_3_idx[0] < len(classes) else "Unknown"
 
             # Alert logic (PRO Level Feature)
             alert = None
-            if result_disease.lower() == "malignant" or result_disease.lower() == "melanoma":
+            if result_disease.lower() in ["malignant", "melanoma"]:
                 alert = "⚠️ High risk detected. Please consult a doctor immediately."
 
             return {

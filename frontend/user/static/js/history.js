@@ -228,6 +228,13 @@ window.showDetail = function(index) {
                     </div>
                 </div>
 
+                ${item.remedies && item.remedies.description ? `
+                    <div style="margin-bottom: 2rem; padding: 1.5rem; background: #EEF2FF; border-left: 5px solid #3b82f6; border-radius: 12px; color: #1e1b4b; font-size: 1.05rem; line-height: 1.6; font-weight: 500;">
+                        <i class="fas fa-info-circle" style="color: #3b82f6; margin-right: 10px; font-size: 1.2rem;"></i>
+                        ${item.remedies.description}
+                    </div>
+                ` : ''}
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
                     <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02)">
                         <p style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; color: #64748b; margin-bottom: 0.5rem;">Confidence Score</p>

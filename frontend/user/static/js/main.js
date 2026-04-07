@@ -95,7 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // If no splash screen (Detection Page)
     else if (pages.detection) {
         if (header) header.classList.remove('hidden');
-        showPage('detection'); // Fixed key
+        showPage('detection');
+
+        // Toggle guest warning on detection page
+        const guestBanner = document.getElementById('guest-mode-warning');
+        if (guestBanner) {
+            guestBanner.style.display = token ? 'none' : 'inline-flex';
+            guestBanner.classList.toggle('hidden', !!token);
+        }
     }
 
     // If on Scan_Result.html — load result from sessionStorage
@@ -219,9 +226,12 @@ async function startCamera() {
     const cameraUi = document.getElementById('camera-ui');
 
     try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         video.srcObject = videoStream;
         video.style.display = 'block';
+        
+        // Ensure video plays
+        await video.play();
 
         if (cameraInitial) cameraInitial.classList.add('hidden');
         if (cameraUi) cameraUi.classList.remove('hidden');
@@ -352,7 +362,7 @@ async function handleFileUpload(file) {
 
         const result = await response.json();
 
-        // Small delay so user sees "Analyzing..." message, then redirect to result page
+        // Near-instant redirect
         setTimeout(() => {
             status.innerHTML = "";
 
@@ -362,7 +372,7 @@ async function handleFileUpload(file) {
 
             // Redirect to the dedicated result page
             window.location.href = '/scan-result';
-        }, 1500);
+        }, 50);
 
     } catch (error) {
         console.error("Error:", error);
@@ -417,30 +427,40 @@ function displayResult(data) {
     if (accuracyIndicator && accuracyLevel) {
         accuracyIndicator.style.display = 'inline-block';
         let levelLabel = 'LOW';
-        
-        if (data.confidence >= 85) {
+        let accColor = '#ef4444'; // Red for LOW
+        let accBg = 'rgba(239, 68, 68, 0.1)';
+
+        if (data.confidence >= 80) {
             levelLabel = 'HIGH';
-            statusColor = '#ef4444'; // Red
-            bgOpacity = 'rgba(239, 68, 68, 0.1)';
-        } else if (data.confidence >= 60) {
+            accColor = '#3b82f6'; // Blue
+            accBg = 'rgba(59, 130, 246, 0.1)';
+        } else if (data.confidence >= 50) {
             levelLabel = 'MEDIUM';
-            statusColor = '#f59e0b'; // Amber
-            bgOpacity = 'rgba(245, 158, 11, 0.1)';
-        } else {
-            statusColor = '#10b981'; // Green
-            bgOpacity = 'rgba(16, 185, 129, 0.1)';
+            accColor = '#f59e0b'; // Amber
+            accBg = 'rgba(245, 158, 11, 0.1)';
         }
 
         accuracyLevel.innerText = levelLabel;
-        accuracyIndicator.style.backgroundColor = bgOpacity;
-        accuracyIndicator.style.color = statusColor;
-        accuracyIndicator.style.border = `1px solid ${statusColor}`;
+        accuracyIndicator.style.backgroundColor = accBg;
+        accuracyIndicator.style.color = accColor;
+        accuracyIndicator.style.border = `1px solid ${accColor}`;
     }
 
-    // ── Update Circular Confidence Meter ──
-    const circle = document.getElementById('confidence-circle');
-    if (circle) {
-        circle.style.background = `conic-gradient(${statusColor} ${data.confidence}%, #e2e8f0 0%)`;
+    // ── Confidence SVG Ring Animation ──────────────────────────────────────────
+    const pctEle = document.getElementById('confidence-pct');
+    const ring = document.getElementById('meter-progress-ring');
+    if (pctEle) {
+        pctEle.innerText = `${Math.round(data.confidence)}%`;
+        pctEle.style.color = accColor;
+    }
+    if (ring) {
+        ring.style.stroke = accColor;
+        // Circumference is approx 440 (2 * PI * 70)
+        const offset = 440 - (440 * data.confidence) / 100;
+        // Small delay to trigger the transition after rendering
+        setTimeout(() => {
+            ring.style.strokeDashoffset = offset;
+        }, 100);
     }
 
     // ── Find Doctors Button Logic ──
@@ -485,6 +505,13 @@ function displayResult(data) {
     // ── Save to history ─────────────────────────────────────────────────────
     saveToHistory(data);
 
+    // ── Disease description ───────────────────────────────────────────────
+    const descEl = document.getElementById('disease-description');
+    if (descEl && data.remedies) {
+        descEl.style.display = data.remedies.description ? 'block' : 'none';
+        descEl.innerHTML = `<i class="fas fa-info-circle" style="margin-right:8px;"></i> ${data.remedies.description}`;
+    }
+
     // ── Remedy cards (new card-based layout) ────────────────────────────────
     const grid = document.getElementById('remedy-grid');
     if (grid) {
@@ -496,9 +523,9 @@ function displayResult(data) {
             if (!items || items.length === 0) return '';
             const lis = items.map(item => `<li>${item}</li>`).join('');
             return `
-            <div class="remedy-card ${cssClass}">
+            <div class="remedy-card ${cssClass}" style="min-height: 200px; display: flex; flex-direction: column;">
                 <h4><i class="${icon}"></i> ${title}</h4>
-                <ul>${lis}</ul>
+                <ul style="flex: 1;">${lis}</ul>
             </div>`;
         };
 
@@ -731,168 +758,292 @@ async function finalizeBooking() {
 // Leaflet.js + OpenStreetMap Integration (Free - No API Key Required)
 let mapLoaded = false;
 let leafletMap = null;
+let userMarker = null;   // draggable / click-set marker
 
+// ──── Initialise map & get user location ────────────────────────────────────
 function loadGoogleMapsNearby() {
-    if (mapLoaded) return; // Only load once if already done successfully
+    mapLoaded = false;
 
     const list = document.getElementById("dermatologist-list");
     const mapContainer = document.getElementById('map-container');
     const loading = document.getElementById('loading-doctors');
 
-    if (!window.L) {
-        console.warn("Leaflet.js not loaded.");
-        return;
-    }
+    if (!window.L) { console.warn("Leaflet.js not loaded."); return; }
+
+    if (list) list.style.display = 'none';
+    if (loading) loading.style.display = 'block';
+
+    // ── Better Location Strategy ──
+    const handleSuccess = (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy || 1000;
+        console.log(`[Geo] Success: ${lat}, ${lng} (acc: ${acc}m)`);
+        initMapAtPosition(lat, lng, list, mapContainer, loading, acc);
+    };
+
+    const handleFallback = async () => {
+        console.warn('[Geo] Using IP fallback...');
+        try {
+            const resp = await fetch('https://ipapi.co/json/');
+            const data = await resp.json();
+            if (data.latitude && data.longitude) {
+                console.log(`[Geo] IP Fallback: ${data.city}, ${data.region}`);
+                initMapAtPosition(data.latitude, data.longitude, list, mapContainer, loading, 10000); // 10km accuracy for IP
+            } else {
+                throw new Error('IP Geo failed');
+            }
+        } catch (e) {
+            // Final fallback: Ahmedabad
+            initMapAtPosition(23.0225, 72.5714, list, mapContainer, loading, 99999);
+        }
+    };
 
     if (navigator.geolocation) {
-        if (list) list.style.display = 'none';
-        if (loading) loading.style.display = 'block';
-
-        navigator.geolocation.getCurrentPosition(position => {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            console.log("Latitude:", latitude);
-            console.log("Longitude:", longitude);
-
-            // Reverse Geocoding using Nominatim (Free)
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`, {
-                headers: { 'Accept-Language': 'en' }
-            })
-                .then(res => res.json())
-                .then(geoData => {
-                    const city = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.county || "Unknown";
-                    const state = geoData.address.state || "";
-                    const location_name = state ? `${city}, ${state}` : city;
-
-                    // Store in Backend DB using the location endpoint with human-readable name
-                    const token = localStorage.getItem('dermacare_token');
-                    if (token) {
-                        fetch(`${API_URL}/api/scan/location`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                latitude,
-                                longitude,
-                                location_name: location_name
-                            })
-                        }).catch(err => console.error("Error saving location:", err));
-                    }
-                })
-                .catch(err => console.error("Reverse geocoding error:", err));
-
-
-            if (loading) loading.style.display = 'none';
-            if (mapContainer) mapContainer.style.display = 'block';
-            if (list) list.style.display = 'block';
-
-            // Initialize Leaflet map
-            if (leafletMap) {
-                leafletMap.remove();
-            }
-            leafletMap = L.map('map').setView([latitude, longitude], 14);
-
-            // Add CartoDB Positron tiles (free, no API key, no referer required — works with file:// URLs)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(leafletMap);
-
-            // Add user location marker (blue pulsing circle)
-            const userIcon = L.divIcon({
-                className: 'user-location-marker',
-                html: `<div style="
-                    width: 20px; height: 20px;
-                    background: #2563eb;
-                    border: 3px solid white;
-                    border-radius: 50%;
-                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3), 0 2px 8px rgba(0,0,0,0.3);
-                "></div>`,
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            });
-
-            L.marker([latitude, longitude], { icon: userIcon })
-                .addTo(leafletMap)
-                .bindPopup('<strong>📍 Your Location</strong>')
-                .openPopup();
-
-            // Search for nearby dermatologists using Overpass API (free)
-            searchNearbyDermatologists(latitude, longitude, list);
-
-            // Show Google Maps action bar with dynamic link
-            const googleMapsBar = document.getElementById('google-maps-bar');
-            const googleMapsLink = document.getElementById('google-maps-link');
-            if (googleMapsBar && googleMapsLink) {
-                googleMapsLink.href = `https://www.google.com/maps/search/dermatologist/@${latitude},${longitude},14z`;
-                googleMapsBar.style.display = 'block';
-            }
-
-            mapLoaded = true;
-
-        }, error => {
-            console.error("Geolocation error:", error);
-            if (loading) loading.style.display = 'none';
-            if (list) list.style.display = 'block';
-            if (list) list.innerHTML = `
-                <div style="text-align: center; padding: 2rem; background: #fef2f2; border-radius: var(--border-radius-md); border: 1px solid #fca5a5;">
-                    <i class="fas fa-location-crosshairs" style="font-size: 2rem; color: #ef4444; margin-bottom: 1rem;"></i>
-                    <h3 style="color: #dc2626; margin-bottom: 0.5rem;">Location Access Required</h3>
-                    <p style="color: #991b1b;">Please allow location access in your browser to find dermatologists near you.</p>
-                </div>`;
-        }, {
+        navigator.geolocation.getCurrentPosition(handleSuccess, handleFallback, {
             enableHighAccuracy: true,
             timeout: 10000,
             maximumAge: 0
         });
+    } else {
+        handleFallback();
     }
 }
 
-// Search nearby dermatologists using Overpass API (OpenStreetMap data - completely free)
-async function searchNearbyDermatologists(lat, lng, listEl) {
-    // QUICK CACHE CHECK: If we already searched for this location (roughly), return cached data
-    // QUICK CACHE CHECK: Only use if results were found recently
-    const cacheKey = `derma_fresh_v3_${Math.round(lat * 100)}_${Math.round(lng * 100)}`;
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached && JSON.parse(cached).length > 0) {
-        console.log("Loading verified specialists from cache...");
-        renderDermatologistList(JSON.parse(cached), listEl, lat, lng);
-        return;
+// ──── Core: build the map at a position ─────────────────────────────────────
+function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres) {
+    if (loading) loading.style.display = 'none';
+    if (mapContainer) mapContainer.style.display = 'block';
+    if (list) list.style.display = 'block';
+
+    // Create / recreate map
+    if (leafletMap) { leafletMap.remove(); leafletMap = null; }
+    leafletMap = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
+    
+    // Add zoom control top right
+    L.control.zoom({ position: 'topright' }).addTo(leafletMap);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap, © CARTO',
+        subdomains: 'abcd', maxZoom: 20
+    }).addTo(leafletMap);
+
+    // ── User marker (draggable so user can correct it) ──────────────────────
+    const userIcon = L.divIcon({
+        className: 'user-location-marker',
+        html: `<div style="width:24px;height:24px;background:#2563eb;border:4px solid white;border-radius:50%;box-shadow:0 0 0 8px rgba(37,99,235,0.15), 0 4px 15px rgba(0,0,0,0.3);cursor:grab;"></div>`,
+        iconSize: [24, 24], iconAnchor: [12, 12]
+    });
+
+    if (userMarker) { try { leafletMap.removeLayer(userMarker); } catch(e){} }
+    userMarker = L.marker([lat, lng], { icon: userIcon, draggable: true })
+        .addTo(leafletMap)
+        .bindPopup('<strong>📍 Your Location</strong><br><span style="font-size:0.8rem;color:#64748b;">Drag me or click map to correct</span>')
+        .openPopup();
+
+    // When user drags the pin → re-search
+    userMarker.on('dragend', function () {
+        const pos = userMarker.getLatLng();
+        leafletMap.setView([pos.lat, pos.lng], 15);
+        refreshDoctorSearch(pos.lat, pos.lng, list);
+    });
+
+    // Click anywhere on map → move pin & re-search
+    leafletMap.on('click', function (e) {
+        const { lat: cLat, lng: cLng } = e.latlng;
+        userMarker.setLatLng([cLat, cLng]);
+        userMarker.bindPopup('<strong>📍 Location Updated</strong>').openPopup();
+        refreshDoctorSearch(cLat, cLng, list);
+    });
+
+    // ── Display Location Search Overlay ──
+    addLocationSearchBox(list);
+
+    // ── Google Maps bar ─────────────────────────────────────────────────────
+    const gBar  = document.getElementById('google-maps-bar');
+    const gLink = document.getElementById('google-maps-link');
+    if (gBar && gLink) {
+        gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
+        gBar.style.display = 'block';
     }
 
-    const primaryRadius = 5000; // 5km as requested
-    const secondaryRadius = 15000; // 15km fallback
+    // ── Helpful Hint (Prominent) ──
+    const hint = document.createElement('div');
+    hint.id = 'location-accuracy-hint';
+    hint.style.cssText = 'padding:1.25rem;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:16px;margin-bottom:1.5rem;font-size:0.9rem;color:#0369a1;display:flex;align-items:flex-start;gap:0.75rem;box-shadow:0 2px 6px rgba(0,0,0,0.03);';
+    hint.innerHTML = `
+        <div style="background:#0284c7;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas fa-map-marker-alt" style="font-size:0.9rem;"></i>
+        </div>
+        <div>
+            <strong style="display:block;margin-bottom:4px;color:#0c4a6e;">Location Incorrect?</strong>
+            <span>Search your area using the <strong>box on the map</strong> or simply <strong>click anywhere on the map</strong> to find doctors there.</span>
+        </div>`;
+    if (list) {
+        const existing = document.getElementById('location-accuracy-hint');
+        if (existing) existing.remove();
+        list.insertBefore(hint, list.firstChild);
+    }
 
-    // LOCAL DATASET for Ahmedabad (Common testing area for user)
-    // We keep this broader (25km) to ensure the list is NEVER empty in Ahmedabad
-    const ahmedabadSpecialists = [
-        { tags: { name: "Dr. Koshia's Skin & Hair Clinic", operator: "Arth Koshia", 'addr:street': "Satellite" }, lat: 23.0331, lon: 72.5551 },
-        { tags: { name: "Aarna Skin & Hair Clinic", operator: "Sandip Agrawal", 'addr:street': "Navrangpura" }, lat: 23.0185, lon: 72.5235 },
-        { tags: { name: "Skin Care Clinic", operator: "Ankit Shah", 'addr:street': "Ellis Bridge" }, lat: 23.0269, lon: 72.5641 },
-        { tags: { name: "DermaTouch Laser Clinic", operator: "Pranav Shah", 'addr:street': "Ambawadi" }, lat: 23.0375, lon: 72.5115 },
-        { tags: { name: "Skin & Hair Solution Clinic", operator: "Ravi Patel", 'addr:street': "Bopal" }, lat: 23.0125, lon: 72.5852 },
-        { tags: { name: "Grace Skin Clinic", operator: "Mehul Thakkar", 'addr:street': "Vastrapur" }, lat: 23.0392, lon: 72.5245 }
-    ];
+    // Run initial search
+    searchNearbyDermatologists(lat, lng, list);
+    saveLocationToBackend(lat, lng);
+    mapLoaded = true;
+}
 
-    // Show loading in the list area
+// ──── Search Box with Global Support ─────────────────────────────────────────
+function addLocationSearchBox(listEl) {
+    if (document.getElementById('location-search-box')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'location-search-box';
+    wrapper.style.cssText = 'position:absolute;top:20px;left:20px;z-index:2000;width:calc(100% - 40px);max-width:400px;';
+    wrapper.innerHTML = `
+        <div style="display:flex;gap:0;box-shadow:0 8px 24px rgba(0,0,0,0.12);border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+            <input id="loc-search-input" type="text" placeholder="Enter your city or area..."
+                style="flex:1;padding:0.9rem 1.25rem;border:none;outline:none;font-size:0.95rem;font-family:inherit;background:white;" />
+            <button id="loc-search-btn" style="padding:0.9rem 1.4rem;background:#2563eb;color:white;border:none;cursor:pointer;font-size:1rem;transition:background 0.2s;">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        <div id="loc-search-results" style="display:none;background:white;margin-top:8px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.15);max-height:220px;overflow-y:auto;border:1px solid #f1f5f9;"></div>`;
+
+    const mapPanel = document.querySelector('.right-panel-map');
+    if (mapPanel) mapPanel.appendChild(wrapper);
+
+    const input = document.getElementById('loc-search-input');
+    const btn   = document.getElementById('loc-search-btn');
+    const resultsDiv = document.getElementById('loc-search-results');
+
+    async function doSearch() {
+        const q = input.value.trim();
+        if (!q || q.length < 3) return;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        try {
+            // Global search (removed country restriction)
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`, {
+                headers: { 'User-Agent': 'DermaCareAI/1.0' }
+            });
+            const data = await res.json();
+
+            if (!data || data.length === 0) {
+                resultsDiv.innerHTML = '<div style="padding:1rem;text-align:center;color:#64748b;">No results found.</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            resultsDiv.innerHTML = data.map(item => `
+                <div class="loc-result-item" data-lat="${item.lat}" data-lon="${item.lon}"
+                    style="padding:0.8rem 1.2rem;cursor:pointer;border-bottom:1px solid #f8fafc;font-size:0.9rem;transition:all 0.2s;"
+                    onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='white'">
+                    <div style="font-weight:600;margin-bottom:2px;">${item.display_name.split(',')[0]}</div>
+                    <div style="font-size:0.75rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.display_name}</div>
+                </div>`).join('');
+            resultsDiv.style.display = 'block';
+
+            resultsDiv.querySelectorAll('.loc-result-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const rLat = parseFloat(el.dataset.lat);
+                    const rLon = parseFloat(el.dataset.lon);
+                    userMarker.setLatLng([rLat, rLon]);
+                    leafletMap.setView([rLat, rLon], 15);
+                    userMarker.bindPopup('<strong>📍 Location Updated</strong>').openPopup();
+                    resultsDiv.style.display = 'none';
+                    input.value = el.querySelector('div').innerText;
+                    refreshDoctorSearch(rLat, rLon, listEl);
+                });
+            });
+        } catch (err) {
+            console.error('Search error:', err);
+        } finally {
+            btn.innerHTML = '<i class="fas fa-search"></i>';
+        }
+    }
+
+    btn.addEventListener('click', doSearch);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    document.addEventListener('click', e => { if (wrapper && !wrapper.contains(e.target)) resultsDiv.style.display = 'none'; });
+}
+
+// ──── Save location to backend ──────────────────────────────────────────────
+function saveLocationToBackend(lat, lng) {
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`, {
+        headers: { 'Accept-Language': 'en' }
+    })
+    .then(r => r.json())
+    .then(geo => {
+        const city = geo.address?.city || geo.address?.town || geo.address?.village || 'Unknown';
+        const state = geo.address?.state || '';
+        const name = state ? `${city}, ${state}` : city;
+        const token = localStorage.getItem('dermacare_token');
+        if (token) {
+            fetch(`${API_URL}/api/scan/location`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ latitude: lat, longitude: lng, location_name: name })
+            }).catch(() => {});
+        }
+    }).catch(() => {});
+}
+
+// ──── Refresh search from a new position ────────────────────────────────────
+function refreshDoctorSearch(lat, lng, listEl) {
+    // Update Google Maps link
+    const gLink = document.getElementById('google-maps-link');
+    if (gLink) gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
+
+    // Clear existing doctor markers (keep user marker & tiles)
+    leafletMap.eachLayer(layer => {
+        if (layer instanceof L.Marker && layer !== userMarker) {
+            leafletMap.removeLayer(layer);
+        }
+    });
+
+    searchNearbyDermatologists(lat, lng, listEl);
+    saveLocationToBackend(lat, lng);
+}
+
+// ──── Search nearby dermatologists via backend proxy ─────────────────────────
+async function searchNearbyDermatologists(lat, lng, listEl) {
     if (listEl) {
-        listEl.innerHTML = `
-            <div style="text-align: center; padding: 2.5rem 1rem;">
-                <div class="spinner-pulse" style="width: 60px; height: 60px; margin: 0 auto 1.5rem; background: rgba(37,99,235,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-street-view fa-2x" style="color: var(--primary-color);"></i>
+        // Keep the accuracy hint if it exists
+        const hint = document.getElementById('location-accuracy-hint');
+        const hintHtml = hint ? hint.outerHTML : '';
+        listEl.innerHTML = hintHtml + `
+            <div style="text-align:center;padding:2.5rem 1rem;">
+                <div style="width:60px;height:60px;margin:0 auto 1.5rem;background:rgba(37,99,235,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-street-view fa-2x" style="color:var(--primary-color);"></i>
                 </div>
-                <h3 style="color: var(--text-dark); margin-bottom: 0.5rem;">Scanning your 5km Radius...</h3>
-                <p style="color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.5rem;">Searching for specialists extremely close to you</p>
-                <div style="height: 4px; width: 100px; background: #e2e8f0; border-radius: 2px; margin: 0 auto; overflow: hidden;">
-                    <div style="height: 100%; width: 50%; background: var(--primary-color); animation: loadingSlide 1.5s infinite ease-in-out;"></div>
-                </div>
+                <h3 style="color:var(--text-dark);margin-bottom:0.5rem;">Scanning your area...</h3>
+                <p style="color:var(--text-light);font-size:0.9rem;">Searching for skin specialists near your location</p>
             </div>`;
     }
 
+    try {
+        const res = await fetch(`${API_URL}/api/nearby-doctors?lat=${lat}&lng=${lng}`);
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const doctors = await res.json();
+
+        if (!doctors || doctors.length === 0) {
+            searchOverpassInBackground(lat, lng, listEl, '', []);
+            return;
+        }
+
+        const places = doctors.map(d => ({
+            tags: { name: d.name, 'addr:street': d.street || '', healthcare: d.type || 'clinic' },
+            lat: d.lat, lon: d.lon, distance: d.distance, city: d.city || ''
+        }));
+
+        renderDermatologistList(places, listEl, lat, lng);
+    } catch (err) {
+        console.error('Backend nearby-doctors failed:', err);
+        searchOverpassInBackground(lat, lng, listEl, '', []);
+    }
+}
+
+// Runs Overpass API in background — updates list if better results found
+async function searchOverpassInBackground(lat, lng, listEl, cacheKey, existingPlaces) {
     const endpoints = [
         'https://overpass-api.de/api/interpreter',
         'https://overpass.kumi.systems/api/interpreter',
@@ -906,7 +1057,6 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
                 .then(res => res.ok ? res.json() : null)
                 .catch(() => null)
         );
-
         const results = await Promise.all(promises);
         for (const data of results) {
             if (data && data.elements && data.elements.length > 0) {
@@ -916,47 +1066,40 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
         return [];
     }
 
-    // Try API Fetch
-    const qSpec = `[out:json][timeout:15];(nwr["healthcare:speciality"~"dermatology|skin|aesthetic",i](around:${primaryRadius},${lat},${lng});nwr["name"~"Derma|Skin|Clinic",i](around:${primaryRadius},${lat},${lng}););out center body;`;
+    try {
+        const q = `[out:json][timeout:20];(nwr["healthcare:speciality"~"dermatology|skin|aesthetic",i](around:50000,${lat},${lng});nwr["name"~"Derma|Skin|Clinic",i](around:50000,${lat},${lng}););out center body;`;
+        const apiResults = await fetchFromOverpass(q);
 
-    places = await fetchFromOverpass(qSpec);
+        if (apiResults.length === 0) return; // No better data, keep existing
 
-    // AHMEDABAD SPECIAL INJECTION: If user is anywhere in Ahmedabad region (25km coverage)
-    const distToAhmedabadRegion = getDistanceKm(lat, lng, 23.0225, 72.5714);
-    if (places.length === 0 && distToAhmedabadRegion < 25) {
-        places = ahmedabadSpecialists;
+        // Merge API results with existing
+        const seenNames = new Set(existingPlaces.map(p => (p.tags?.name || '').toLowerCase()));
+        let merged = [...existingPlaces];
+
+        apiResults.forEach(p => {
+            const name = p.tags?.name;
+            if (!name || seenNames.has(name.toLowerCase())) return;
+            seenNames.add(name.toLowerCase());
+            merged.push({
+                ...p,
+                lat: p.lat || p.center?.lat,
+                lon: p.lon || p.center?.lon
+            });
+        });
+
+        merged = merged.filter(p => p.lat && p.lon);
+        merged.forEach(p => p.distance = parseFloat(getDistanceKm(lat, lng, p.lat, p.lon)));
+        merged.sort((a, b) => a.distance - b.distance);
+        merged = merged.slice(0, 15);
+
+        // Only update UI if we got MORE results than what's already shown
+        if (merged.length > existingPlaces.length) {
+            sessionStorage.setItem(cacheKey, JSON.stringify(merged));
+            renderDermatologistList(merged, listEl, lat, lng);
+        }
+    } catch(e) {
+        // Silent fail — existing list stays visible
     }
-
-    places = places.map(p => ({
-        ...p,
-        lat: p.lat || p.center?.lat,
-        lon: p.lon || p.center?.lon
-    })).filter(p => p.lat && p.lon);
-
-    // FINAL FILTERING & RENDER
-    let finalPlaces = places.filter(p => {
-        const name = (p.tags?.name || '').toLowerCase();
-        const spec = (p.tags?.['healthcare:speciality'] || p.tags?.speciality || p.tags?.description || '').toLowerCase();
-        return name.includes('derma') || name.includes('skin') || name.includes('aesthetic') ||
-            name.includes('cosmetic') || name.includes('laser') || spec.includes('derma') || spec.includes('skin');
-    });
-
-    const seen = new Set();
-    finalPlaces = finalPlaces.filter(p => {
-        const name = p.tags?.name;
-        if (!name || seen.has(name)) return false;
-        seen.add(name);
-        return true;
-    });
-
-    finalPlaces.forEach(p => p.distance = parseFloat(getDistanceKm(lat, lng, p.lat, p.lon)));
-    finalPlaces.sort((a, b) => a.distance - b.distance);
-    finalPlaces = finalPlaces.slice(0, 15);
-
-    // Save to cache
-    sessionStorage.setItem(cacheKey, JSON.stringify(finalPlaces));
-
-    renderDermatologistList(finalPlaces, listEl, lat, lng);
 }
 
 // Separate function to render the list for caching purposes
@@ -966,11 +1109,18 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         if (listEl) listEl.innerHTML = `
             <div style="text-align: center; padding: 4rem 1.5rem; background: #fff; border-radius: 16px; border: 1px dashed #ced4da; margin: 1rem;">
                 <div style="font-size: 3.5rem; margin-bottom: 2rem;">🔍</div>
-                <h3 style="margin-bottom: 1rem; color: #3c4043; font-weight: 500;">No Specialists Found Nearby</h3>
-                <p style="color: #70757a; margin-bottom: 2.5rem; font-size: 0.95rem; line-height: 1.5;">We couldn't find skin specialists in the medical database within 5km of your location. Try checking on Google Maps or widening your search.</p>
-                <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},13z" target="_blank" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
-                    <i class="fab fa-google"></i> Search on Google Maps
-                </a>
+                <h3 style="margin-bottom: 1rem; color: #3c4043; font-weight: 500;">No Specialized Skin Clinics Found</h3>
+                <p style="color: #70757a; margin-bottom: 2.5rem; font-size: 0.95rem; line-height: 1.5;">
+                    We couldn't find a dedicated dermatologist in the OpenStreetMap database within 150km of your location. 
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},13z" target="_blank" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                        <i class="fab fa-google"></i> Search on Google Maps
+                    </a>
+                    <button class="btn btn-secondary" onclick="window.location.reload()" style="border-radius: 24px; padding: 0.8rem 2rem;">
+                        <i class="fas fa-redo"></i> Retry Deep Search
+                    </button>
+                </div>
             </div>`;
         return;
     }
@@ -998,7 +1148,8 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
     finalPlaces.forEach((place, index) => {
         const name = place.tags.name;
         const operator = place.tags.operator || place.tags['contact:person'] || "";
-        const city = place.tags['addr:city'] || place.tags['addr:suburb'] || "";
+        // Support both backend proxy format (top-level city/street) and Overpass format (tags)
+        const city   = place.city || place.tags['addr:city'] || place.tags['addr:suburb'] || "";
         const street = place.tags['addr:street'] || place.tags['addr:housenumber'] || "";
         const address = street ? `${street}${city ? ", " + city : ""}` : (city || "Location available on map");
         const phone = place.tags.phone || place.tags['contact:phone'] || "";
