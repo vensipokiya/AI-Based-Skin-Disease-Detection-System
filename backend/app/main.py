@@ -63,6 +63,9 @@ app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 # ── Static file mounts ──────────────────────────────────────────────────────
 FRONTEND = os.path.join(os.getcwd(), "frontend")
 
+# ── Static file mounts ──────────────────────────────────────────────────────
+FRONTEND = os.path.join(os.getcwd(), "frontend")
+
 # User static assets  → /static/user/css, /static/user/js
 app.mount("/static/user", StaticFiles(directory=os.path.join(FRONTEND, "user", "static")), name="static_user")
 
