@@ -42,5 +42,9 @@ class Settings:
     
     # Uploads
     UPLOAD_DIR: str = os.path.join(os.getcwd(), "backend", "app", "uploads", "user_uploads")
+    
+    # OAuth Settings (e.g. Google Cloud Console Credentials)
+    GOOGLE_CLIENT_ID: str = os.environ.get("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "YOUR_GOOGLE_CLIENT_SECRET")
 
 settings = Settings()

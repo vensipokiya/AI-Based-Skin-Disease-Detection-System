@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 import os
 import sys
@@ -20,6 +21,7 @@ except ImportError:
 
 from .config.database import DatabaseSingleton
 from .utils.logger import get_logger
+from .config.settings import settings
 from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin_routes
 
 logger = get_logger(__name__)
@@ -43,6 +45,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # ── Static file mounts ──────────────────────────────────────────────────────
 FRONTEND = os.path.join(os.getcwd(), "frontend")
