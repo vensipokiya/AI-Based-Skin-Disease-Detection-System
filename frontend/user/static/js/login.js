@@ -1,19 +1,4 @@
-const API_BASE = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
-
-// ---------------------------
-// Toggle Password Visibility
-// ---------------------------
-function togglePasswordVisibility(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
-    }
-}
+const API_URL = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 
 // ---------------------------
 // Validation Helpers
@@ -38,9 +23,6 @@ function clearErrors() {
     if (registerPrompt) registerPrompt.classList.add('hidden');
 }
 
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 // ---------------------------
 // Helper: After successful login
@@ -119,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('login-email')?.value.trim();
             const password = document.getElementById('login-password')?.value;
 
-            if (!email || !isValidEmail(email)) return showError('error-login-email', 'Please enter a valid email');
+            if (!email || !DermaUtils.isValidEmail(email)) return showError('error-login-email', 'Please enter a valid email');
             if (!password || password.length < 6) return showError('error-login-password', 'Password too short');
 
             const btn = document.getElementById('btn-login');
@@ -127,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = true;
 
             try {
-                const response = await fetch(API_BASE + '/api/auth/login', {
+                const response = await fetch(API_URL + '/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -182,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("[OK] Received Apple ID Token");
 
         try {
-            const apiRes = await fetch(API_BASE + '/api/auth/apple', {
+            const apiRes = await fetch(API_URL + '/api/auth/apple', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -225,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // 7. Google Sign-In Trigger
 // ---------------------------
 window.googleLogin = function() {
-    window.location.href = API_BASE + "/api/auth/google/login";
+    window.location.href = API_URL + "/api/auth/google/login";
 };
 
 // Handle OAuth Return from Backend Redirect

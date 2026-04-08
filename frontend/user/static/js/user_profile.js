@@ -4,25 +4,8 @@
  * Handles: load profile, update profile, change password, logout
  */
 
-const API_URL = (window.DERMACARE_API_BASE) ? window.DERMACARE_API_BASE : 'http://127.0.0.1:8000';
+const API_URL = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 
-// ─────────────────────────────────────────────
-// TOAST HELPER
-// ─────────────────────────────────────────────
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-exclamation-circle',
-        info: 'fa-info-circle'
-    };
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3200);
-}
 
 // ─────────────────────────────────────────────
 // LOAD PROFILE FROM API
@@ -65,7 +48,7 @@ async function loadProfile() {
         if (cached) {
             populateProfile(JSON.parse(cached));
         } else {
-            showToast('Unable to load profile from server. Using local data if available.', 'error');
+            DermaUtils.showToast('Unable to load profile from server. Using local data if available.', 'error');
         }
     }
 }
@@ -83,22 +66,22 @@ function populateProfile(data) {
     const avatarUrl = savedAvatar ? savedAvatar : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=";
 
     // Sidebar
-    setText('sidebar-name', fullName || 'User');
-    setText('sidebar-email', email);
-    setAttr('sidebar-avatar', 'src', avatarUrl);
+    DermaUtils.setText('sidebar-name', fullName || 'User');
+    DermaUtils.setText('sidebar-email', email);
+    DermaUtils.setAttr('sidebar-avatar', 'src', avatarUrl);
 
     // Profile card avatar & name
-    setAttr('profile-avatar', 'src', avatarUrl);
-    setAttr('header-avatar', 'src', avatarUrl); // Ensure header stays synced
-    setText('avatar-display-name', fullName || 'User');
+    DermaUtils.setAttr('profile-avatar', 'src', avatarUrl);
+    DermaUtils.setAttr('header-avatar', 'src', avatarUrl); // Ensure header stays synced
+    DermaUtils.setText('avatar-display-name', fullName || 'User');
 
     // Form fields
-    setValue('prof-firstname', data.first_name || '');
-    setValue('prof-lastname', data.last_name || '');
-    setValue('prof-email', data.email || '');
-    setValue('prof-phone', data.contact_number || '');
-    setValue('prof-dob', data.date_of_birth || '');
-    setValue('prof-age', data.age !== undefined ? data.age : '');
+    DermaUtils.setValue('prof-firstname', data.first_name || '');
+    DermaUtils.setValue('prof-lastname', data.last_name || '');
+    DermaUtils.setValue('prof-email', data.email || '');
+    DermaUtils.setValue('prof-phone', data.contact_number || '');
+    DermaUtils.setValue('prof-dob', data.date_of_birth || '');
+    DermaUtils.setValue('prof-age', data.age !== undefined ? data.age : '');
 
     const genderSel = document.getElementById('prof-gender');
     if (genderSel) {
@@ -106,13 +89,13 @@ function populateProfile(data) {
         genderSel.value = val || 'male';
     }
 
-    setValue('prof-location', (!data.location || data.location === 'Unknown') ? '' : data.location);
+    DermaUtils.setValue('prof-location', (!data.location || data.location === 'Unknown') ? '' : data.location);
 
     // Quick stats in avatar column
     const genderLabel = (data.gender || '').charAt(0).toUpperCase() + (data.gender || '').slice(1);
-    setText('stat-gender', genderLabel || '—');
-    setText('stat-age', data.age ? `${data.age} yrs` : '—');
-    setText('stat-phone', data.contact_number || '—');
+    DermaUtils.setText('stat-gender', genderLabel || '—');
+    DermaUtils.setText('stat-age', data.age ? `${data.age} yrs` : '—');
+    DermaUtils.setText('stat-phone', data.contact_number || '—');
 
     // Store for cancel reset
     window._originalProfile = { ...data };
@@ -145,7 +128,7 @@ function populateProfile(data) {
                             const finalLoc = parts.length > 0 ? parts.join(', ') : 'Unknown';
                             if (finalLoc !== 'Unknown') {
                                 locInput.value = finalLoc;
-                                showToast("Location successfully auto-detected!", "success");
+                                DermaUtils.showToast("Location successfully auto-detected!", "success");
                             }
                         }
                     } catch (err) {
@@ -172,18 +155,18 @@ async function saveProfile(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
 
     const payload = {
-        first_name: getValue('prof-firstname'),
-        last_name: getValue('prof-lastname'),
-        contact_number: getValue('prof-phone'),
-        date_of_birth: getValue('prof-dob'),
-        age: parseInt(getValue('prof-age')) || null,
+        first_name: DermaUtils.getValue('prof-firstname'),
+        last_name: DermaUtils.getValue('prof-lastname'),
+        contact_number: DermaUtils.getValue('prof-phone'),
+        date_of_birth: DermaUtils.getValue('prof-dob'),
+        age: parseInt(DermaUtils.getValue('prof-age')) || null,
         gender: document.getElementById('prof-gender')?.value || 'male',
-        location: getValue('prof-location') || 'Unknown' // Added location if present in DOM, else Unknown
+        location: DermaUtils.getValue('prof-location') || 'Unknown' // Added location if present in DOM, else Unknown
     };
 
     // Client-side validation
     if (!payload.first_name || !payload.last_name) {
-        showToast('First and last name are required.', 'error');
+        DermaUtils.showToast('First and last name are required.', 'error');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
         return;
@@ -202,7 +185,7 @@ async function saveProfile(e) {
         const data = await res.json();
 
         if (res.ok && data.success) {
-            showToast('Profile updated successfully!', 'success');
+            DermaUtils.showToast('Profile updated successfully!', 'success');
             
             // Safe Local Storage Updates
             try {
@@ -214,8 +197,8 @@ async function saveProfile(e) {
                 if (window.pendingAvatarUrl) {
                     const avatarKey = `dermacare_avatar_${updatedUser.email || 'guest'}`;
                     localStorage.setItem(avatarKey, window.pendingAvatarUrl);
-                    setAttr('sidebar-avatar', 'src', window.pendingAvatarUrl);
-                    setAttr('header-avatar', 'src', window.pendingAvatarUrl);
+                    DermaUtils.setAttr('sidebar-avatar', 'src', window.pendingAvatarUrl);
+                    DermaUtils.setAttr('header-avatar', 'src', window.pendingAvatarUrl);
                     window.pendingAvatarUrl = null; // Clear staged avatar
                 }
             } catch (storageErr) {
@@ -232,14 +215,14 @@ async function saveProfile(e) {
                 if (typeof data.detail === 'string') errorMsg = data.detail;
                 else if (Array.isArray(data.detail)) errorMsg = data.detail[0].loc.join('.') + ': ' + data.detail[0].msg;
             }
-            showToast(errorMsg || 'Update failed. Please check your information.', 'error');
+            DermaUtils.showToast(errorMsg || 'Update failed. Please check your information.', 'error');
         }
     } catch (err) {
         console.error('Save profile exception:', err);
         if (err.name === 'QuotaExceededError') {
-            showToast('Local storage full. Profile saved but avatar might not persist locally.', 'info');
+            DermaUtils.showToast('Local storage full. Profile saved but avatar might not persist locally.', 'info');
         } else {
-            showToast('Could not connect to server. Check if backend is running.', 'error');
+            DermaUtils.showToast('Could not connect to server. Check if backend is running.', 'error');
         }
     } finally {
         btn.disabled = false;
@@ -254,7 +237,7 @@ function cancelEdit() {
     if (window._originalProfile) {
         populateProfile(window._originalProfile);
         window.pendingAvatarUrl = null; // Discard staged avatar
-        showToast('Changes discarded.', 'info');
+        DermaUtils.showToast('Changes discarded.', 'info');
     }
 }
 
@@ -286,13 +269,6 @@ async function handleLogout(e) {
 
 
 
-// ─────────────────────────────────────────────
-// DOM HELPERS
-// ─────────────────────────────────────────────
-function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function setAttr(id, a, v) { const el = document.getElementById(id); if (el) el.setAttribute(a, v); }
-function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
-function getValue(id) { return (document.getElementById(id) || {}).value?.trim() || ''; }
 
 // ─────────────────────────────────────────────
 // INIT
@@ -381,12 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Stage the avatar for save
                     window.pendingAvatarUrl = base64Data;
-                    setAttr('profile-avatar', 'src', base64Data);
-                    setAttr('sidebar-avatar', 'src', base64Data);
-                    setAttr('header-avatar', 'src', base64Data);
+                    DermaUtils.setAttr('profile-avatar', 'src', base64Data);
+                    DermaUtils.setAttr('sidebar-avatar', 'src', base64Data);
+                    DermaUtils.setAttr('header-avatar', 'src', base64Data);
 
                     closeAvatarModal();
-                    showToast('Profile picture attached! Click Save Changes to apply.', 'info');
+                    DermaUtils.showToast('Profile picture attached! Click Save Changes to apply.', 'info');
                 };
                 reader.readAsDataURL(file);
             }
@@ -416,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (err) {
                 console.error("Camera error:", err);
-                showToast('Unable to access camera. Please check permissions.', 'error');
+                DermaUtils.showToast('Unable to access camera. Please check permissions.', 'error');
             }
         });
     }
@@ -445,20 +421,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Stage the avatar for save
             window.pendingAvatarUrl = base64Data;
-            setAttr('profile-avatar', 'src', base64Data);
-            setAttr('sidebar-avatar', 'src', base64Data);
-            setAttr('header-avatar', 'src', base64Data);
+            DermaUtils.setAttr('profile-avatar', 'src', base64Data);
+            DermaUtils.setAttr('sidebar-avatar', 'src', base64Data);
+            DermaUtils.setAttr('header-avatar', 'src', base64Data);
 
             closeAvatarModal();
-            showToast('Profile picture captured! Click Save Changes to apply.', 'info');
+            DermaUtils.showToast('Profile picture captured! Click Save Changes to apply.', 'info');
         });
     }
 
     // Helper to apply avatar everywhere
     function updateAvatarImages(imageUrl) {
-        setAttr('profile-avatar', 'src', imageUrl);
-        setAttr('sidebar-avatar', 'src', imageUrl);
-        setAttr('header-avatar', 'src', imageUrl);
+        DermaUtils.setAttr('profile-avatar', 'src', imageUrl);
+        DermaUtils.setAttr('sidebar-avatar', 'src', imageUrl);
+        DermaUtils.setAttr('header-avatar', 'src', imageUrl);
         // Save to local storage so it persists on reload
         localStorage.setItem('dermacare_avatar_base64', imageUrl);
     }

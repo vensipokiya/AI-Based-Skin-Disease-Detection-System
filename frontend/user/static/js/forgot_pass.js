@@ -1,4 +1,4 @@
-const API_BASE = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
+const API_URL = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 
 // ================================================
 // STATE
@@ -9,18 +9,6 @@ let resetToken = '';       // token returned by backend after OTP verify
 let resendInterval = null;
 let resendSeconds = 60;
 
-// ================================================
-// TOAST HELPER
-// ================================================
-function showToast(message, type = 'info', duration = 5000) {
-    const container = document.getElementById('toast-container');
-    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), duration);
-}
 
 // ================================================
 // STEP NAVIGATION
@@ -87,7 +75,7 @@ async function sendOTP() {
             setFPError('err-fp-email', 'fp-email', 'Email address is required.');
             return;
         }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!DermaUtils.isValidEmail(email)) {
             setFPError('err-fp-email', 'fp-email', 'Please enter a valid email address.');
             return;
         }
@@ -113,7 +101,7 @@ async function sendOTP() {
             ? { method: 'email', email: contactValue }
             : { method: 'phone', phone: contactValue };
 
-        const res = await fetch(API_BASE + '/api/auth/forgot-password/send-otp', {
+        const res = await fetch(API_URL + '/api/auth/forgot-password/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -122,15 +110,15 @@ async function sendOTP() {
 
         if (res.ok && data.success) {
             const msg = data.dev_otp ? `Verification code: ${data.dev_otp}` : 'Verification code sent successfully!';
-            showToast(msg, 'success', 90000);
+            DermaUtils.showToast(msg, 'success', 90000);
             setupOTPStep();
             goToStep(2);
         } else {
-            showToast(data.error || 'Failed to send OTP. Check your details.', 'error');
+            DermaUtils.showToast(data.error || 'Failed to send OTP. Check your details.', 'error');
         }
     } catch (err) {
         // Demo mode fallback if backend is unreachable
-        showToast('Demo Mode: OTP is 123456', 'info', 60000);
+        DermaUtils.showToast('Demo Mode: OTP is 123456', 'info', 60000);
         setupOTPStep();
         goToStep(2);
     } finally {
@@ -272,7 +260,7 @@ async function verifyOTP() {
         if (currentMethod === 'email') payload.email = contactValue;
         else payload.phone = contactValue;
         
-        const res = await fetch(API_BASE + '/api/auth/forgot-password/verify-otp', {
+        const res = await fetch(API_URL + '/api/auth/forgot-password/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -281,7 +269,7 @@ async function verifyOTP() {
 
         if (res.ok && data.success) {
             resetToken = data.reset_token || 'demo-token';
-            showToast('Identity verified!', 'success');
+            DermaUtils.showToast('Identity verified!', 'success');
             goToStep(3);
         } else {
             errEl.textContent = data.error || 'Invalid or expired code. Please try again.';
@@ -291,7 +279,7 @@ async function verifyOTP() {
         // Demo mode
         if (otp === '123456') {
             resetToken = 'demo-reset-token';
-            showToast('Demo: Identity verified!', 'success');
+            DermaUtils.showToast('Demo: Identity verified!', 'success');
             goToStep(3);
         } else {
             errEl.textContent = 'Demo mode: use OTP 123456 to proceed.';
@@ -341,20 +329,6 @@ function checkStrength() {
     }
 }
 
-// ================================================
-// STEP 3 – TOGGLE PASSWORD VISIBILITY
-// ================================================
-function toggleVis(inputId, btn) {
-    const inp = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
-    if (inp.type === 'password') {
-        inp.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        inp.type = 'password';
-        icon.className = 'fas fa-eye';
-    }
-}
 
 // ================================================
 // STEP 3 – RESET PASSWORD
@@ -400,7 +374,7 @@ async function resetPassword() {
         if (currentMethod === 'email') payload.email = contactValue;
         else payload.phone = contactValue;
 
-        const res = await fetch(API_BASE + '/api/auth/forgot-password/reset', {
+        const res = await fetch(API_URL + '/api/auth/forgot-password/reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -408,15 +382,15 @@ async function resetPassword() {
         const data = await res.json();
 
         if (res.ok && data.success) {
-            showToast('Password reset successfully!', 'success');
+            DermaUtils.showToast('Password reset successfully!', 'success');
             goToStep(4);
             startRedirectCountdown();
         } else {
-            showToast(data.error || 'Failed to reset password.', 'error');
+            DermaUtils.showToast(data.error || 'Failed to reset password.', 'error');
         }
     } catch (err) {
         // Demo mode – simulate success
-        showToast('Demo: Password reset successful!', 'success');
+        DermaUtils.showToast('Demo: Password reset successful!', 'success');
         goToStep(4);
         startRedirectCountdown();
     } finally {

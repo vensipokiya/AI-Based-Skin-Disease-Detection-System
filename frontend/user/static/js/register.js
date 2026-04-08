@@ -1,4 +1,4 @@
-const API_BASE = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
+const API_URL = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 
 // ---------------------------
 // Multi-Step Form Logic
@@ -6,7 +6,7 @@ const API_BASE = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 let currentStep = 1;
 const totalSteps = 3;
 
-window.nextStep = function(step) {
+window.nextStep = function (step) {
     if (!validateStep(step)) return;
 
     const currentEl = document.getElementById(`form-step-${step}`);
@@ -24,7 +24,7 @@ window.nextStep = function(step) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-window.prevStep = function(step) {
+window.prevStep = function (step) {
     const currentEl = document.getElementById(`form-step-${step}`);
     const prevEl = document.getElementById(`form-step-${step - 1}`);
     if (currentEl) currentEl.classList.remove('active');
@@ -58,7 +58,7 @@ function validateStep(step) {
         if (!lastName) { showError('error-lastname', 'Last name is required'); isValid = false; }
         if (!email) {
             showError('error-email', 'Email is required'); isValid = false;
-        } else if (!isValidEmail(email)) {
+        } else if (!DermaUtils.isValidEmail(email)) {
             showError('error-email', 'Please enter a valid email address'); isValid = false;
         }
         if (!contact) {
@@ -124,9 +124,6 @@ function clearErrors() {
     });
 }
 
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 // ---------------------------
 // Password Strength
@@ -190,29 +187,13 @@ function updateReq(id, met) {
     }
 }
 
-// ---------------------------
-// Toggle Password Visibility
-// ---------------------------
-window.togglePasswordVisibility = function(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
-    if (input) {
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.className = 'fas fa-eye-slash';
-        } else {
-            input.type = 'password';
-            icon.className = 'fas fa-eye';
-        }
-    }
-};
 
 // ---------------------------
 // Event Listeners
 // ---------------------------
 document.addEventListener('DOMContentLoaded', () => {
     const pwInput = document.getElementById('reg-password');
-    if(pwInput) pwInput.addEventListener('input', handlePasswordInput);
+    if (pwInput) pwInput.addEventListener('input', handlePasswordInput);
 
     // Previous Condition Toggle
     document.querySelectorAll('input[name="previous-conditions"]').forEach(radio => {
@@ -230,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-calculate Age from DOB
     const dobInput = document.getElementById('reg-dob');
-    if(dobInput) {
+    if (dobInput) {
         dobInput.addEventListener('change', function () {
             const dob = new Date(this.value);
             const today = new Date();
@@ -241,21 +222,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (age > 0 && age <= 120) {
                 const ageInput = document.getElementById('reg-age');
-                if(ageInput) ageInput.value = age;
+                if (ageInput) ageInput.value = age;
             }
         });
     }
 
     // Form Submission
     const regForm = document.getElementById('register-form');
-    if(regForm) {
+    if (regForm) {
         regForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
             if (!validateStep(3)) return;
 
             const btn = document.getElementById('btn-register');
-            if(!btn) return;
+            if (!btn) return;
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
             btn.disabled = true;
@@ -276,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                const response = await fetch(API_BASE + '/api/auth/register', {
+                const response = await fetch(API_URL + '/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
@@ -326,13 +307,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const ind2 = document.getElementById('step-indicator-2');
                         const line2 = document.getElementById('progress-line-2');
                         const line1 = document.getElementById('progress-line-1');
-                        
-                        if(step3) step3.classList.remove('active');
-                        if(step1) step1.classList.add('active');
-                        if(ind3) ind3.classList.remove('active');
-                        if(ind2) ind2.classList.remove('active');
-                        if(line2) line2.classList.remove('active');
-                        if(line1) line1.classList.remove('active');
+
+                        if (step3) step3.classList.remove('active');
+                        if (step1) step1.classList.add('active');
+                        if (ind3) ind3.classList.remove('active');
+                        if (ind2) ind2.classList.remove('active');
+                        if (line2) line2.classList.remove('active');
+                        if (line1) line1.classList.remove('active');
                         currentStep = 1;
                     } else {
                         alert('Registration failed: ' + (Array.isArray(errorMsg) ? JSON.stringify(errorMsg) : errorMsg));
@@ -350,22 +331,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------------------------
     // 6. Apple Sign-In Implementation
     // ---------------------------
-    const APPLE_CLIENT_ID = "com.your.app.service"; 
+    const APPLE_CLIENT_ID = "com.your.app.service";
     const APPLE_REDIRECT_URL = window.location.origin + "/register";
 
     window.handleAppleRegister = async (response) => {
         const idToken = response.id_token;
-        const appleUser = response.user; 
+        const appleUser = response.user;
 
         console.log("[OK] Received Apple ID Token (Register)");
 
         try {
-            const apiRes = await fetch(API_BASE + '/api/auth/apple', {
+            const apiRes = await fetch(API_URL + '/api/auth/apple', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     token: idToken,
-                    user: appleUser 
+                    user: appleUser
                 })
             });
 
@@ -413,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navAuthBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 try {
-                    await fetch(API_BASE + '/api/auth/logout', {
+                    await fetch(API_URL + '/api/auth/logout', {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -432,9 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-window.closeSuccessModal = function() {
+window.closeSuccessModal = function () {
     const successModal = document.getElementById('success-modal');
-    if(successModal) successModal.classList.add('hidden');
+    if (successModal) successModal.classList.add('hidden');
     document.body.style.overflow = '';
 };
 

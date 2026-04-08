@@ -141,4 +141,31 @@ class DatabaseSingleton:
         finally:
             if conn: conn.close()
 
+    from contextlib import contextmanager
+
+    @contextmanager
+    def connection(self):
+        conn = self.get_connection()
+        if not conn:
+            raise Exception("Database connection error: Could not get connection from pool.")
+        try:
+            yield conn
+        finally:
+            if conn:
+                conn.close()
+
+    @contextmanager
+    def cursor(self, dictionary=True, commit=False):
+        with self.connection() as conn:
+            cursor = conn.cursor(dictionary=dictionary)
+            try:
+                yield cursor
+                if commit:
+                    conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise e
+            finally:
+                cursor.close()
+
 db_singleton = DatabaseSingleton()
