@@ -11,8 +11,10 @@ class CommunicationService:
     def send_otp_email(email, otp):
         try:
             if not settings.SMTP_PASSWORD:
-                logger.warning(f"SMTP password not set. Logging OTP for {email}: {otp}")
-                return True # Simulate success for demo
+                logger.warning(
+                    "SMTP not configured; OTP email was not sent. Set SMTP_USER and SMTP_PASSWORD."
+                )
+                return True  # API may still return success when dev_otp is shown in-app
             
             msg = MIMEMultipart()
             msg['From'] = settings.SMTP_USER
@@ -34,7 +36,7 @@ class CommunicationService:
             return False
 
     @staticmethod
-    def send_otp_messenger(phone, otp):
-        # Stub for Messenger/WhatsApp integration
-        logger.info(f"MESSENGER OTP for {phone}: {otp}")
+    def send_otp_messenger(phone, _otp):
+        # Stub for Messenger/WhatsApp integration — do not log OTP contents
+        logger.info("Messenger OTP dispatch requested (stub; not implemented).")
         return True

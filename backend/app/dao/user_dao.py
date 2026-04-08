@@ -1,6 +1,6 @@
 from ..config.database import db_singleton
 from ..utils.logger import get_logger
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 logger = get_logger(__name__)
 
@@ -156,7 +156,7 @@ class UserDao:
                     cursor.execute("ALTER TABLE users ADD COLUMN auth_provider VARCHAR(50) DEFAULT NULL")
                 
                 id_col = f"{provider}_id"
-                cursor.execute(f"SHOW COLUMNS FROM users LIKE %s", (id_col,))
+                cursor.execute("SHOW COLUMNS FROM users LIKE %s", (id_col,))
                 if not cursor.fetchone():
                     cursor.execute(f"ALTER TABLE users ADD COLUMN {id_col} VARCHAR(255) DEFAULT NULL")
 

@@ -1,5 +1,4 @@
 import base64
-import json
 import requests
 from typing import List, Dict, Any
 from ..config.database import db_singleton

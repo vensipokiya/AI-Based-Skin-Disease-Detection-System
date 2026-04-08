@@ -56,7 +56,8 @@ class AdminService:
         
         self._format_dates(appointments, ["appointment_date"])
         for a in appointments:
-            if a.get("appointment_time"): a["appointment_time"] = str(a["appointment_time"])
+            if a.get("appointment_time"):
+                a["appointment_time"] = str(a["appointment_time"])
         return {"success": True, "appointments": appointments}
 
     def get_logs(self) -> dict:

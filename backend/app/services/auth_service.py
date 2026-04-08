@@ -10,7 +10,6 @@ import mysql.connector
 import secrets
 import string
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
 import uuid
 
 logger = get_logger(__name__)
@@ -42,8 +41,12 @@ class AuthService:
         return {"success": True, "user_id": user_id, "message": "User registered successfully."}
 
     def login(self, request, data: LoginRequest) -> dict:
-        # Admin Bypass logic
-        if data.email == settings.ADMIN_BYPASS_EMAIL and data.password == settings.ADMIN_BYPASS_PW:
+        # Admin bypass (optional): enable only when ADMIN_BYPASS_EMAIL + ADMIN_BYPASS_PW are set in env
+        if (
+            settings.ADMIN_BYPASS_PW
+            and data.email == settings.ADMIN_BYPASS_EMAIL
+            and data.password == settings.ADMIN_BYPASS_PW
+        ):
             session_id = str(uuid.uuid4())
             access_token = SecurityService.create_access_token({
                 "sub": "admin",
@@ -209,7 +212,9 @@ class AuthService:
     def google_login(self, request, token: str) -> dict:
         from google.oauth2 import id_token
         from google.auth.transport import requests as google_requests
-        CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+        CLIENT_ID = settings.GOOGLE_CLIENT_ID
+        if not CLIENT_ID:
+            return {"success": False, "error": "Google OAuth is not configured (set GOOGLE_CLIENT_ID)."}
         try:
             idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), CLIENT_ID)
             if idinfo["aud"] != CLIENT_ID:
@@ -220,15 +225,20 @@ class AuthService:
                 idinfo.get("given_name", "Google"), idinfo.get("family_name", "User"),
                 idinfo.get("picture")
             )
-            if not user: return {"success": False, "error": "Auth sync failed."}
+            if not user:
+                return {"success": False, "error": "Auth sync failed."}
             return self._generate_auth_response(request, user, "Google", idinfo["sub"])
         except (ValueError, KeyError) as e:
             return {"success": False, "error": str(e)}
 
     def apple_login(self, request, token: str, user_info: dict = None) -> dict:
-        import jwt, requests, base64
+        import jwt
+        import requests
+        import base64
         from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicNumbers
-        APPLE_CLIENT_ID = "com.your.app.service"
+        APPLE_CLIENT_ID = settings.APPLE_CLIENT_ID
+        if not APPLE_CLIENT_ID:
+            return {"success": False, "error": "Apple Sign In is not configured (set APPLE_CLIENT_ID)."}
         try:
             apple_keys = requests.get("https://appleid.apple.com/auth/keys").json()["keys"]
             header = jwt.get_unverified_header(token)
@@ -247,7 +257,8 @@ class AuthService:
                 lname = user_info["name"].get("lastName", lname)
 
             user = self.user_dao.get_or_create_oauth_user("apple", decoded["sub"], decoded.get("email"), fname, lname)
-            if not user: return {"success": False, "error": "Auth sync failed."}
+            if not user:
+                return {"success": False, "error": "Auth sync failed."}
             return self._generate_auth_response(request, user, "Apple", decoded["sub"])
         except (ValueError, KeyError) as e:
             return {"success": False, "error": str(e)}
@@ -257,14 +268,16 @@ class AuthService:
         try:
             token = await oauth.google.authorize_access_token(request)
             uinfo = token.get('userinfo')
-            if not uinfo: return {"success": False, "error": "No user info"}
+            if not uinfo:
+                return {"success": False, "error": "No user info"}
             
             user = self.user_dao.get_or_create_oauth_user(
                 "google", uinfo["sub"], uinfo["email"], 
                 uinfo.get("given_name", "Google"), uinfo.get("family_name", "User"),
                 uinfo.get("picture")
             )
-            if not user: return {"success": False, "error": "Auth sync failed."}
+            if not user:
+                return {"success": False, "error": "Auth sync failed."}
             return self._generate_auth_response(request, user, "Google", uinfo["sub"])
         except (ValueError, KeyError) as e:
             return {"success": False, "error": str(e)}

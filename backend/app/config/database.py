@@ -3,7 +3,7 @@ from mysql.connector import pooling
 from contextlib import contextmanager
 import os
 import threading
-from typing import Any, Optional
+from typing import Any
 import logging
 
 try:
@@ -64,7 +64,8 @@ class DatabaseSingleton:
         if not self.pool:
             logger.error("No active connection pool found. Re-initializing...")
             self._initialize_pool()
-            if not self.pool: return None
+            if not self.pool:
+                return None
         try:
             return self.pool.get_connection()
         except mysql.connector.Error as err:
@@ -73,7 +74,8 @@ class DatabaseSingleton:
 
     def _ensure_tables(self):
         conn = self.get_connection()
-        if not conn: return
+        if not conn:
+            return
         try:
             cursor = conn.cursor()
             
@@ -140,7 +142,8 @@ class DatabaseSingleton:
         except mysql.connector.Error as err:
             logger.error(f"Migration error: {err}")
         finally:
-            if conn: conn.close()
+            if conn:
+                conn.close()
 
     @contextmanager
     def connection(self):

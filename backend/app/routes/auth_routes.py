@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body, Request
+from fastapi import APIRouter, Depends, Request
 from ..controllers.auth_controller import AuthController
 from ..schemas.user_schema import LoginRequest, RegisterRequest, ForgotPasswordSendOtpRequest, ForgotPasswordVerifyOtpRequest, ForgotPasswordResetRequest
 from ..middleware.auth_middleware import login_required

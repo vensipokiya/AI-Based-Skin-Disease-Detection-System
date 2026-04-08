@@ -1,4 +1,5 @@
 import os
+import secrets
 
 try:
     from dotenv import load_dotenv
@@ -8,6 +9,12 @@ try:
 except ImportError:
     pass
 
+def _jwt_secret() -> str:
+    """No hardcoded JWT secret in source — use JWT_SECRET in .env for stable keys across restarts."""
+    v = os.environ.get("JWT_SECRET", "").strip()
+    return v if v else secrets.token_urlsafe(32)
+
+
 class Settings:
     # App Settings
     APP_NAME: str = "DermaCare AI"
@@ -16,18 +23,18 @@ class Settings:
     # MySQL Database Settings
     DB_HOST: str = os.environ.get("DB_HOST", "localhost")
     DB_USER: str = os.environ.get("DB_USER", "root")
-    DB_PASSWORD: str = os.environ.get("DB_PASSWORD", "MySQL2573")
+    DB_PASSWORD: str = os.environ.get("DB_PASSWORD", "").strip()
     DB_NAME: str = os.environ.get("DB_NAME", "darmacare_db")
     DB_PORT: int = int(os.environ.get("DB_PORT", 3306))
     
     # Security / JWT
-    SECRET_KEY: str = os.environ.get("JWT_SECRET", "DERMACARE_SECRET_KEY_2026")
+    SECRET_KEY: str = _jwt_secret()
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     
-    # Admin Bypass Credentials
-    ADMIN_BYPASS_EMAIL: str = os.environ.get("ADMIN_BYPASS_EMAIL", "admin@gmail.com")
-    ADMIN_BYPASS_PW: str = os.environ.get("ADMIN_BYPASS_PW", "Admin@1234")
+    # Admin bypass: only active when BOTH are set in environment (never hardcode passwords here)
+    ADMIN_BYPASS_EMAIL: str = os.environ.get("ADMIN_BYPASS_EMAIL", "").strip()
+    ADMIN_BYPASS_PW: str = os.environ.get("ADMIN_BYPASS_PW", "").strip()
     
     # SMTP Settings
     SMTP_SERVER: str = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -43,8 +50,9 @@ class Settings:
     # Uploads
     UPLOAD_DIR: str = os.path.join(os.getcwd(), "backend", "app", "uploads", "user_uploads")
     
-    # OAuth Settings (e.g. Google Cloud Console Credentials)
-    GOOGLE_CLIENT_ID: str = os.environ.get("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID")
-    GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "YOUR_GOOGLE_CLIENT_SECRET")
+    # OAuth — set in environment / .env (no placeholder secrets in repo)
+    GOOGLE_CLIENT_ID: str = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+    APPLE_CLIENT_ID: str = os.environ.get("APPLE_CLIENT_ID", "").strip()
 
 settings = Settings()

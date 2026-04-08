@@ -8,7 +8,6 @@ from backend.services.communication_service import CommunicationService
 import secrets
 import string
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
 
 class AuthService:
     def __init__(self, user_dao=None):
@@ -27,7 +26,11 @@ class AuthService:
         has_prev = True if data.previous_conditions.lower() == "yes" else False
 
         user_id = self.user_dao.create_user(
-            user_dict, has_prev, data.symptoms, data.symptom_duration, data.previous_condition_details
+            user_dict,
+            has_prev,
+            data.symptoms,
+            data.symptom_duration,
+            data.previous_condition_details or "",
         )
 
         if not user_id:
@@ -99,9 +102,8 @@ class AuthService:
         user = self.user_dao.get_user_by_email(data.email)
         contact = data.email 
         
-        # For simplicity, if email/phone provided, we try to match either.
-        if not user and hasattr(data, 'contact_number') and data.contact_number:
-            user = self.user_dao.get_user_by_phone(data.contact_number)
+        if not user and data.contact_number:
+            user = self.user_dao.get_user_by_contact_number(data.contact_number)
             contact = data.contact_number
 
         if not user:

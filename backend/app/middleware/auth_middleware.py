@@ -2,7 +2,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-from fastapi import Depends, HTTPException, Security
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from ..config.settings import settings
 
@@ -14,9 +14,9 @@ class SecurityService:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         try:
-             return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
-        except:
-             return False
+            return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+        except (ValueError, TypeError):
+            return False
 
     @staticmethod
     def create_access_token(data: dict) -> str:

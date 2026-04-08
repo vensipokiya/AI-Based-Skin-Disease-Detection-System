@@ -1,5 +1,4 @@
 from ..dao.user_dao import UserDao
-from typing import Optional, Dict, Any
 
 class UserService:
     def __init__(self, user_dao=None):

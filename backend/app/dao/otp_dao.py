@@ -1,7 +1,6 @@
 from ..config.database import db_singleton
 from ..utils.logger import get_logger
 from datetime import datetime
-from typing import Optional
 
 logger = get_logger(__name__)
 

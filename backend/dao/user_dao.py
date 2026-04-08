@@ -36,6 +36,22 @@ class UserDao:
             if conn: conn.close()
         return None
 
+    def get_user_by_contact_number(self, contact_number: str) -> Optional[Dict[str, Any]]:
+        conn = self.db.get_connection()
+        if not conn:
+            return None
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM users WHERE contact_number = %s", (contact_number,))
+            return cursor.fetchone()
+        except Exception as e:
+            logger.error(f"DAO Error: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+        return None
+
     def create_user(self, user_data: dict, has_prev: bool, symptoms: str, duration: str, prev_details: str) -> Optional[int]:
         conn = self.db.get_connection()
         if not conn: return None

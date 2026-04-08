@@ -1,8 +1,6 @@
 from ..dao.scan_dao import ScanDao, LocationDao
 from ..dao.user_dao import UserDao
-from ..utils.image_upload import save_upload_file
 import json
-from typing import Optional, Dict, Any
 
 class ScanService:
     def __init__(self, scan_dao=None, user_dao=None):

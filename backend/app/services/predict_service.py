@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import cv2
 import json
 import os
 from ..config.settings import settings
