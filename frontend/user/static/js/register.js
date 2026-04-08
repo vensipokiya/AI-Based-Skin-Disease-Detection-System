@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await apiRes.json();
             if (apiRes.ok && result.success) {
-                handleSuccessfulLogin(result.token, result.refresh_token, result.user);
+                DermaUtils.handleSuccessfulLogin(result.token, result.refresh_token, result.user);
             } else {
                 alert(result.error || 'Apple registration failed.');
             }
@@ -391,17 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
             navAuthBtn.href = '#';
             navAuthBtn.className = 'btn btn-secondary';
 
-            navAuthBtn.addEventListener('click', async (e) => {
+            navAuthBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                try {
-                    await fetch(API_URL + '/api/auth/logout', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                } catch (err) { } finally {
-                    localStorage.removeItem('dermacare_token');
-                    window.location.href = '/';
-                }
+                DermaUtils.logout();
             });
         } else {
             navAuthBtn.innerText = 'Login';
