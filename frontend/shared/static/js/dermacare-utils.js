@@ -11,7 +11,8 @@ window.DermaUtils = {
     setAttr: (id, a, v) => { const el = document.getElementById(id); if (el) el.setAttribute(a, v); },
     setValue: (id, val) => { const el = document.getElementById(id); if (el) el.value = val; },
     getValue: (id) => (document.getElementById(id) || {}).value?.trim() || '',
-    isValidEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    // Safe linear-time email validation (no nested quantifiers)
+    isValidEmail: (email) => /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email),
     hide: (id) => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); },
     show: (id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); },
 

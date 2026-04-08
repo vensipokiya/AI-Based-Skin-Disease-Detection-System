@@ -1,5 +1,6 @@
 import mysql.connector
 from mysql.connector import pooling
+from contextlib import contextmanager
 import os
 import threading
 from typing import Any, Optional
@@ -141,18 +142,18 @@ class DatabaseSingleton:
         finally:
             if conn: conn.close()
 
-    from contextlib import contextmanager
-
     @contextmanager
     def connection(self):
         conn = self.get_connection()
         if not conn:
-            raise Exception("Database connection error: Could not get connection from pool.")
+            raise mysql.connector.DatabaseError("Could not get connection from pool.")
         try:
             yield conn
+        except mysql.connector.Error:
+            conn.rollback()
+            raise
         finally:
-            if conn:
-                conn.close()
+            conn.close()
 
     @contextmanager
     def cursor(self, dictionary=True, commit=False):

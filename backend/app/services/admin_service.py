@@ -28,9 +28,11 @@ class AdminService:
     def get_scans_list(self) -> dict:
         scans = self.admin_dao.get_all_scans()
         for s in scans:
-            if s.get("remedies") and isinstance(s["remedies"], str): 
-                try: s["remedies"] = json.loads(s["remedies"]) 
-                except: pass
+            if s.get("remedies") and isinstance(s["remedies"], str):
+                try:
+                    s["remedies"] = json.loads(s["remedies"])
+                except json.JSONDecodeError:
+                    pass
         return {"success": True, "scans": self._format_dates(scans, ["scan_date"])}
 
     def get_medical_profiles(self) -> dict:
@@ -49,7 +51,8 @@ class AdminService:
                 else:
                     appointment_dt = datetime.strptime(f"{dt} {tm}", "%Y-%m-%d %H:%M:%S")
                     a["status"] = "Done" if datetime.now() >= appointment_dt else "Pending"
-            except: a["status"] = "Pending"
+            except (ValueError, TypeError):
+                a["status"] = "Pending"
         
         self._format_dates(appointments, ["appointment_date"])
         for a in appointments:
@@ -58,9 +61,15 @@ class AdminService:
 
     def get_logs(self) -> dict:
         logs = self.admin_dao.get_system_logs()
-        for l in logs:
-            if not l.get("action"): l["action"] = l.get("event_type", "Action")
+        for log in logs:
+            if not log.get("action"):
+                log["action"] = log.get("event_type", "Action")
         return {"success": True, "logs": self._format_dates(logs, ["timestamp"])}
+
+    def clear_logs(self) -> dict:
+        if self.admin_dao.clear_system_logs():
+            return {"success": True, "message": "All system logs cleared."}
+        return {"success": False, "error": "Failed to clear logs."}
 
     def get_login_history(self, page: int, limit: int, status: str, date: str, search: str = None) -> dict:
         offset = (page - 1) * limit

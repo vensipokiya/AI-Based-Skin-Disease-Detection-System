@@ -5,11 +5,15 @@ from ..middleware.auth_middleware import SecurityService
 from ..schemas.user_schema import LoginRequest, RegisterRequest, ForgotPasswordSendOtpRequest, ForgotPasswordVerifyOtpRequest, ForgotPasswordResetRequest
 from ..services.communication_service import CommunicationService
 from ..config.settings import settings
+from ..utils.logger import get_logger
+import mysql.connector
 import secrets
 import string
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import uuid
+
+logger = get_logger(__name__)
 
 class AuthService:
     def __init__(self, user_dao=None):
@@ -132,13 +136,12 @@ class AuthService:
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (user["id"], contact, otp, 0, expiry, datetime.now()))
                 
-                print(f">>> [DEV] OTP for {contact} is {otp} <<<")
                 if data.email:
                     CommunicationService.send_otp_email(contact, otp)
-                    
                 return {"success": True, "message": "OTP sent successfully", "dev_otp": otp}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except mysql.connector.Error as e:
+            logger.error(f"OTP send error: {e}")
+            return {"success": False, "error": "Database error sending OTP."}
 
     def verify_forgot_password_otp(self, data: ForgotPasswordVerifyOtpRequest) -> dict:
         try:
@@ -159,8 +162,9 @@ class AuthService:
                 
                 cursor.execute("UPDATE otp_verification SET is_verified=1 WHERE id=%s", (record["id"],))
                 return {"success": True, "message": "OTP verified"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except mysql.connector.Error as e:
+            logger.error(f"OTP verify error: {e}")
+            return {"success": False, "error": "Database error verifying OTP."}
 
     def reset_forgotten_password(self, data: ForgotPasswordResetRequest) -> dict:
         try:
@@ -171,8 +175,9 @@ class AuthService:
                 elif data.phone:
                     cursor.execute("UPDATE users SET password_hash=%s WHERE contact_number=%s", (new_hashed, data.phone))
                 return {"success": True, "message": "Password updated successfully"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        except mysql.connector.Error as e:
+            logger.error(f"Password reset error: {e}")
+            return {"success": False, "error": "Database error resetting password."}
 
     def _generate_auth_response(self, request, user, provider_name, provider_id):
         session_id = str(uuid.uuid4())
@@ -217,7 +222,7 @@ class AuthService:
             )
             if not user: return {"success": False, "error": "Auth sync failed."}
             return self._generate_auth_response(request, user, "Google", idinfo["sub"])
-        except Exception as e:
+        except (ValueError, KeyError) as e:
             return {"success": False, "error": str(e)}
 
     def apple_login(self, request, token: str, user_info: dict = None) -> dict:
@@ -244,7 +249,7 @@ class AuthService:
             user = self.user_dao.get_or_create_oauth_user("apple", decoded["sub"], decoded.get("email"), fname, lname)
             if not user: return {"success": False, "error": "Auth sync failed."}
             return self._generate_auth_response(request, user, "Apple", decoded["sub"])
-        except Exception as e:
+        except (ValueError, KeyError) as e:
             return {"success": False, "error": str(e)}
 
     async def google_callback(self, request) -> dict:
@@ -261,5 +266,5 @@ class AuthService:
             )
             if not user: return {"success": False, "error": "Auth sync failed."}
             return self._generate_auth_response(request, user, "Google", uinfo["sub"])
-        except Exception as e:
+        except (ValueError, KeyError) as e:
             return {"success": False, "error": str(e)}

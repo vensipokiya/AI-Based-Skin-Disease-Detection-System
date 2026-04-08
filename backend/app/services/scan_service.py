@@ -25,8 +25,10 @@ class ScanService:
         for row in history_rows:
             remedies_data = row.get("remedies")
             if isinstance(remedies_data, str):
-                try: remedies_data = json.loads(remedies_data)
-                except: remedies_data = None
+                try:
+                    remedies_data = json.loads(remedies_data)
+                except json.JSONDecodeError:
+                    remedies_data = None
             
             history.append({
                 "id": row["id"],
