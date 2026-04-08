@@ -1,34 +1,20 @@
 const API_BASE = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 
 // ---------------------------
-// Auth Token Helper
-// ---------------------------
-function getAuthToken() {
-    return localStorage.getItem('dermacare_token');
-}
-
-function getAuthHeaders() {
-    const token = getAuthToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
-}
-
-// ---------------------------
 // History Management
 // ---------------------------
 let historyData = [];
 let selectedIndex = -1;
 
-window.loadHistory = async function() {
-    const token = getAuthToken();
+window.loadHistory = async function () {
+    const token = localStorage.getItem('dermacare_token');
     let serverData = [];
     let serverStats = null;
 
     if (token) {
         try {
             const response = await fetch(API_BASE + '/api/scan/history', {
-                headers: getAuthHeaders()
+                headers: DermaUtils.getAuthHeaders()
             });
 
             if (response.ok) {
@@ -43,11 +29,9 @@ window.loadHistory = async function() {
         }
     }
 
-    // Get Local Data
     const localDataStr = localStorage.getItem('dermacare_history');
     const localData = localDataStr ? JSON.parse(localDataStr) : [];
 
-    // Display Logic: Logged in users ONLY see server data. Guests see local.
     if (token) {
         historyData = serverData;
         if (serverStats) {
@@ -83,7 +67,7 @@ function updateStatsLocal(history) {
 function renderHistory() {
     const listEl = document.getElementById('history-list');
     const emptyEl = document.getElementById('empty-state');
-    if(!listEl || !emptyEl) return;
+    if (!listEl || !emptyEl) return;
 
     if (historyData.length === 0) {
         listEl.classList.add('hidden');
@@ -94,7 +78,6 @@ function renderHistory() {
     emptyEl.classList.add('hidden');
     listEl.classList.remove('hidden');
 
-    // Sort by date (newest first)
     historyData.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     listEl.innerHTML = historyData.map((item, index) => {
@@ -155,9 +138,9 @@ function getDiseaseIcon(disease) {
     return icons[disease] || 'fas fa-question-circle';
 }
 
-window.showDetail = function(index) {
+window.showDetail = function (index) {
     selectedIndex = index;
-    renderHistory(); // Refresh to show selected state
+    renderHistory();
 
     const item = historyData[index];
     if (!item) return;
@@ -204,7 +187,7 @@ window.showDetail = function(index) {
     const deleteIdentifier = item.id ? `deleteHistoryById(${item.id})` : `deleteHistoryByIndex(${index})`;
 
     const detailPane = document.getElementById('detail-pane');
-    if(detailPane) {
+    if (detailPane) {
         let imageHtml = '';
         if (item.image_path) {
             imageHtml = `
@@ -268,15 +251,15 @@ window.showDetail = function(index) {
     }
 };
 
-window.deleteHistoryById = async function(scanId) {
+window.deleteHistoryById = async function (scanId) {
     if (!confirm('Are you sure you want to delete this record?')) return;
     try {
         const response = await fetch(API_BASE + '/api/scan/history/' + scanId, {
             method: 'DELETE',
-            headers: getAuthHeaders()
+            headers: DermaUtils.getAuthHeaders()
         });
         if (response.ok) {
-            showNotification('Record deleted successfully!');
+            DermaUtils.showNotification('Record deleted successfully!');
             resetDetailPane();
             await loadHistory();
         } else {
@@ -287,48 +270,23 @@ window.deleteHistoryById = async function(scanId) {
     }
 };
 
-window.deleteHistoryByIndex = function(index) {
+window.deleteHistoryByIndex = function (index) {
     if (!confirm('Are you sure you want to delete this record?')) return;
     const history = JSON.parse(localStorage.getItem('dermacare_history') || '[]');
     history.sort((a, b) => new Date(b.date) - new Date(a.date));
     history.splice(index, 1);
     localStorage.setItem('dermacare_history', JSON.stringify(history));
-    showNotification('Local record removed.');
+    DermaUtils.showNotification('Local record removed.');
     resetDetailPane();
     historyData = history;
     updateStatsLocal(history);
     renderHistory();
 };
 
-function showNotification(message) {
-    const toast = document.createElement('div');
-    toast.className = 'fade-in';
-    toast.style.position = 'fixed';
-    toast.style.bottom = '20px';
-    toast.style.right = '20px';
-    toast.style.background = '#0f172a';
-    toast.style.color = 'white';
-    toast.style.padding = '1rem 1.5rem';
-    toast.style.borderRadius = '12px';
-    toast.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
-    toast.style.zIndex = '9999';
-    toast.style.display = 'flex';
-    toast.style.alignItems = 'center';
-    toast.style.gap = '10px';
-    toast.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> ${message}`;
-
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => toast.remove(), 500);
-    }, 3000);
-}
-
 function resetDetailPane() {
     selectedIndex = -1;
     const detailPane = document.getElementById('detail-pane');
-    if(detailPane) {
+    if (detailPane) {
         detailPane.innerHTML = `
             <div class="empty-detail-state">
                 <i class="fas fa-file-medical"></i>
@@ -340,7 +298,7 @@ function resetDetailPane() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const token = getAuthToken();
+    const token = localStorage.getItem('dermacare_token');
     if (!token) {
         window.location.href = '/login';
         return;

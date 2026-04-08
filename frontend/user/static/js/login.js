@@ -23,44 +23,6 @@ function clearErrors() {
     if (registerPrompt) registerPrompt.classList.add('hidden');
 }
 
-
-// ---------------------------
-// Helper: After successful login
-// ---------------------------
-function handleSuccessfulLogin(token, refreshToken, user) {
-    const btn = document.getElementById('btn-login');
-
-    // Store token and user info for API calls
-    localStorage.setItem('dermacare_token', token);
-    localStorage.setItem('dermacare_refresh_token', refreshToken);
-    localStorage.setItem('dermacare_logged_in', 'true');
-    localStorage.setItem('dermacare_current_user', JSON.stringify(user));
-
-    if (user.role === 'Admin') {
-        // Clone token specifically for the Admin dashboard panel
-        localStorage.setItem('admin_token', token);
-    }
-
-    // Show success feedback
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-check-circle"></i> Login Successful!';
-        btn.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
-    }
-
-    console.log('[OK] Login successful!', user.name || user.email);
-
-    setTimeout(() => {
-        if (user.role === 'Admin') {
-            window.location.href = '/admin';
-        } else if (sessionStorage.getItem('pending_scan_result') || sessionStorage.getItem('scan_result')) {
-            sessionStorage.setItem('scan_result_authenticated', 'true');
-            window.location.href = '/scan-result';
-        } else {
-            window.location.href = '/';
-        }
-    }, 1000);
-}
-
 // ---------------------------
 // Main Logic
 // ---------------------------
@@ -118,7 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    handleSuccessfulLogin(result.token, result.refresh_token, result.user);
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Login Successful!';
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+                    DermaUtils.handleSuccessfulLogin(result.token, result.refresh_token, result.user);
                 } else {
                     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
                     btn.disabled = false;
@@ -135,48 +99,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Navbar Auth Button Toggle
     const navAuthBtn = document.getElementById('nav-login-hist');
     const tokenToken = localStorage.getItem('dermacare_token');
-    if (navAuthBtn) {
-        if (tokenToken) {
-            let userName = '';
-            try {
-                const user = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
-                userName = user.first_name || user.name || '';
-            } catch (e) { }
-            navAuthBtn.innerText = `Logout (${userName})`;
-            navAuthBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.removeItem('dermacare_token');
-                window.location.href = '/';
-            });
-        }
+    if (navAuthBtn && tokenToken) {
+        let userName = '';
+        try {
+            const user = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
+            userName = user.first_name || user.name || '';
+        } catch (e) { }
+        navAuthBtn.innerText = `Logout (${userName})`;
+        navAuthBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('dermacare_token');
+            window.location.href = '/';
+        });
     }
 
-    // ---------------------------
-    // 6. Apple Sign-In Implementation
-    // ---------------------------
-    const APPLE_CLIENT_ID = "com.your.app.service"; 
+    // 5. Apple Sign-In Implementation
+    const APPLE_CLIENT_ID = "com.your.app.service";
     const APPLE_REDIRECT_URL = window.location.origin + "/login";
 
     window.handleAppleLogin = async (response) => {
         const idToken = response.id_token;
-        const appleUser = response.user; 
-
-        console.log("[OK] Received Apple ID Token");
+        const appleUser = response.user;
 
         try {
             const apiRes = await fetch(API_URL + '/api/auth/apple', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    token: idToken,
-                    user: appleUser 
-                })
+                body: JSON.stringify({ token: idToken, user: appleUser })
             });
 
             const result = await apiRes.json();
             if (apiRes.ok && result.success) {
-                if (typeof showToast === 'function') showToast("Apple Login Successful ✅", "success");
-                handleSuccessfulLogin(result.token, result.refresh_token, result.user);
+                DermaUtils.showToast("Apple Login Successful ✅", "success");
+                DermaUtils.handleSuccessfulLogin(result.token, result.refresh_token, result.user);
             } else {
                 alert(result.error || 'Apple login failed ❌');
             }
@@ -203,10 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ---------------------------
-// 7. Google Sign-In Trigger
-// ---------------------------
-window.googleLogin = function() {
+// 6. Google Sign-In Trigger
+window.googleLogin = function () {
     window.location.href = API_URL + "/api/auth/google/login";
 };
 
@@ -219,12 +172,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (token) {
         try {
             const user = userStr ? JSON.parse(decodeURIComponent(userStr)) : { role: 'User' };
-            // Clear the URL so we don't have token sitting in history
             window.history.replaceState({}, document.title, window.location.pathname);
-            
-            if (typeof showToast === 'function') showToast("Google Login Successful ✅", "success");
-            handleSuccessfulLogin(token, token, user);
-        } catch(e) {
+            DermaUtils.showToast("Google Login Successful ✅", "success");
+            DermaUtils.handleSuccessfulLogin(token, token, user);
+        } catch (e) {
             console.error("Failed to parse Google login data:", e);
         }
     }

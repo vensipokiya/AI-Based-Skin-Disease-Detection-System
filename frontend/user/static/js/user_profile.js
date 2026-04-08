@@ -244,27 +244,11 @@ function cancelEdit() {
 
 
 // ─────────────────────────────────────────────
-// LOGOUT
+// LOGOUT — delegates to shared utility
 // ─────────────────────────────────────────────
-async function handleLogout(e) {
+function handleLogout(e) {
     e.preventDefault();
-    const token = localStorage.getItem('dermacare_token');
-    try {
-        if (token) {
-            await fetch(`${API_URL}/api/auth/logout`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-        }
-    } catch (err) {
-        console.error('Logout error:', err);
-    } finally {
-        localStorage.removeItem('dermacare_token');
-        localStorage.removeItem('dermacare_refresh_token');
-        localStorage.removeItem('dermacare_logged_in');
-        localStorage.removeItem('dermacare_current_user');
-        window.location.href = '/login';
-    }
+    DermaUtils.logout();
 }
 
 
@@ -428,14 +412,5 @@ document.addEventListener('DOMContentLoaded', () => {
             closeAvatarModal();
             DermaUtils.showToast('Profile picture captured! Click Save Changes to apply.', 'info');
         });
-    }
-
-    // Helper to apply avatar everywhere
-    function updateAvatarImages(imageUrl) {
-        DermaUtils.setAttr('profile-avatar', 'src', imageUrl);
-        DermaUtils.setAttr('sidebar-avatar', 'src', imageUrl);
-        DermaUtils.setAttr('header-avatar', 'src', imageUrl);
-        // Save to local storage so it persists on reload
-        localStorage.setItem('dermacare_avatar_base64', imageUrl);
     }
 });
