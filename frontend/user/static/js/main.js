@@ -424,11 +424,12 @@ function displayResult(data) {
     let statusColor = '#3b82f6'; // Default Blue
     let bgOpacity = 'rgba(59, 130, 246, 0.1)';
 
+    let levelLabel = 'LOW';
+    let accColor = '#ef4444'; // Red for LOW
+    let accBg = 'rgba(239, 68, 68, 0.1)';
+
     if (accuracyIndicator && accuracyLevel) {
         accuracyIndicator.style.display = 'inline-block';
-        let levelLabel = 'LOW';
-        let accColor = '#ef4444'; // Red for LOW
-        let accBg = 'rgba(239, 68, 68, 0.1)';
 
         if (data.confidence >= 80) {
             levelLabel = 'HIGH';
@@ -535,7 +536,7 @@ function displayResult(data) {
             grid.innerHTML += makeCard('fas fa-utensils', 'Diet Suggestions', data.remedies.diet_suggestions);
 
             const doctorAdvice = data.remedies.consult_doctor;
-            if (doctorAdvice && doctorAdvice.length > 0 && data.confidence >= 60 && !isNormalSkin) {
+            if (doctorAdvice && doctorAdvice.length > 0 && data.confidence >= 60 && !isHealthy) {
                 grid.innerHTML += makeCard('fas fa-user-md', 'When to Consult a Doctor', doctorAdvice, 'warning-card');
             }
         } else if (data.remedy) {

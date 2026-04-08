@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan Result - DermaCare AI</title>
-    <link rel="stylesheet" href="../../user/static/css/style.css">
-    <link rel="stylesheet" href="../../shared/static/css/header.css">
-    <link rel="stylesheet" href="../../shared/static/css/footer.css">
+    <link rel="stylesheet" href="/static/user/css/style.css">
+    <link rel="stylesheet" href="/shared/static/css/header.css">
+    <link rel="stylesheet" href="/shared/static/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
 
     <style>
         /* ── Layout ─────────────────────────────────────────────────────────── */
@@ -36,7 +36,8 @@
             /* Leave room for header and bottom buttons */
             width: 100%;
             background: white;
-            position: relative; /* Ensure the auth overlay can position correctly */
+            position: relative;
+            /* Ensure the auth overlay can position correctly */
         }
 
         /* ── Left Section (Image + Result) ──────────────────────────────────────────────────────── */
@@ -126,7 +127,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
             border: 1px solid #f8fafc;
         }
 
@@ -387,9 +388,11 @@
 
                     <!-- ── Right Panel ─────────────────────────────────── -->
                     <div class="right-section">
-                        <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.35rem; color: #0f172a;">Analysis Report</h3>
-                        
-                        <div id="disease-description" style="margin-bottom: 2rem; padding: 1.25rem; background: #EEF2FF; border-left: 4px solid #3b82f6; border-radius: 8px; color: #312e81; font-size: 1rem; line-height: 1.6; font-weight: 500;">
+                        <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.35rem; color: #0f172a;">
+                            Analysis Report</h3>
+
+                        <div id="disease-description"
+                            style="margin-bottom: 2rem; padding: 1.25rem; background: #EEF2FF; border-left: 4px solid #3b82f6; border-radius: 8px; color: #312e81; font-size: 1rem; line-height: 1.6; font-weight: 500;">
                             <!-- Injected by JS -->
                         </div>
 
@@ -416,24 +419,29 @@
             <!-- Auth Overlay (Improved - Fixed Viewport Centering) -->
             <div id="result-auth-overlay" class="hidden"
                 style="position: fixed; top:0; left:0; width:100vw; height:100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 2rem; background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-                
-                <div style="background: white; padding: 2rem 2.5rem; border-radius: 1.25rem; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2); text-align: center; max-width: 380px; width: 100%; border: 1px solid #e2e8f0; animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
-                    
-                    <div style="width: 52px; height: 52px; background: #EEF2FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+
+                <div
+                    style="background: white; padding: 2rem 2.5rem; border-radius: 1.25rem; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2); text-align: center; max-width: 380px; width: 100%; border: 1px solid #e2e8f0; animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
+
+                    <div
+                        style="width: 52px; height: 52px; background: #EEF2FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
                         <i class="fas fa-lock" style="font-size: 1.4rem; color: #4F46E5;"></i>
                     </div>
-                    
-                    <h3 style="margin-bottom: 0.5rem; color: #0f172a; font-size: 1.25rem; font-weight: 700;">Secure Report Ready</h3>
-                    
+
+                    <h3 style="margin-bottom: 0.5rem; color: #0f172a; font-size: 1.25rem; font-weight: 700;">Secure
+                        Report Ready</h3>
+
                     <p style="color: #64748b; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6;">
                         Sign in to view your full recovery plan.
                     </p>
-                    
+
                     <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-                        <a href="/register" class="btn btn-primary" style="padding: 0.75rem; font-size: 0.9rem; font-weight: 600; border-radius: 10px; justify-content: center;">
+                        <a href="/register" class="btn btn-primary"
+                            style="padding: 0.75rem; font-size: 0.9rem; font-weight: 600; border-radius: 10px; justify-content: center;">
                             <i class="fas fa-user-plus" style="margin-right: 8px;"></i> Register (Free)
                         </a>
-                        <a href="/login" class="btn btn-secondary" style="padding: 0.7rem; font-size: 0.85rem; font-weight: 600; border-radius: 10px; justify-content: center;">
+                        <a href="/login" class="btn btn-secondary"
+                            style="padding: 0.7rem; font-size: 0.85rem; font-weight: 600; border-radius: 10px; justify-content: center;">
                             <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Sign In
                         </a>
                     </div>
@@ -447,9 +455,9 @@
     </section>
 
     <div id="footer"></div>
-    <script src="../../shared/static/js/footer.js"></script>
-    <script src="../../user/static/js/main.js"></script>
-    <script src="../../shared/static/js/header.js"></script>
+    <script src="/shared/static/js/footer.js"></script>
+    <script src="/static/user/js/main.js"></script>
+    <script src="/shared/static/js/header.js"></script>
 
 </body>
 

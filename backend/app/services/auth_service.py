@@ -136,10 +136,10 @@ class AuthService:
             
             conn.commit()
             
-            # Simulated send
+            # Simulated send or actual SMTP
             print(f">>> [DEV] OTP for {contact} is {otp} <<<")
             if data.email:
-                CommunicationService.send_otp_email(contact, otp)
+                CommunicationService.send_otp_email(contact, otp) # Call but don't block on failure
                 
             # Send dev_otp in response so frontend demo works smoothly if SMTP is not configured
             return {"success": True, "message": "OTP sent successfully", "dev_otp": otp}

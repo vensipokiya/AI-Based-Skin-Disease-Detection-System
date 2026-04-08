@@ -3,7 +3,6 @@ import numpy as np
 import cv2
 import json
 import os
-from tensorflow.keras.applications.efficientnet import preprocess_input
 from ..config.settings import settings
 from ..utils.remedies import get_remedies
 from ..utils.logger import get_logger
@@ -49,14 +48,17 @@ class PredictService:
             # Convert BGR to RGB (Required for standard Keras models)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-            # Resize to 224x224 and preprocess for EfficientNet
-            img = cv2.resize(img, (224, 224))
-            img = preprocess_input(img)
+            # Resize to 224x224 using high-quality Lanczos (Sharpness is key for skin textures)
+            from PIL import Image
+            pill_img = Image.fromarray(img)
+            pill_img = pill_img.resize((224, 224), Image.LANCZOS)
+            img = np.array(pill_img).astype(np.float32)
+            
             img_batch = np.expand_dims(img, axis=0)
 
-            # Predict using model direct call for speed
-            predictions_tensor = self._model(img_batch, training=False)
-            pred_probs = predictions_tensor[0].numpy()
+            # Predict using standard Keras predict for better batch handling
+            pred_probs_batch = self._model.predict(img_batch, verbose=0)
+            pred_probs = pred_probs_batch[0]
             
             top_3_idx = pred_probs.argsort()[-3:][::-1]
             

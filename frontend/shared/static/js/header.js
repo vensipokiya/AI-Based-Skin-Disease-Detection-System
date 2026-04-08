@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!document.querySelector('link[href*="header.css"]')) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = '../../shared/static/css/header.css';
+        link.href = '/shared/static/css/header.css';
         document.head.appendChild(link);
     }
 
