@@ -1,33 +1,25 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 import os
-import sys
-
-# Ensure project root is in path
-sys.path.insert(0, os.getcwd())
-
-try:
-    from dotenv import load_dotenv
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-    if os.path.exists(env_path):
-        load_dotenv(env_path)
-except ImportError:
-    pass
+import asyncio
+import httpx
+import math
+import json
+import urllib.parse
 
 from .config.database import DatabaseSingleton
 from .utils.logger import get_logger
 from .config.settings import settings
 from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin_routes
+from .services.predict_service import PredictService
+from .utils.websocket import manager
 
 logger = get_logger(__name__)
-
-from .services.predict_service import PredictService
-import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,23 +28,24 @@ async def lifespan(app: FastAPI):
     if db.get_connection():
         logger.info("[OK] MySQL Database connected.")
     else:
-        logger.warning("[WARNING] MySQL failed.")
+        logger.warning("[WARNING] MySQL connection failed.")
         
-    # Pre-load AI model to avoid first-request slowness
+    # Pre-load AI model assets
     try:
         PredictService.load_assets()
         logger.info("[OK] AI Model & Classes pre-loaded.")
     except Exception as e:
-        logger.error(f"[ERROR] Failed to pre-load AI assets: {e}")
+        logger.error(f"[ERROR] Failed to pre-load AI assets: {str(e)}")
         
     yield
 
 app = FastAPI(title="DermaCare AI", version="2.0.0", lifespan=lifespan)
 
-# CORS
+# CORS Configuration
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,35 +53,27 @@ app.add_middleware(
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
-# ── Static file mounts ──────────────────────────────────────────────────────
-FRONTEND = os.path.join(os.getcwd(), "frontend")
+# ── Path Resolution ─────────────────────────────────────────────────────────
+WORKING_DIR = os.getcwd()
+FRONTEND_DIR = os.path.join(WORKING_DIR, "frontend")
+UPLOADS_ROOT = os.path.join(WORKING_DIR, "backend", "app", "uploads")
+USER_UPLOADS = os.path.join(UPLOADS_ROOT, "user_uploads")
 
-# ── Static file mounts ──────────────────────────────────────────────────────
-FRONTEND = os.path.join(os.getcwd(), "frontend")
+# Ensure upload directories exist
+os.makedirs(USER_UPLOADS, exist_ok=True)
 
-# User static assets  → /static/user/css, /static/user/js
-app.mount("/static/user", StaticFiles(directory=os.path.join(FRONTEND, "user", "static")), name="static_user")
+# ── Static File Mounts ──────────────────────────────────────────────────────
+app.mount("/static/user", StaticFiles(directory=os.path.join(FRONTEND_DIR, "user", "static")), name="static_user")
+app.mount("/admin/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "admin", "static")), name="static_admin")
+app.mount("/shared/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "shared", "static")), name="static_shared")
+app.mount("/uploads", StaticFiles(directory=UPLOADS_ROOT), name="uploads")
 
-# Admin static assets → /admin/static/css, /admin/static/js
-app.mount("/admin/static", StaticFiles(directory=os.path.join(FRONTEND, "admin", "static")), name="static_admin")
-
-# Shared static assets → /shared/static/css, /shared/static/js, /shared/static/images
-app.mount("/shared/static", StaticFiles(directory=os.path.join(FRONTEND, "shared", "static")), name="static_shared")
-
-# Serve uploaded scan images → /uploads/user_uploads/<file>
-UPLOAD_DIR = os.path.join(os.getcwd(), "backend", "app", "uploads", "user_uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=os.path.join(os.getcwd(), "backend", "app", "uploads")), name="uploads")
-
-# ── Template configuration ──────────────────────────────────────────────────
-from jinja2 import ChoiceLoader, FileSystemLoader, Environment
-from starlette.templating import Jinja2Templates as StarletteTemplates
-
+# ── Template Configuration ──────────────────────────────────────────────────
 templates = Jinja2Templates(
     directory=[
-        os.path.join(FRONTEND, "user", "templates"),
-        os.path.join(FRONTEND, "admin", "templates"),
-        os.path.join(FRONTEND, "shared", "templates"),
+        os.path.join(FRONTEND_DIR, "user", "templates"),
+        os.path.join(FRONTEND_DIR, "admin", "templates"),
+        os.path.join(FRONTEND_DIR, "shared", "templates"),
     ]
 )
 
@@ -148,86 +133,76 @@ async def read_booking(request: Request):
 async def read_confirm_booking(request: Request):
     return templates.TemplateResponse("confirm_booking.html", {"request": request})
 
-# ── Admin Page Routes ───────────────────────────────────────────────────────
+# ── Admin Page Route ────────────────────────────────────────────────────────
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
-# ── Nearby Doctors Proxy (Optimized with asyncio.gather) ───────────────────
-import httpx
-
+# ── Nearby Doctors Proxy ──────────────────────────────────────────────────
 @app.get("/api/nearby-doctors")
 async def nearby_doctors(lat: float, lng: float):
     """Proxy endpoint: searches Nominatim in parallel for faster results."""
-    
-    keywords = ["dermatologist", "skin clinic", "skin doctor", "derma clinic", "skin care center"]
+    keywords = ["dermatologist", "skin clinic", "dermatology hospital", "skin specialist", "cosmetologist"]
     all_results = []
     seen_names = set()
-
-    headers = {"User-Agent": "DermaCareAI/1.0 (student-project)"}
+    headers = {"User-Agent": "DermaCareAI/2.0 (student-project)"}
+    
+    # Tighten viewbox for better proximity (approx 20km radius)
+    view_margin = 0.2
     
     async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
-        # Create all request tasks
         tasks = []
         for kw in keywords:
             url = (
                 f"https://nominatim.openstreetmap.org/search"
-                f"?q={kw}&format=json&limit=10&addressdetails=1"
-                f"&viewbox={lng-1.0},{lat+1.0},{lng+1.0},{lat-1.0}&bounded=0"
+                f"?q={kw}&format=json&limit=15&addressdetails=1"
+                f"&viewbox={lng-view_margin},{lat+view_margin},{lng+view_margin},{lat-view_margin}&bounded=1"
             )
             tasks.append(client.get(url))
         
-        # Execute in parallel
         responses = await asyncio.gather(*tasks, return_exceptions=True)
-        
         for resp in responses:
             if isinstance(resp, httpx.Response) and resp.status_code == 200:
                 for item in resp.json():
                     name = item.get("display_name", "").split(",")[0].strip()
-                    if not name or name.lower() in seen_names: continue
+                    if not name or name.lower() in seen_names:
+                        continue
                     seen_names.add(name.lower())
+                    
+                    addr = item.get("address", {})
+                    city = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("suburb") or ""
+                    
                     all_results.append({
                         "name": name,
                         "lat": float(item["lat"]),
                         "lon": float(item["lon"]),
-                        "city": (item.get("address") or {}).get("city") or (item.get("address") or {}).get("town") or "",
+                        "city": city,
+                        "street": addr.get("road", ""),
                         "type": item.get("type", "doctor"),
                     })
 
-    # Fallback to general if too few results
-    if len(all_results) < 3:
-        async with httpx.AsyncClient(timeout=10.0, headers=headers) as client2:
-            f_tasks = [client2.get(f"https://nominatim.openstreetmap.org/search?q={kw}&format=json&limit=5&addressdetails=1&viewbox={lng-1},{lat+1},{lng+1},{lat-1}") for kw in ["clinic", "hospital"]]
-            f_resps = await asyncio.gather(*f_tasks, return_exceptions=True)
-            for resp in f_resps:
-                if isinstance(resp, httpx.Response) and resp.status_code == 200:
-                    for item in resp.json():
-                        name = item.get("display_name", "").split(",")[0].strip()
-                        if not name or name.lower() in seen_names: continue
-                        seen_names.add(name.lower())
-                        all_results.append({
-                            "name": name, "lat": float(item["lat"]), "lon": float(item["lon"]), "city": (item.get("address") or {}).get("city") or "", "type": "clinic",
-                        })
-
-    # Sort by distance
-    import math
-    def haversine(la1, lo1, la2, lo2):
-        R = 6371
-        d_lat, d_lon = math.radians(la2-la1), math.radians(lo2-lo1)
-        a = math.sin(d_lat/2)**2 + math.cos(math.radians(la1))*math.cos(math.radians(la2))*math.sin(d_lon/2)**2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    def haversine(lat1, lon1, lat2, lon2):
+        r_earth = 6371 # km
+        phi1, phi2 = math.radians(lat1), math.radians(lat2)
+        d_phi = math.radians(lat2 - lat1)
+        d_lambda = math.radians(lon2 - lon1)
+        a = math.sin(d_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2)**2
+        return r_earth * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     
     for r in all_results:
         r["distance"] = round(haversine(lat, lng, r["lat"], r["lon"]), 1)
     
-    all_results.sort(key=lambda x: x["distance"])
-    return all_results[:15]
-
+    # Filter to only show results within 25km radius to avoid '106km' nonsense
+    nearby_filtered = [r for r in all_results if r["distance"] <= 25.0]
+    
+    # If too few results, fallback to a slightly wider search or keep what we have
+    if len(nearby_filtered) < 3:
+        nearby_filtered = all_results[:10]
+        
+    nearby_filtered.sort(key=lambda x: x["distance"])
+    return nearby_filtered[:15]
 
 # ── Websocket Endpoint ──────────────────────────────────────────────────────
-from fastapi import WebSocket, WebSocketDisconnect
-from backend.app.utils.websocket import manager
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)

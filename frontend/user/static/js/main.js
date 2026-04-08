@@ -465,11 +465,10 @@ function displayResult(data) {
     }
 
     // ── Find Doctors Button Logic ──
-    const isHealthy = ['normal skin', 'normal'].includes(data.disease.toLowerCase().trim());
     const btnNearby = document.getElementById('btn-find-nearby-doctor');
     if (btnNearby) {
-        // Show if accuracy is decent and NOT normal skin
-        btnNearby.style.display = (data.confidence >= 60 && !isHealthy) ? 'inline-flex' : 'none';
+        // Show the button always as per user request
+        btnNearby.style.display = 'inline-flex';
     }
 
     // ── Render Top Predictions ─────────────────────────────────────────────
@@ -502,6 +501,20 @@ function displayResult(data) {
         panel.style.display = 'none';
     }
     // ── End Top Predictions ────────────────────────────────────────────────
+
+    // ── Urgent Alert Handling ───────────────────────────────────────────────
+    const alertEl = document.getElementById('urgent-alert');
+    const alertTextEl = document.getElementById('urgent-alert-text');
+    if (alertEl && alertTextEl) {
+        if (data.alert) {
+            alertEl.classList.remove('hidden');
+            alertEl.style.display = 'flex';
+            alertTextEl.innerText = data.alert;
+        } else {
+            alertEl.classList.add('hidden');
+            alertEl.style.display = 'none';
+        }
+    }
 
     // ── Save to history ─────────────────────────────────────────────────────
     saveToHistory(data);
@@ -819,7 +832,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
 
     // Create / recreate map
     if (leafletMap) { leafletMap.remove(); leafletMap = null; }
-    leafletMap = L.map('map', { zoomControl: false }).setView([lat, lng], 14);
+    leafletMap = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
     
     // Add zoom control top right
     L.control.zoom({ position: 'topright' }).addTo(leafletMap);
@@ -856,6 +869,36 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
         userMarker.bindPopup('<strong>📍 Location Updated</strong>').openPopup();
         refreshDoctorSearch(cLat, cLng, list);
     });
+
+    // ── Locate Me Button ────────────────────────────────────────────────────
+    const locateBtn = L.control({ position: 'topright' });
+    locateBtn.onAdd = function() {
+        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        div.innerHTML = `
+            <a href="#" title="Get my precise location" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; border-radius:4px; color:#2563eb; font-size:1.1rem;">
+                <i class="fas fa-crosshairs"></i>
+            </a>`;
+        div.onclick = function(e) {
+            e.preventDefault();
+            if (navigator.geolocation) {
+                div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i></a>';
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const nLat = pos.coords.latitude;
+                    const nLng = pos.coords.longitude;
+                    userMarker.setLatLng([nLat, nLng]);
+                    leafletMap.setView([nLat, nLng], 16);
+                    userMarker.bindPopup('<strong>📍 Location Refined</strong>').openPopup();
+                    refreshDoctorSearch(nLat, nLng, list);
+                    div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
+                }, () => {
+                   alert("Could not get a more precise location.");
+                   div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
+                }, { enableHighAccuracy: true });
+            }
+        };
+        return div;
+    };
+    locateBtn.addTo(leafletMap);
 
     // ── Display Location Search Overlay ──
     addLocationSearchBox(list);
@@ -1151,7 +1194,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         const operator = place.tags.operator || place.tags['contact:person'] || "";
         // Support both backend proxy format (top-level city/street) and Overpass format (tags)
         const city   = place.city || place.tags['addr:city'] || place.tags['addr:suburb'] || "";
-        const street = place.tags['addr:street'] || place.tags['addr:housenumber'] || "";
+        const street = place.street || place.tags['addr:street'] || place.tags['addr:housenumber'] || "";
         const address = street ? `${street}${city ? ", " + city : ""}` : (city || "Location available on map");
         const phone = place.tags.phone || place.tags['contact:phone'] || "";
         const distance = place.distance;

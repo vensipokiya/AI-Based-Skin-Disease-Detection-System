@@ -1,24 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - DermaCare AI</title>
-    <meta name="description"
-        content="Reset your DermaCare AI account password securely via email or phone number verification.">
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+{% block title %}Forgot Password - DermaCare AI{% endblock %}
+
+{% block extra_css %}
     <link rel="stylesheet" href="/static/user/css/forgot_pass.css">
-</head>
+{% endblock %}
 
-<body>
-    <!-- Header -->
-    <div id="header-container"></div>
-
+{% block content %}
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -211,7 +199,7 @@
                     </div>
                     <p class="redirect-note" id="redirect-countdown">Redirecting in 5 seconds…</p>
 
-                    <button class="fp-btn fp-btn-success" onclick="window.location.href='login.html'"
+                    <button class="fp-btn fp-btn-success" onclick="window.location.href='/login'"
                         style="margin-top:1.5rem;">
                         <i class="fas fa-sign-in-alt"></i> Go to Login Now
                     </button>
@@ -220,12 +208,8 @@
 
         </div><!-- /.forgot-card -->
     </section>
+{% endblock %}
 
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-    <script src="/shared/static/js/dermacare-api.js"></script>
+{% block extra_js %}
     <script src="/static/user/js/forgot_pass.js"></script>
-</body>
-
-</html>
+{% endblock %}

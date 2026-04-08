@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us - DermaCare AI</title>
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
+{% block title %}About Us - DermaCare AI{% endblock %}
+
+{% block extra_css %}
     <style>
         :root {
             --primary: #2563eb;
@@ -280,14 +274,13 @@
             }
         }
     </style>
-</head>
+{% endblock %}
 
-<body>
+{% block extra_js %}
+    <script src="/static/user/js/main.js"></script>
+{% endblock %}
 
-    <!-- Header (Standard) -->
-    <!-- Reusable Header -->
-    <div id="header-container"></div>
-
+{% block content %}
     <main>
         <!-- Hero -->
         <section class="about-hero">
@@ -368,13 +361,4 @@
             </section>
         </div>
     </main>
-
-    <!-- Footer Placeholder -->
-    <div id="footer"></div>
-
-    <script src="/static/user/js/main.js"></script>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-</body>
-
-</html>
+{% endblock %}

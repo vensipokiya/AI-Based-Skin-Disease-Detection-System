@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DermaCare AI{% endblock %}</title>
+    <meta name="description" content="{% block description %}AI-powered skin disease detection system providing instant risk assessment and medical guidance.{% endblock %}">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/user/css/style.css">
+    <link rel="stylesheet" href="/shared/static/css/header.css">
+    <link rel="stylesheet" href="/shared/static/css/footer.css">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header -->
+    <div id="header-container"></div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+    <!-- Core Scripts -->
+    <script src="/shared/static/js/dermacare-api.js"></script>
+    <script src="/shared/static/js/header.js"></script>
+    <script src="/shared/static/js/footer.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>

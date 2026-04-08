@@ -1,28 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nearby Specialists - DermaCare AI</title>
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+{% block title %}Nearby Specialists - DermaCare AI{% endblock %}
 
+{% block extra_css %}
     <!-- Leaflet.js for Nearby Dermatologist (Free - No API Key Needed) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-</head>
-
-<body style="background-color: #f1f5f9;">
-
-    <!-- Header -->
-    <!-- Reusable Header -->
-    <div id="header-container"></div>
-
-    <!-- Nearby Dermatologists -->
     <style>
         body {
             overflow: hidden;
@@ -98,7 +80,22 @@
             }
         }
     </style>
+{% endblock %}
 
+{% block extra_js %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/user/js/main.js"></script>
+    <script>
+        // Trigger map load automatically on this page
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof loadGoogleMapsNearby === 'function') {
+                loadGoogleMapsNearby();
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
     <section id="nearby-dermatologists" class="fade-in" style="padding: 0; margin: 0; max-width: 100%;">
         <div class="horizontal-layout">
             <!-- Left Panel: Doctors List -->
@@ -149,19 +146,4 @@
             </div>
         </div>
     </section>
-
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/static/user/js/main.js"></script>
-    <script>
-        // Trigger map load automatically on this page
-        window.addEventListener('DOMContentLoaded', () => {
-            if (typeof loadGoogleMapsNearby === 'function') {
-                loadGoogleMapsNearby();
-            }
-        });
-    </script>
-    <script src="/shared/static/js/header.js"></script>
-</body>
-
-</html>
+{% endblock %}

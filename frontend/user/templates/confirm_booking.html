@@ -1,23 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirm Your Appointment - DermaCare AI</title>
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
-</head>
+{% block title %}Confirm Your Appointment - DermaCare AI{% endblock %}
 
-<body style="background-color: #f1f5f9;">
+{% block extra_js %}
+    <script src="/static/user/js/main.js"></script>
+    <script>
+        async function submitBooking(event) {
+            event.preventDefault();
+            const dateInput = document.getElementById('booking-date');
+            const timeInput = document.getElementById('booking-time');
 
-    <!-- Header -->
-    <!-- Reusable Header -->
-    <div id="header-container"></div>
+            if (!dateInput || !dateInput.value || !timeInput || !timeInput.value) {
+                alert('Please select both a date and a time.');
+                return;
+            }
 
+            const selectedDate = new Date(dateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate < today) {
+                alert('Please select a current or future date.');
+                return;
+            }
+
+            // Save appointment data to localStorage
+            localStorage.setItem('pendingAppointment', JSON.stringify({
+                date: dateInput.value,        // YYYY-MM-DD
+                time: timeInput.value + ':00' // HH:MM:SS
+            }));
+
+            // Submit to backend
+            await finalizeBooking();
+        }
+
+        // Populate doctor data on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('booking-date');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.setAttribute('min', today);
+            }
+
+            const dataStr = localStorage.getItem('selectedDoctorDetails');
+            if (dataStr) {
+                try {
+                    const data = JSON.parse(dataStr);
+                    const bookingDocName = document.getElementById('booking-doctor-name');
+                    if (bookingDocName) bookingDocName.textContent = data.name;
+                } catch (e) {
+                    console.error('Error populating booking page', e);
+                }
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
     <!-- Booking & Confirmation Container -->
     <div class="container fade-in" style="padding: 4rem 1rem;">
         <div class="result-card" style="max-width: 500px; position: relative; margin: 0 auto;">
@@ -75,62 +113,4 @@
             </section>
         </div>
     </div>
-
-    <!-- JS functionality -->
-    <script src="/shared/static/js/dermacare-api.js"></script>
-    <script src="/static/user/js/main.js"></script>
-    <script>
-        async function submitBooking(event) {
-            event.preventDefault();
-            const dateInput = document.getElementById('booking-date');
-            const timeInput = document.getElementById('booking-time');
-
-            if (!dateInput || !dateInput.value || !timeInput || !timeInput.value) {
-                alert('Please select both a date and a time.');
-                return;
-            }
-
-            const selectedDate = new Date(dateInput.value);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (selectedDate < today) {
-                alert('Please select a current or future date.');
-                return;
-            }
-
-            // Save appointment data to localStorage
-            localStorage.setItem('pendingAppointment', JSON.stringify({
-                date: dateInput.value,        // YYYY-MM-DD
-                time: timeInput.value + ':00' // HH:MM:SS
-            }));
-
-            // Submit to backend
-            await finalizeBooking();
-        }
-
-        // Populate doctor data on load
-        window.addEventListener('DOMContentLoaded', () => {
-            const dateInput = document.getElementById('booking-date');
-            if (dateInput) {
-                const today = new Date().toISOString().split('T')[0];
-                dateInput.setAttribute('min', today);
-            }
-
-            const dataStr = localStorage.getItem('selectedDoctorDetails');
-            if (dataStr) {
-                try {
-                    const data = JSON.parse(dataStr);
-                    const bookingDocName = document.getElementById('booking-doctor-name');
-                    if (bookingDocName) bookingDocName.textContent = data.name;
-                } catch (e) {
-                    console.error('Error populating booking page', e);
-                }
-            }
-        });
-    </script>
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-</body>
-
-</html>
+{% endblock %}

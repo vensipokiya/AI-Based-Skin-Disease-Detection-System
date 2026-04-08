@@ -30,40 +30,39 @@ class PredictService:
             except Exception as e:
                 logger.error(f"Failed to load AI classes: {e}")
 
-    def predict(self, image_bytes: bytes, extension: str = "jpg") -> dict:
+    def predict(self, image_bytes: bytes) -> dict:
+        """
+        Runs AI inference on the provided image bytes.
+        Implements standardized preprocessing for EfficientNetV2:
+        1. Decode and convert to RGB
+        2. Resize to 224x224 using BILINEAR interpolation (matching training)
+        3. Normalize pixel values to [0, 1] range
+        """
         self.load_assets()
         if self._model is None or self._labels is None:
-            raise Exception("AI Assets or labels not available.")
+            raise Exception("AI Model or labels not loaded on the server.")
 
-        # Replicate preprocessing from predict_routes.py
-        # ── Fix Image Preprocessing ──
         try:
-            # Decode using cv2 from raw bytes
-            nparr = np.frombuffer(image_bytes, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            # 1. Decode Image using TensorFlow for consistency with training pipeline
+            img_tensor = tf.io.decode_image(image_bytes, channels=3, expand_animations=False)
             
-            if img is None:
-                raise ValueError("Could not decode image.")
+            # 2. Resize with BILINEAR (Training Standard)
+            img_tensor = tf.image.resize(img_tensor, (224, 224), method=tf.image.ResizeMethod.BILINEAR)
 
-            # Convert BGR to RGB (Required for standard Keras models)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # 3. Cast and Normalize to [0, 1]
+            # Many EfficientNetV2 models expect [0, 1] if no Rescaling layer is present at top
+            img_array = tf.cast(img_tensor, tf.float32)
+            img_batch = np.expand_dims(img_array.numpy(), axis=0)
 
-            # Resize to 224x224 using high-quality Lanczos (Sharpness is key for skin textures)
-            from PIL import Image
-            pill_img = Image.fromarray(img)
-            pill_img = pill_img.resize((224, 224), Image.LANCZOS)
-            img = np.array(pill_img).astype(np.float32)
-            
-            img_batch = np.expand_dims(img, axis=0)
-
-            # Predict using standard Keras predict for better batch handling
+            # 4. Predict
             pred_probs_batch = self._model.predict(img_batch, verbose=0)
             pred_probs = pred_probs_batch[0]
             
-            top_3_idx = pred_probs.argsort()[-3:][::-1]
+            # 5. Map results
+            class_indices = list(range(len(self._labels)))
+            classes = [self._labels.get(str(i), "Unknown").replace("_", " ") for i in class_indices]
             
-            # Map labels to human-readable names
-            classes = [self._labels.get(str(i), "Unknown").replace("_", " ") for i in range(len(self._labels))]
+            top_3_idx = pred_probs.argsort()[-3:][::-1]
             
             top_3 = [
                 {
@@ -73,13 +72,14 @@ class PredictService:
                 for i in top_3_idx
             ]
             
-            confidence = float(pred_probs[top_3_idx[0]])
-            result_disease = classes[top_3_idx[0]] if top_3_idx[0] < len(classes) else "Unknown"
+            best_idx = top_3_idx[0]
+            confidence = float(pred_probs[best_idx])
+            result_disease = classes[best_idx] if best_idx < len(classes) else "Unknown"
 
-            # Alert logic (PRO Level Feature)
+            # Alert logic for high-risk conditions
             alert = None
-            if result_disease.lower() in ["malignant", "melanoma"]:
-                alert = "⚠️ High risk detected. Please consult a doctor immediately."
+            if result_disease.lower() in ["malignant", "melanoma", "basal cell carcinoma", "squamous cell carcinoma"]:
+                alert = "⚠️ HIGH RISK DETECTED. Please consult a dermatologist as soon as possible for a professional biopsy."
 
             return {
                 "disease": result_disease,
@@ -89,5 +89,5 @@ class PredictService:
                 "alert": alert
             }
         except Exception as e:
-            logger.error(f"Prediction error: {e}")
+            logger.error(f"PredictService Error: {str(e)}")
             raise e

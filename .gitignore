@@ -55,3 +55,10 @@ desktop.ini
 # User uploads/data
 backend/app/uploads/user_uploads/*
 !backend/app/uploads/user_uploads/.gitkeep
+
+# Scratch and Temporary
+/tmp/
+.gemini/
+/backend/check_*.py
+/backend/test_*.py
+/model_summary.txt

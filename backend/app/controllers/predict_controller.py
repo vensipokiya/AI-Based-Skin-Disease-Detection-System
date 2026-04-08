@@ -15,14 +15,7 @@ class PredictController:
 
         try:
             image_bytes = await file.read()
-            # Perform prediction
-            # Secure the extension from filename
-            ext = ".jpg"
-            if file.filename:
-                if file.filename.lower().endswith(".png"): ext = ".png"
-                elif file.filename.lower().endswith(".jpeg"): ext = ".jpeg"
-
-            prediction_result = self.predict_service.predict(image_bytes, ext.lstrip('.'))
+            prediction_result = self.predict_service.predict(image_bytes)
             
             # Combine result for response
             response = prediction_result.copy()

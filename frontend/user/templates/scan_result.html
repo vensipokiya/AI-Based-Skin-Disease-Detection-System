@@ -1,17 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan Result - DermaCare AI</title>
-    <link rel="stylesheet" href="/static/user/css/style.css">
-    <link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+{% block title %}Scan Result - DermaCare AI{% endblock %}
 
+{% block extra_css %}
     <style>
         /* ── Layout ─────────────────────────────────────────────────────────── */
         body {
@@ -342,11 +333,9 @@
             }
         }
     </style>
-</head>
+{% endblock %}
 
-<body>
-    <div id="header-container"></div>
-
+{% block content %}
     <section id="result-page" class="fade-in">
         <div style="position: relative;">
             <div id="result-content-container">
@@ -391,6 +380,13 @@
                         <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.35rem; color: #0f172a;">
                             Analysis Report</h3>
 
+                        <!-- Urgent Alert Banner -->
+                        <div id="urgent-alert" class="hidden"
+                            style="margin-bottom: 2rem; padding: 1.25rem; background: #FEF2F2; border: 2px solid #FCA5A5; border-radius: 12px; color: #991B1B; font-size: 1.05rem; line-height: 1.6; font-weight: 700; display: flex; align-items: center; gap: 12px; animation: pulse 2s infinite;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem;"></i>
+                            <span id="urgent-alert-text"></span>
+                        </div>
+
                         <div id="disease-description"
                             style="margin-bottom: 2rem; padding: 1.25rem; background: #EEF2FF; border-left: 4px solid #3b82f6; border-radius: 8px; color: #312e81; font-size: 1rem; line-height: 1.6; font-weight: 500;">
                             <!-- Injected by JS -->
@@ -409,7 +405,7 @@
                         Scan New
                     </button>
                     <button id="btn-find-nearby-doctor" onclick="window.location.href='/nearby'"
-                        class="btn-find-doctors" style="display:none;">
+                        class="btn-find-doctors">
                         <i class="fas fa-map-marker-alt" style="color:#3b82f6;"></i> Find Doctors
                     </button>
                 </div>
@@ -453,12 +449,8 @@
             </div>
         </div>
     </section>
+{% endblock %}
 
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/static/user/js/main.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-
-</body>
-
-</html>
+{% block extra_js %}
+     <script src="/static/user/js/main.js"></script>
+{% endblock %}

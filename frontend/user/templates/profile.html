@@ -1,28 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile - DermaCare AI</title>
-    <meta name="description"
-        content="Manage your DermaCare AI profile — update personal information, contact details, and change your password.">
+{% block title %}My Profile - DermaCare AI{% endblock %}
 
-    <!-- External Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
-
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="/static/user/css/style.css"><link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
+{% block extra_css %}
     <link rel="stylesheet" href="/static/user/css/user_profile.css">
-</head>
+{% endblock %}
 
-<body>
-
-    <!-- ── Reusable Header ── -->
-    <div id="header-container"></div>
-
+{% block content %}
     <!-- ── Toast Notifications ── -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -239,9 +223,6 @@
 
                 </form>
             </div>
-
-
-
         </div><!-- /.profile-content -->
 
     </main>
@@ -286,16 +267,8 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <!-- ── Footer ── -->
-    <div id="footer"></div>
-
-    <!-- ── Scripts ── -->
-    <script src="/shared/static/js/dermacare-api.js"></script>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/header.js"></script>
+{% block extra_js %}
     <script src="/static/user/js/user_profile.js?v=2"></script>
-
-</body>
-
-</html>
+{% endblock %}
