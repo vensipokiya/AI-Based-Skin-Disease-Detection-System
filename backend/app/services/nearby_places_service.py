@@ -468,28 +468,8 @@ async def fetch_nearby_dermatologists(
     """
     Returns (results, source).
 
-    source: google_places | openstreetmap | error_zero_results | error_api | error_no_key | error_google
+    source: openstreetmap | error_zero_results | error_api
     """
     _ = allow_mock_fallback
-
-    api_key = (settings.GOOGLE_PLACES_API_KEY or "").strip()
-    if require_rich_details and not api_key:
-        logger.warning("[nearby] require_rich_details=True but GOOGLE_PLACES_API_KEY missing")
-        return [], "error_no_key"
-
-    if api_key:
-        try:
-            async with httpx.AsyncClient() as client:
-                g_rows = await _google_fetch_and_enrich(client, lat, lng, api_key)
-            if g_rows:
-                logger.info("[nearby] returning %s Google Places rows", len(g_rows))
-                return g_rows, "google_places"
-            logger.warning("[nearby] Google returned no enriched rows; using OSM fallback")
-            if require_rich_details:
-                return [], "error_google"
-        except Exception as e:
-            logger.warning("[nearby] Google Places failed (%s); using OSM fallback", e)
-            if require_rich_details:
-                return [], "error_google"
-
+    _ = require_rich_details
     return await _fetch_osm(lat, lng)

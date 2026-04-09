@@ -817,7 +817,7 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
-/** Normalize /api/nearby (Google Places or OpenStreetMap) into legacy render shape */
+/** Normalize /api/nearby (OpenStreetMap providers) into legacy render shape */
 function normalizeDoctorPlace(p) {
     if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
         const lon = p.lng != null ? p.lng : p.lon;
@@ -1329,7 +1329,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
-            clinicDisplay = 'Google Places · Dermatology / skin clinic';
+            clinicDisplay = 'Dermatology / skin clinic';
             directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`;
             if (place._placeId) {
                 extraMapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(place._placeId)}`;
@@ -1382,7 +1382,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 <div style="background: #ecfdf5; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #a7f3d0;">
                     <p style="color: #065f46; font-size: 0.85rem; margin: 0; line-height: 1.5;">
                         <i class="fas fa-leaf" style="margin-right: 6px;"></i>
-                        OpenStreetMap data is community-maintained. Ratings/reviews are usually unavailable; for full verified details add <code style="font-size:0.75rem;">GOOGLE_PLACES_API_KEY</code>.
+                        OpenStreetMap data is community-maintained. Ratings/reviews are usually unavailable for many clinics.
                     </p>
                 </div>`;
             hoursRowHtml = `
@@ -1494,7 +1494,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
                     </button>
-                    <a href="${directionsHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;" title="${fromGoogle ? 'Directions (Google Maps)' : 'Directions'}">
+                    <a href="${directionsHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;" title="Directions">
                         <i class="fas fa-directions"></i>
                     </a>
                     ${thirdMapBtn}

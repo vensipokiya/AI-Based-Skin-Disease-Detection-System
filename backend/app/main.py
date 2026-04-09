@@ -43,10 +43,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("[WARNING] MySQL connection failed.")
 
-    if (getattr(settings, "GOOGLE_PLACES_API_KEY", None) or "").strip():
-        logger.info("[OK] GOOGLE_PLACES_API_KEY set — /api/nearby will use Google Places (ratings, reviews, hours).")
-    else:
-        logger.info("[OK] /api/nearby uses OpenStreetMap only — add GOOGLE_PLACES_API_KEY for Google listings.")
+    logger.info("[OK] /api/nearby uses OpenStreetMap providers (Overpass + Nominatim).")
 
     # Pre-load AI model assets
     try:
