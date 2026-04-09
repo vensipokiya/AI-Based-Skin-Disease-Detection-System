@@ -14,7 +14,22 @@ router = APIRouter(tags=["Nearby Places"])
 
 
 async def _nearby_response(lat: float, lng: float):
-    results, source = await fetch_nearby_dermatologists(lat, lng, allow_mock_fallback=False)
+    results, source = await fetch_nearby_dermatologists(
+        lat,
+        lng,
+        allow_mock_fallback=False,
+        require_rich_details=True,
+    )
+    if source == "error_no_key":
+        raise HTTPException(
+            status_code=503,
+            detail="Missing GOOGLE_PLACES_API_KEY. Add it in backend/.env, enable Places API + billing, then restart backend.",
+        )
+    if source == "error_google":
+        raise HTTPException(
+            status_code=502,
+            detail="Google Places data unavailable for this request. Check API key restrictions, Places API enablement, and billing.",
+        )
     if source == "error_api":
         logger.error("[api/nearby] Overpass/OSM request failed")
         raise HTTPException(
