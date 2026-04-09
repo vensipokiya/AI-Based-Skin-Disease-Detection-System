@@ -43,7 +43,10 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("[WARNING] MySQL connection failed.")
 
-    logger.info("[OK] /api/nearby uses OpenStreetMap providers (Overpass + Nominatim).")
+    if (getattr(settings, "FOURSQUARE_API_KEY", None) or "").strip():
+        logger.info("[OK] /api/nearby uses Foursquare (primary) + OSM fallback.")
+    else:
+        logger.info("[OK] /api/nearby uses OpenStreetMap providers (Overpass + Nominatim). Set FOURSQUARE_API_KEY for richer data.")
 
     # Pre-load AI model assets
     try:

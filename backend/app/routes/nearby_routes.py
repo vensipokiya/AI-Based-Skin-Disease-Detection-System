@@ -1,7 +1,7 @@
 """
 Nearby dermatology-related places (/api/nearby).
 
-Uses OpenStreetMap providers (Overpass + Nominatim fallback).
+Uses Foursquare (if configured) with OpenStreetMap fallback.
 """
 from fastapi import APIRouter, HTTPException, Query
 
@@ -32,7 +32,7 @@ async def _nearby_response(lat: float, lng: float):
 
 @router.get("/nearby")
 async def get_nearby_places(lat: float = Query(..., description="Latitude"), lng: float = Query(..., description="Longitude")):
-    """Nearby places from OpenStreetMap providers."""
+    """Nearby places from Foursquare (primary) / OpenStreetMap (fallback)."""
     return await _nearby_response(lat, lng)
 
 

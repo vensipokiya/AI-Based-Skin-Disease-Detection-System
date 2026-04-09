@@ -57,5 +57,7 @@ class Settings:
 
     # Legacy optional variable kept for backward compatibility. Nearby does not require it.
     GOOGLE_PLACES_API_KEY: str = os.environ.get("GOOGLE_PLACES_API_KEY", "").strip()
+    # Free tier available; used for richer nearby place metadata (ratings/hours/tips when provided).
+    FOURSQUARE_API_KEY: str = os.environ.get("FOURSQUARE_API_KEY", "").strip()
 
 settings = Settings()

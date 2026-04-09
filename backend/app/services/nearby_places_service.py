@@ -1,15 +1,13 @@
 """
 Nearby dermatology-related places.
 
-- If GOOGLE_PLACES_API_KEY is set: Google Places Nearby Search + Place Details
-  (ratings, review text, opening hours, formatted address). Map stays Leaflet on the client.
-- Otherwise: OpenStreetMap via Overpass (no ratings/reviews).
+Primary provider: Foursquare Places API (when FOURSQUARE_API_KEY is set).
+Fallback providers: OpenStreetMap Overpass + Nominatim.
 """
 from __future__ import annotations
 
 import asyncio
 import math
-import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import httpx
@@ -26,12 +24,19 @@ PRIMARY_RADIUS_KM = 5.0
 FALLBACK_RADIUS_KM = 10.0
 MIN_ACCEPTABLE_COUNT = 3
 
-NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
-PAGE_DELAY_SEC = 2.1
-MAX_NEARBY_PAGES = 3
-DETAILS_FIELDS = "name,formatted_address,geometry,rating,user_ratings_total,opening_hours,reviews,business_status"
-DETAILS_CONCURRENCY = 8
+FOURSQUARE_SEARCH_URL = "https://api.foursquare.com/v3/places/search"
+FOURSQUARE_DETAILS_URL = "https://api.foursquare.com/v3/places/{fsq_id}"
+FOURSQUARE_TIPS_URL = "https://api.foursquare.com/v3/places/{fsq_id}/tips"
+FSQ_RADIUS_M_PRIMARY = 5000
+FSQ_RADIUS_M_FALLBACK = 10000
+FSQ_LIMIT_PER_QUERY = 20
+FSQ_DETAILS_CONCURRENCY = 6
+FSQ_SEARCH_TERMS = (
+    "dermatologist",
+    "dermatology clinic",
+    "skin clinic",
+    "skin specialist",
+)
 
 OVERPASS_ENDPOINTS = (
     "https://overpass-api.de/api/interpreter",
@@ -82,23 +87,165 @@ def _looks_dermatology(name: str, tags: Dict[str, Any]) -> bool:
     return any(k in combo for k in keys)
 
 
-# ── Google Places ───────────────────────────────────────────────────────────
+# ── Foursquare Places ────────────────────────────────────────────────────────
 
 
-def _nearby_result_to_stub(r: Dict[str, Any], origin_lat: float, origin_lng: float) -> Optional[Dict[str, Any]]:
-    loc = (r.get("geometry") or {}).get("location") or {}
-    plat, plng = loc.get("lat"), loc.get("lng")
-    pid = r.get("place_id")
-    if plat is None or plng is None or not pid:
+def _fsq_extract_lat_lng(item: Dict[str, Any]) -> Optional[Tuple[float, float]]:
+    geo = item.get("geocodes") or {}
+    main = geo.get("main") or {}
+    lat = main.get("latitude")
+    lng = main.get("longitude")
+    if lat is None or lng is None:
         return None
-    d = haversine_km(origin_lat, origin_lng, float(plat), float(plng))
+    return float(lat), float(lng)
+
+
+def _fsq_weekday_text(hours_obj: Dict[str, Any]) -> Optional[List[str]]:
+    if not isinstance(hours_obj, dict):
+        return None
+    display = hours_obj.get("display")
+    if isinstance(display, list):
+        out = [str(x) for x in display if str(x).strip()]
+        return out or None
+    if isinstance(display, str) and display.strip():
+        return [display.strip()]
+    return None
+
+
+async def _fetch_fsq_tips(client: httpx.AsyncClient, fsq_id: str) -> List[Dict[str, Any]]:
+    try:
+        resp = await client.get(FOURSQUARE_TIPS_URL.format(fsq_id=fsq_id), params={"limit": 3}, timeout=20.0)
+        if resp.status_code >= 400:
+            return []
+        data = resp.json()
+        tips = data if isinstance(data, list) else data.get("results") or []
+        out: List[Dict[str, Any]] = []
+        for t in tips[:3]:
+            out.append(
+                {
+                    "author_name": (t.get("user") or {}).get("first_name") or "Foursquare user",
+                    "rating": None,
+                    "text": t.get("text"),
+                    "relative_time_description": t.get("created_at"),
+                }
+            )
+        return out
+    except Exception:
+        return []
+
+
+async def _fetch_fsq_details(
+    client: httpx.AsyncClient,
+    fsq_id: str,
+    sem: asyncio.Semaphore,
+) -> Optional[Dict[str, Any]]:
+    async with sem:
+        try:
+            resp = await client.get(FOURSQUARE_DETAILS_URL.format(fsq_id=fsq_id), timeout=20.0)
+            if resp.status_code >= 400:
+                return None
+            return resp.json()
+        except Exception:
+            return None
+
+
+def _fsq_result_to_row(
+    src: Dict[str, Any],
+    details: Optional[Dict[str, Any]],
+    tips: List[Dict[str, Any]],
+    origin_lat: float,
+    origin_lng: float,
+) -> Optional[Dict[str, Any]]:
+    base = details or src
+    ll = _fsq_extract_lat_lng(base) or _fsq_extract_lat_lng(src)
+    if not ll:
+        return None
+    plat, plng = ll
+    dist = round(haversine_km(origin_lat, origin_lng, plat, plng), 2)
+    location = base.get("location") or {}
+    formatted = location.get("formatted_address") or src.get("location", {}).get("formatted_address") or ""
+    fsq_id = base.get("fsq_id") or src.get("fsq_id")
+    rating = base.get("rating")
+    stats = base.get("stats") or {}
+    review_count = stats.get("total_ratings") or stats.get("total_tips") or None
+    hours = base.get("hours") or {}
+    doctor_name = (base.get("related_places") or {}).get("parent", {}).get("name")
     return {
-        "place_id": pid,
-        "lat": float(plat),
-        "lng": float(plng),
-        "distance_km": round(d, 2),
-        "name_preview": r.get("name") or "",
+        "name": base.get("name") or src.get("name") or "Clinic",
+        "doctor_name": doctor_name,
+        "rating": float(rating) if isinstance(rating, (int, float)) else None,
+        "user_ratings_total": review_count,
+        "address": formatted,
+        "distance_km": dist,
+        "distance": dist,
+        "lat": plat,
+        "lng": plng,
+        "place_id": fsq_id,
+        "provider": "foursquare",
+        "open_now": hours.get("open_now"),
+        "weekday_text": _fsq_weekday_text(hours),
+        "reviews": tips,
+        "business_status": "OPERATIONAL" if base.get("closed_bucket") in (None, "VeryLikelyOpen") else "CLOSED_TEMPORARILY",
+        "place_url": f"https://foursquare.com/v/{fsq_id}" if fsq_id else None,
+        "website": base.get("website"),
     }
+
+
+async def _fetch_foursquare_rows(lat: float, lng: float, api_key: str) -> List[Dict[str, Any]]:
+    headers = {"Authorization": api_key, "Accept": "application/json"}
+    collected: Dict[str, Dict[str, Any]] = {}
+
+    async with httpx.AsyncClient(headers=headers) as client:
+        for radius in (FSQ_RADIUS_M_PRIMARY, FSQ_RADIUS_M_FALLBACK):
+            for term in FSQ_SEARCH_TERMS:
+                try:
+                    resp = await client.get(
+                        FOURSQUARE_SEARCH_URL,
+                        params={
+                            "query": term,
+                            "ll": f"{lat},{lng}",
+                            "radius": radius,
+                            "limit": FSQ_LIMIT_PER_QUERY,
+                        },
+                        timeout=20.0,
+                    )
+                    if resp.status_code >= 400:
+                        continue
+                    data = resp.json()
+                    results = data.get("results") or []
+                    for it in results:
+                        fsq_id = it.get("fsq_id")
+                        if not fsq_id:
+                            continue
+                        name = it.get("name") or ""
+                        cats = " ".join((c.get("name") or "") for c in (it.get("categories") or []))
+                        if "dermat" not in (name + " " + cats).lower() and "skin" not in (name + " " + cats).lower():
+                            continue
+                        if fsq_id not in collected:
+                            collected[fsq_id] = it
+                except Exception:
+                    continue
+            if len(collected) >= MIN_RESULTS_TARGET:
+                break
+
+        if not collected:
+            return []
+
+        sem = asyncio.Semaphore(FSQ_DETAILS_CONCURRENCY)
+        ids = list(collected.keys())[:MAX_RETURN]
+        detail_tasks = [_fetch_fsq_details(client, fsq_id, sem) for fsq_id in ids]
+        details = await asyncio.gather(*detail_tasks)
+        tips_tasks = [_fetch_fsq_tips(client, fsq_id) for fsq_id in ids]
+        tips_arr = await asyncio.gather(*tips_tasks)
+
+    rows: List[Dict[str, Any]] = []
+    for fsq_id, det, tips in zip(ids, details, tips_arr):
+        src = collected.get(fsq_id, {})
+        row = _fsq_result_to_row(src, det, tips, lat, lng)
+        if row:
+            rows.append(row)
+    rows.sort(key=lambda x: x["distance_km"])
+    return _limit_to_nearby_radius(rows)
 
 
 async def _fetch_google_nearby_stubs(
@@ -484,8 +631,20 @@ async def fetch_nearby_dermatologists(
     """
     Returns (results, source).
 
-    source: openstreetmap | error_zero_results | error_api
+    source: foursquare | openstreetmap | error_zero_results | error_api
     """
     _ = allow_mock_fallback
     _ = require_rich_details
+
+    fsq_key = (settings.FOURSQUARE_API_KEY or "").strip()
+    if fsq_key:
+        try:
+            fsq_rows = await _fetch_foursquare_rows(lat, lng, fsq_key)
+            if fsq_rows:
+                logger.info("[nearby] returning %s foursquare rows", len(fsq_rows))
+                return fsq_rows, "foursquare"
+            logger.warning("[nearby] foursquare returned no rows; using OSM fallback")
+        except Exception as e:
+            logger.warning("[nearby] foursquare failed (%s); using OSM fallback", e)
+
     return await _fetch_osm(lat, lng)
