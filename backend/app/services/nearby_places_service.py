@@ -22,6 +22,9 @@ logger = get_logger(__name__)
 MIN_RESULTS_TARGET = 20
 MAX_RETURN = 25
 AROUND_METERS = 12000
+PRIMARY_RADIUS_KM = 5.0
+FALLBACK_RADIUS_KM = 10.0
+MIN_ACCEPTABLE_COUNT = 3
 
 NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -55,6 +58,18 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
     a = max(0.0, min(1.0, a))
     return r_earth * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _limit_to_nearby_radius(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Keep places within 5km by default.
+    If results are too few, expand to 10km.
+    """
+    within_5 = [r for r in rows if float(r.get("distance_km", 9999)) <= PRIMARY_RADIUS_KM]
+    if len(within_5) >= MIN_ACCEPTABLE_COUNT:
+        return within_5[:MIN_RESULTS_TARGET]
+    within_10 = [r for r in rows if float(r.get("distance_km", 9999)) <= FALLBACK_RADIUS_KM]
+    return within_10[:MIN_RESULTS_TARGET]
 
 
 def _looks_dermatology(name: str, tags: Dict[str, Any]) -> bool:
@@ -250,7 +265,7 @@ async def _google_fetch_and_enrich(
         rows.append(_details_to_row(stub, det, lat, lng))
 
     rows.sort(key=lambda x: x["distance_km"])
-    return rows[:MIN_RESULTS_TARGET]
+    return _limit_to_nearby_radius(rows)
 
 
 # ── OpenStreetMap (Overpass) ────────────────────────────────────────────────
@@ -410,7 +425,7 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
             logger.warning("[nearby-nominatim] keyword failed %r: %s", kw, e)
 
     rows.sort(key=lambda x: x["distance_km"])
-    return rows[:MIN_RESULTS_TARGET]
+    return _limit_to_nearby_radius(rows)
 
 
 async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]:
@@ -431,6 +446,7 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
             rows.append(row)
 
         rows.sort(key=lambda x: x["distance_km"])
+        rows = _limit_to_nearby_radius(rows)
 
         if not rows:
             logger.warning("[nearby-osm] zero results near lat=%s lng=%s; trying nominatim fallback", lat, lng)
