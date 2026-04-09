@@ -55,7 +55,7 @@ class Settings:
     GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
     APPLE_CLIENT_ID: str = os.environ.get("APPLE_CLIENT_ID", "").strip()
 
-    # Google Places API (Nearby Search) — set GOOGLE_PLACES_API_KEY in backend/.env
+    # Optional legacy; /api/nearby uses OpenStreetMap (Overpass) and does not require this.
     GOOGLE_PLACES_API_KEY: str = os.environ.get("GOOGLE_PLACES_API_KEY", "").strip()
 
 settings = Settings()

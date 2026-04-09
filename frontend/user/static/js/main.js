@@ -197,7 +197,7 @@ function showPage(pageId) {
 
     // Trigger map load if navigating to nearby
     if (pageId === 'nearby') {
-        loadGoogleMapsNearby();
+        loadNearbyMap();
     }
 }
 
@@ -817,13 +817,15 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
-/** Normalize /api/nearby (Google Places) into legacy render shape */
+/** Normalize /api/nearby (OpenStreetMap) into legacy render shape */
 function normalizeDoctorPlace(p) {
     if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
         const lon = p.lng != null ? p.lng : p.lon;
         const dist = typeof p.distance_km === 'number'
             ? p.distance_km
             : (p.distance != null ? parseFloat(String(p.distance)) : parseFloat(String(p.distance_km)));
+        const provider = (p.provider || '').toLowerCase();
+        const fromOsm = provider === 'openstreetmap' || String(p.place_id || '').startsWith('osm_');
         return {
             tags: { name: p.name },
             lat: +p.lat,
@@ -834,14 +836,15 @@ function normalizeDoctorPlace(p) {
             _apiRating: p.rating,
             _userRatingsTotal: p.user_ratings_total,
             _placeId: p.place_id || null,
-            _fromPlacesApi: true
+            _fromPlacesApi: provider === 'google',
+            _fromOsm: fromOsm
         };
     }
     return p;
 }
 
-// ──── Initialise map & get user location ────────────────────────────────────
-function loadGoogleMapsNearby() {
+// ──── Initialise map & get user location (Leaflet + OSM; data from /api/nearby Overpass) ────
+function loadNearbyMap() {
     mapLoaded = false;
 
     const list = document.getElementById("dermatologist-list");
@@ -889,6 +892,9 @@ function loadGoogleMapsNearby() {
         handleFallback();
     }
 }
+
+/** @deprecated use loadNearbyMap */
+function loadGoogleMapsNearby() { loadNearbyMap(); }
 
 // ──── Core: build the map at a position ─────────────────────────────────────
 function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres) {
@@ -969,11 +975,11 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     // ── Display Location Search Overlay ──
     addLocationSearchBox(list);
 
-    // ── Google Maps bar ─────────────────────────────────────────────────────
+    // ── OpenStreetMap bar (same slot as legacy “google-maps-bar” id) ─────────
     const gBar = document.getElementById('google-maps-bar');
     const gLink = document.getElementById('google-maps-link');
     if (gBar && gLink) {
-        gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
+        gLink.href = `https://www.openstreetmap.org/#map=14/${lat}/${lng}`;
         gBar.style.display = 'block';
     }
 
@@ -1042,7 +1048,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
         _nearbyMapMoveTimer = setTimeout(() => {
             _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
             const gLink2 = document.getElementById('google-maps-link');
-            if (gLink2) gLink2.href = `https://www.google.com/maps/search/dermatologist/@${c.lat},${c.lng},14z`;
+            if (gLink2) gLink2.href = `https://www.openstreetmap.org/#map=14/${c.lat}/${c.lng}`;
             clearNearbyDoctorMarkers();
             searchNearbyDermatologists(c.lat, c.lng, list);
             saveLocationToBackend(c.lat, c.lng);
@@ -1152,9 +1158,8 @@ function refreshDoctorSearch(lat, lng, listEl) {
     _lastNearbyMapCenter = { lat, lng };
     _suppressNearbyMapSearchUntil = Date.now() + 2200;
 
-    // Update Google Maps link
     const gLink = document.getElementById('google-maps-link');
-    if (gLink) gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
+    if (gLink) gLink.href = `https://www.openstreetmap.org/#map=14/${lat}/${lng}`;
 
     clearNearbyDoctorMarkers();
 
@@ -1187,13 +1192,13 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
             if (listEl) {
                 const hint = document.getElementById('location-accuracy-hint');
                 const hintHtml = hint ? hint.outerHTML : '';
-                const safeMsg = typeof msg === 'string' ? escHtml(msg) : escHtml('Set GOOGLE_PLACES_API_KEY in backend/.env, enable Places API and billing in Google Cloud.');
+                const safeMsg = typeof msg === 'string' ? escHtml(msg) : escHtml('OpenStreetMap (Overpass) could not be reached. Try again shortly.');
                 listEl.innerHTML = hintHtml + `
                     <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
-                        <h3 style="color:#991b1b;margin-bottom:0.75rem;">Google Places not available</h3>
+                        <h3 style="color:#991b1b;margin-bottom:0.75rem;">Nearby places unavailable</h3>
                         <p style="color:#7f1d1d;font-size:0.9rem;line-height:1.5;">${safeMsg}</p>
-                        <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
-                            <i class="fab fa-google"></i> Open Google Maps
+                        <a href="https://www.openstreetmap.org/#map=14/${lat}/${lng}" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                            <i class="fas fa-map"></i> Open OpenStreetMap
                         </a>
                     </div>`;
             }
@@ -1208,9 +1213,9 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
                 listEl.innerHTML = hintHtml + `
                     <div style="text-align:center;padding:2rem;background:#fffbeb;border:1px solid #fde68a;border-radius:16px;margin:0.5rem;">
                         <h3 style="color:#92400e;margin-bottom:0.75rem;">No places in this area</h3>
-                        <p style="color:#78350f;font-size:0.9rem;line-height:1.5;">Google returned no dermatology listings for this map center. Try moving the map or searching another city.</p>
-                        <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
-                            <i class="fab fa-google"></i> Search on Google Maps
+                        <p style="color:#78350f;font-size:0.9rem;line-height:1.5;">OpenStreetMap has no matching hospitals or clinics in this view. Try zooming out, moving the map, or searching another city.</p>
+                        <a href="https://www.openstreetmap.org/#map=14/${lat}/${lng}" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                            <i class="fas fa-map"></i> Open OpenStreetMap
                         </a>
                     </div>`;
             }
@@ -1233,9 +1238,9 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
             listEl.innerHTML = hintHtml + `
                 <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
                     <h3 style="color:#991b1b;margin-bottom:0.75rem;">Could not load nearby places</h3>
-                    <p style="color:#7f1d1d;font-size:0.9rem;">Check that the backend is running and GOOGLE_PLACES_API_KEY is set.</p>
-                    <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
-                        <i class="fab fa-google"></i> Open Google Maps
+                    <p style="color:#7f1d1d;font-size:0.9rem;">Check that the backend is running and try again.</p>
+                    <a href="https://www.openstreetmap.org/#map=14/${lat}/${lng}" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                        <i class="fas fa-map"></i> Open OpenStreetMap
                     </a>
                 </div>`;
         }
@@ -1255,8 +1260,8 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     Try panning the map or searching another area.
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},13z" target="_blank" rel="noopener" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
-                        <i class="fab fa-google"></i> Search on Google Maps
+                    <a href="https://www.openstreetmap.org/#map=13/${lat}/${lng}" target="_blank" rel="noopener" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                        <i class="fas fa-map"></i> Open OpenStreetMap
                     </a>
                     <button type="button" class="btn btn-secondary" onclick="window.location.reload()" style="border-radius: 24px; padding: 0.8rem 2rem;">
                         <i class="fas fa-redo"></i> Retry
@@ -1296,7 +1301,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         const address = street ? `${street}${city ? ", " + city : ""}` : (city || "Location available on map");
         const distance = place.distance;
         const seed = (name && name.length) ? name.length + index : index;
-        const fromGoogle = !!place._fromPlacesApi;
+        const fromOsm = !!place._fromOsm;
 
         let rating;
         let reviewCount;
@@ -1309,33 +1314,27 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         let clinicDisplay;
         let midBlockHtml;
         let hoursRowHtml;
-        let googlePlaceUrl = '';
+        let extraMapUrl = '';
 
-        if (fromGoogle) {
-            rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
-                ? Number(place._apiRating).toFixed(1)
-                : '—';
-            reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
-                ? place._userRatingsTotal
-                : null;
+        if (fromOsm) {
+            rating = '—';
+            reviewCount = null;
             reviewText = '';
             doctorDisplay = name.length > 40 ? name.substring(0, 40) + '…' : name;
-            clinicDisplay = 'Google Places · Skin specialist';
+            clinicDisplay = 'OpenStreetMap · Hospital / clinic';
+            extraMapUrl = `https://www.openstreetmap.org/#map=17/${place.lat}/${place.lon}`;
             midBlockHtml = `
-                <div style="background: #eff6ff; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #bfdbfe;">
-                    <p style="color: #1e40af; font-size: 0.85rem; margin: 0; line-height: 1.5;">
-                        <i class="fab fa-google" style="margin-right: 6px;"></i>
-                        Ratings and hours come from Google. Open the listing for full details.
+                <div style="background: #ecfdf5; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #a7f3d0;">
+                    <p style="color: #065f46; font-size: 0.85rem; margin: 0; line-height: 1.5;">
+                        <i class="fas fa-leaf" style="margin-right: 6px;"></i>
+                        Data from the OpenStreetMap community. Ratings and hours are often not mapped — verify before visiting.
                     </p>
                 </div>`;
             hoursRowHtml = `
                     <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="color: #64748b;">See Google Maps for opening hours</span>
+                        <span style="color: #64748b;">Opening hours: call the facility or check on site</span>
                     </div>`;
-            if (place._placeId) {
-                googlePlaceUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(place._placeId)}`;
-            }
         } else {
             rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
                 ? Number(place._apiRating).toFixed(1)
@@ -1368,8 +1367,8 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     </div>`;
         }
 
-        const popupRatingLine = fromGoogle
-            ? `⭐ ${rating}${reviewCount != null ? ` · ${reviewCount} reviews` : ''}`
+        const popupRatingLine = fromOsm
+            ? `OpenStreetMap · ${typeof distance === 'number' ? distance.toFixed(2) : distance} km`
             : `⭐ ${rating} (${reviewCount} reviews)`;
 
         const ed = escHtml(doctorDisplay);
@@ -1393,7 +1392,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 typeLabel: 'Skin Specialist',
                 rating,
                 reviews: reviewCount,
-                review: fromGoogle ? '' : reviewText,
+                review: fromOsm ? '' : reviewText,
                 address,
                 distance,
                 isSpecialist: true,
@@ -1401,8 +1400,8 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             };
             const bookOnclick = `event.stopPropagation();checkLoginAndBook('${encodeURIComponent(JSON.stringify(bookPayload)).replace(/'/g, "%27")}')`;
 
-            const googleBtn = googlePlaceUrl
-                ? `<a href="${googlePlaceUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #4285f4;" title="Open in Google Maps"><i class="fab fa-google"></i></a>`
+            const osmBtn = extraMapUrl
+                ? `<a href="${extraMapUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #047857;" title="View on OpenStreetMap.org"><i class="fas fa-map"></i></a>`
                 : '';
 
             listEl.innerHTML += `
@@ -1439,10 +1438,10 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
                     </button>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;">
+                    <a href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=%3B${place.lat}%2C${place.lon}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;" title="Directions on OpenStreetMap">
                         <i class="fas fa-directions"></i>
                     </a>
-                    ${googleBtn}
+                    ${osmBtn}
                 </div>
             </div>`;
         }

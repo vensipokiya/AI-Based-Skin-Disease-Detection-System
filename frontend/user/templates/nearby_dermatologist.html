@@ -103,10 +103,9 @@
             crossorigin="anonymous"></script>
     <script src="/static/user/js/main.js"></script>
     <script>
-        // Trigger map load automatically on this page
         window.addEventListener('DOMContentLoaded', () => {
-            if (typeof loadGoogleMapsNearby === 'function') {
-                loadGoogleMapsNearby();
+            if (typeof loadNearbyMap === 'function') {
+                loadNearbyMap();
             }
         });
     </script>
@@ -136,23 +135,21 @@
                 </div>
             </div>
 
-            <!-- Right Panel: Google Map -->
+            <!-- Right Panel: Leaflet map (OSM tiles) -->
             <div class="right-panel-map">
-                <!-- Google Maps Action Bar floating bottom over map -->
                 <div id="google-maps-bar"
                     style="display: none; position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 1000; width: 90%; max-width: 450px; padding: 0.8rem 1.25rem; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Google_Maps_icon_%282020%29.svg/1200px-Google_Maps_icon_%282020%29.svg.png"
-                                alt="Google Maps" style="width: 28px; height: 28px;">
+                            <i class="fas fa-map-marked-alt" style="font-size: 1.5rem; color: #2563eb;"></i>
                             <div>
-                                <p style="color: #334155; font-weight: 700; font-size: 0.9rem; margin: 0;">Open in Maps</p>
+                                <p style="color: #334155; font-weight: 700; font-size: 0.9rem; margin: 0;">OpenStreetMap</p>
                             </div>
                         </div>
-                        <a id="google-maps-link" href="#" target="_blank" class="btn"
+                        <a id="google-maps-link" href="#" target="_blank" rel="noopener" class="btn"
                             style="background: #2563eb; color: white; font-weight: 700; padding: 0.5rem 1rem; border-radius: 12px; text-decoration: none; font-size: 0.85rem; transition: all 0.2s ease;">
-                            View Full Map
+                            View on osm.org
                         </a>
                     </div>
                 </div>

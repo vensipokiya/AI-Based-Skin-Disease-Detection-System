@@ -1,5 +1,5 @@
 """
-Google Places–backed nearby dermatologists API (/api/nearby).
+Nearby doctors, clinics, and hospitals from OpenStreetMap (/api/nearby). No API key required.
 """
 from fastapi import APIRouter, HTTPException, Query
 
@@ -13,17 +13,11 @@ router = APIRouter(tags=["Nearby Places"])
 
 async def _nearby_response(lat: float, lng: float):
     results, source = await fetch_nearby_dermatologists(lat, lng, allow_mock_fallback=False)
-    if source == "error_no_key":
-        logger.error("[api/nearby] GOOGLE_PLACES_API_KEY not configured")
-        raise HTTPException(
-            status_code=503,
-            detail="Missing GOOGLE_PLACES_API_KEY. Add it to backend/.env and enable Places API + billing in Google Cloud.",
-        )
-    if source.startswith("error_"):
-        logger.error("[api/nearby] upstream failure source=%s", source)
+    if source == "error_api":
+        logger.error("[api/nearby] Overpass/OSM request failed")
         raise HTTPException(
             status_code=502,
-            detail="Google Places request failed. Check API key, Places API enablement, and billing.",
+            detail="OpenStreetMap data service is temporarily unavailable. Try again in a moment.",
         )
     logger.info("[api/nearby] lat=%s lng=%s count=%s source=%s", lat, lng, len(results), source)
     return results
@@ -31,7 +25,7 @@ async def _nearby_response(lat: float, lng: float):
 
 @router.get("/nearby")
 async def get_nearby_places(lat: float = Query(..., description="Latitude"), lng: float = Query(..., description="Longitude")):
-    """Real Google Places only — same contract as legacy /api/nearby-dermatologists."""
+    """Nearby health facilities from OpenStreetMap (Overpass). Same JSON shape as before."""
     return await _nearby_response(lat, lng)
 
 
