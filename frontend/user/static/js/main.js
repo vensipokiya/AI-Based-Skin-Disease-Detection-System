@@ -827,6 +827,42 @@ function buildGoogleMapsSearchUrl(lat, lon, name, address) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
 }
 
+/** Second line under title: facility name when the title is the doctor; otherwise omit (no provider labels). */
+function nearbyVenueSubtitle(place, doctorDisplay, venueName, operatorTag) {
+    const vn = (venueName || '').trim();
+    const dd = (doctorDisplay || '').trim();
+    if (!vn) return '';
+    if (place._doctorName) {
+        const docShort = String(place._doctorName).trim();
+        if (dd.startsWith('Dr.') && docShort && vn.toLowerCase() !== dd.toLowerCase()) return vn;
+        return '';
+    }
+    const op = (operatorTag || '').trim();
+    if (op && dd === `Dr. ${op}` && vn.toLowerCase() !== dd.toLowerCase()) return vn;
+    return '';
+}
+
+/** Opening hours block with a clear label and one line per rule. */
+function nearbyOpeningHoursRow(lines, emptyMessage) {
+    const msg = emptyMessage || 'Opening hours not listed — contact the clinic or check Google Reviews.';
+    if (!lines || !lines.length) {
+        return `
+                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
+                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
+                        <span style="color: #64748b; line-height: 1.45;">${escHtml(msg)}</span>
+                    </div>`;
+    }
+    const body = lines.map((x) => escHtml(String(x))).join('<br>');
+    return `
+                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
+                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
+                        <div style="flex: 1; min-width: 0; line-height: 1.5; color: #334155;">
+                            <span style="color: #0f172a; font-weight: 700; font-size: 0.8rem; display: block; margin-bottom: 4px;">Opening hours</span>
+                            ${body}
+                        </div>
+                    </div>`;
+}
+
 /** Normalize /api/nearby (Foursquare / OpenStreetMap providers) into legacy render shape */
 function normalizeDoctorPlace(p) {
     if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
@@ -1314,28 +1350,32 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
-            clinicDisplay = 'Foursquare · Dermatology / skin clinic';
-            let openLabel = '';
-            if (place._openNow === true) openLabel = '<span style="color:#10b981;font-weight:600">Open now</span>';
-            else if (place._openNow === false) openLabel = '<span style="color:#ef4444;font-weight:600">Closed now</span>';
-            else openLabel = '<span style="color:#64748b">Hours unavailable from provider</span>';
-            const wdLines = (place._weekdayText || []).slice(0, 3).map((x) => escHtml(x)).join('<br>');
+            clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
+            let statusLine = '';
+            if (place._openNow === true) statusLine = '<div style="margin-bottom:6px;"><span style="color:#10b981;font-weight:600">Open now</span></div>';
+            else if (place._openNow === false) statusLine = '<div style="margin-bottom:6px;"><span style="color:#ef4444;font-weight:600">Closed now</span></div>';
+            const wd = (place._weekdayText || []).slice(0, 8);
+            const hoursBody = wd.length
+                ? `<div style="color:#0f172a;font-weight:700;font-size:0.8rem;margin-bottom:4px;">Opening hours</div><div style="color:#334155;font-size:0.85rem;line-height:1.5;">${wd.map((x) => escHtml(String(x))).join('<br>')}</div>`
+                : '<span style="color:#64748b">No detailed schedule in listing — check Google Reviews for hours.</span>';
             hoursRowHtml = `
                     <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="flex:1;line-height:1.45;">${openLabel}${wdLines ? `<div style="margin-top:6px;color:#64748b;font-size:0.8rem;">${wdLines}</div>` : ''}</span>
+                        <div style="flex:1;min-width:0;line-height:1.45;">
+                            ${statusLine}
+                            ${hoursBody}
+                        </div>
                     </div>`;
         } else if (fromOsm) {
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
-            clinicDisplay = 'OpenStreetMap · Dermatology listing';
-            const osmHours = (place._weekdayText || []).slice(0, 2).map((x) => escHtml(x)).join('<br>');
-            hoursRowHtml = `
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
-                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="color: #64748b;">${osmHours || 'Opening hours: not in OSM — call the facility'}</span>
-                    </div>`;
+            clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
+            const wd = (place._weekdayText || []).slice(0, 12);
+            hoursRowHtml = nearbyOpeningHoursRow(
+                wd,
+                'Opening hours not listed for this place — contact the clinic or check Google Reviews.'
+            );
         } else {
             const hour = new Date().getHours();
             const openHour = 8 + (seed % 2);
@@ -1343,30 +1383,34 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             const isOpen = hour >= openHour && hour < closeHour;
             const statusColor = isOpen ? "#1e8e3e" : "#d93025";
             doctorDisplay = operator ? `Dr. ${operator}` : (name.length > 25 ? name.substring(0, 25) + '...' : name);
-            clinicDisplay = operator ? name : (name.includes('Dr.') ? "Dermatology Clinic" : name);
+            clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
             hoursRowHtml = `
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="color: ${statusColor === '#1e8e3e' ? '#10b981' : '#ef4444'}; font-weight: 600;">${isOpen ? 'Open Now' : 'Closed'}</span>
-                        <span style="color: #94a3b8;">•</span>
-                        <span style="color: #64748b;">${isOpen ? 'Closes ' + closeHour + ':00' : 'Opens ' + openHour + ':00'}</span>
+                        <div style="flex:1;min-width:0;">
+                            <span style="color:#0f172a;font-weight:700;font-size:0.8rem;display:block;margin-bottom:4px;">Opening hours</span>
+                            <span style="color: ${statusColor === '#1e8e3e' ? '#10b981' : '#ef4444'}; font-weight: 600;">${isOpen ? 'Open now' : 'Closed'}</span>
+                            <span style="color: #94a3b8;"> · </span>
+                            <span style="color: #64748b;">${isOpen ? 'Closes ' + closeHour + ':00' : 'Opens ' + openHour + ':00'}</span>
+                        </div>
                     </div>`;
         }
 
-        const popupLine = fromOsm
-            ? `OpenStreetMap · ${typeof distance === 'number' ? distance.toFixed(2) : distance} km`
-            : `${typeof distance === 'number' ? distance.toFixed(2) : distance} km away`;
+        const popupLine = `${typeof distance === 'number' ? distance.toFixed(2) : distance} km away`;
 
         const ed = escHtml(doctorDisplay);
         const ec = escHtml(clinicDisplay);
         const ea = escHtml(address);
         const googleReviewsHref = escHtml(googleReviewsUrl);
+        const popupSub = ec
+            ? `<span style="font-size:0.8rem;color:#64748b">${ec}</span><br>`
+            : '';
 
         const marker = L.marker([place.lat, place.lon], { icon: doctorIcon })
             .addTo(leafletMap)
             .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
                             <strong style="color:#2563eb">${ed}</strong><br>
-                            <span style="font-size:0.8rem;color:#64748b">${ec}</span><br>
+                            ${popupSub}
                             <span style="font-size:0.85rem">${escHtml(popupLine)}</span>
                         </div>`);
         marker.on('click', () => _highlightNearbyCardForIndex(index));
@@ -1395,7 +1439,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     
                     <div style="flex: 1; min-width: 0;">
                         <h3 style="color: #0f172a; margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.2;">${ed}</h3>
-                        <p style="color: #2563eb; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">${ec}</p>
+                        ${ec ? `<p style="color: #2563eb; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">${ec}</p>` : ''}
                     </div>
                 </div>
 

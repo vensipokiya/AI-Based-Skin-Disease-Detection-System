@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import httpx
@@ -427,6 +428,50 @@ def _element_lat_lon(el: Dict[str, Any]) -> Optional[Tuple[float, float]]:
     return None
 
 
+def _beautify_osm_opening_hours(raw: str) -> List[str]:
+    """
+    Turn OSM opening_hours strings into readable lines (e.g. Mo-Fr 09:00-17:00).
+    See https://wiki.openstreetmap.org/wiki/Key:opening_hours
+    """
+    if not raw or not str(raw).strip():
+        return []
+    s = str(raw).strip()
+    low = s.lower()
+    if low in ("24/7", "24/7 open", "open 24/7", "always", "always open"):
+        return ["Open 24 hours"]
+    parts = [p.strip() for p in s.split(";") if p.strip()]
+    lines: List[str] = []
+    range_pairs = (
+        ("Mo-Fr", "Mon–Fri"),
+        ("Mo-Sa", "Mon–Sat"),
+        ("Mo-Th", "Mon–Thu"),
+        ("Tu-Fr", "Tue–Fri"),
+        ("Tu-Sa", "Tue–Sat"),
+        ("We-Fr", "Wed–Fri"),
+        ("Th-Fr", "Thu–Fri"),
+        ("Sa-Su", "Sat–Sun"),
+        ("Mo-Su", "Mon–Sun"),
+    )
+    single_days = (
+        ("Mo", "Mon"),
+        ("Tu", "Tue"),
+        ("We", "Wed"),
+        ("Th", "Thu"),
+        ("Fr", "Fri"),
+        ("Sa", "Sat"),
+        ("Su", "Sun"),
+    )
+    for p in parts:
+        line = p
+        for a, b in range_pairs:
+            line = line.replace(a, b)
+        for ab, full in single_days:
+            line = re.sub(rf"(?<![A-Za-z]){ab}(?![a-z])", full, line)
+        line = line.replace(" PH", " · PH").replace(" PH closed", " · closed (public holidays)")
+        lines.append(line)
+    return lines
+
+
 def _tags_addr(tags: Dict[str, Any]) -> str:
     parts = []
     h = tags.get("addr:housenumber", "")
@@ -464,6 +509,7 @@ def _element_to_row(
     pid = f"osm_{typ}_{oid}" if oid is not None else f"osm_{typ}_{plat:.5f}_{plng:.5f}"
     opening = str(tags.get("opening_hours", "")).strip()
     doctor_name = (tags.get("contact:person") or tags.get("doctor") or tags.get("operator") or "").strip() or None
+    hours_lines = _beautify_osm_opening_hours(opening) if opening else None
     return {
         "name": name,
         "doctor_name": doctor_name,
@@ -477,7 +523,7 @@ def _element_to_row(
         "place_id": pid,
         "provider": "openstreetmap",
         "open_now": None,
-        "weekday_text": [f"Hours: {opening}"] if opening else None,
+        "weekday_text": hours_lines,
         "reviews": [],
         "business_status": None,
     }
