@@ -16,9 +16,17 @@
                     document.getElementById('doc-detail-address').innerText = data.address || 'N/A';
                     document.getElementById('doc-detail-phone').innerText = data.phone || 'N/A';
                     document.getElementById('doc-detail-time').innerText = data.time || 'N/A';
-                    document.getElementById('doc-detail-rating').innerHTML = `<i class="fas fa-star"></i> ${data.rating || '4.5'} (${data.reviews || '0'} reviews)`;
-                    if (data.review) {
-                        document.getElementById('doc-detail-review').innerText = `"${data.review}"`;
+                    const ratingEl = document.getElementById('doc-detail-rating');
+                    if (data.googleReviewsUrl) {
+                        ratingEl.innerHTML = `<a href="${data.googleReviewsUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 600; text-decoration: none;"><i class="fab fa-google" style="color:#4285f4;margin-right:6px;"></i>Read reviews on Google</a>`;
+                    } else {
+                        ratingEl.innerHTML = `<span style="color: var(--text-light); font-size: 0.95rem;">Reviews: search this clinic on Google Maps</span>`;
+                    }
+                    const reviewEl = document.getElementById('doc-detail-review');
+                    if (data.googleReviewsUrl) {
+                        reviewEl.innerHTML = 'Open the link above to see ratings and patient reviews in Google Maps.';
+                    } else if (data.review) {
+                        reviewEl.innerText = `"${data.review}"`;
                     }
 
                     if (data.isSpecialist) {
@@ -71,9 +79,9 @@
                         prioritized.
                     </p>
 
-                    <h3 class="mb-4"
+                        <h3 class="mb-4"
                         style="color: var(--text-dark); border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: inline-block;">
-                        Latest Review</h3>
+                        Reviews</h3>
                     <div
                         style="background: white; border-left: 4px solid var(--primary-color); padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative;">
                         <i class="fas fa-quote-left"

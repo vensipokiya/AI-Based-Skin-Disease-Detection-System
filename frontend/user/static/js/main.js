@@ -817,6 +817,16 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
+/** Opens Google Maps search for this place so users can read Google reviews (no Places API key required). */
+function buildGoogleMapsSearchUrl(lat, lon, name, address) {
+    const parts = [name, address].filter(Boolean).map((x) => String(x).trim()).filter(Boolean);
+    const q = parts.join(' ');
+    if (q.length > 0) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
+}
+
 /** Normalize /api/nearby (Foursquare / OpenStreetMap providers) into legacy render shape */
 function normalizeDoctorPlace(p) {
     if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
@@ -1279,17 +1289,6 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         iconAnchor: [18, 18]
     });
 
-    // Mock Review Database for realistic feel
-    const mockReviews = [
-        "Highly knowledgeable and professional. The treatment for my acne worked wonders!",
-        "Very clean clinic and the staff is wonderful. Dr. is very patient.",
-        "Best dermatologist in the area. Fixed my skin irritation in one visit.",
-        "Excellent experience. Minimal waiting time and very clear diagnosis.",
-        "The laser treatment was virtually painless. Great results!",
-        "Takes time to explain everything. I felt very comfortable and cared for.",
-        "Professional service and state-of-the-art equipment. Highly recommended."
-    ];
-
     finalPlaces.forEach((place, index) => {
         const name = place.tags.name;
         const operator = place.tags.operator || place.tags['contact:person'] || "";
@@ -1305,57 +1304,17 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             address = place.street;
         }
 
-        let rating;
-        let reviewCount;
-        let reviewText;
-        let statusColor;
-        let isOpen;
-        let openHour;
-        let closeHour;
         let doctorDisplay;
         let clinicDisplay;
-        let midBlockHtml;
         let hoursRowHtml;
-        let extraMapUrl = '';
-        let directionsHref = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=%3B${place.lat}%2C${place.lon}`;
-        let thirdMapBtn = '';
+
+        const googleReviewsUrl = buildGoogleMapsSearchUrl(place.lat, place.lon, name, address);
 
         if (fromFoursquare) {
-            rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
-                ? Number(place._apiRating).toFixed(1)
-                : '—';
-            reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
-                ? place._userRatingsTotal
-                : null;
-            const revs = place._reviews || [];
-            reviewText = revs[0] && revs[0].text ? revs[0].text : '';
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
             clinicDisplay = 'Foursquare · Dermatology / skin clinic';
-            directionsHref = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=%3B${place.lat}%2C${place.lon}`;
-            extraMapUrl = place._placeUrl || (place._website || '');
-            let reviewBlocks = '';
-            if (revs.length) {
-                revs.slice(0, 2).forEach((r) => {
-                    const raw = (r.text || '');
-                    const t = raw.length > 240 ? raw.substring(0, 240) + '…' : raw;
-                    reviewBlocks += `
-                        <div style="margin-bottom:0.85rem;">
-                            <div style="font-size:0.78rem;color:#64748b;">★ ${r.rating != null ? r.rating : '—'} · ${escHtml(r.author_name || 'Foursquare user')}</div>
-                            <p style="color:#334155;font-size:0.85rem;margin:0.35rem 0 0;line-height:1.45;">${escHtml(t)}</p>
-                        </div>`;
-                });
-            } else {
-                reviewBlocks = '<p style="color:#64748b;font-size:0.85rem;margin:0;">No tip/review text returned for this listing.</p>';
-            }
-            midBlockHtml = `
-                <div style="background: #eff6ff; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #bfdbfe;">
-                    <p style="color: #1e40af; font-size: 0.8rem; margin: 0 0 0.75rem; font-weight: 600;">
-                        <i class="fas fa-location-dot" style="margin-right: 6px;"></i> Foursquare tips/reviews
-                    </p>
-                    ${reviewBlocks}
-                </div>`;
             let openLabel = '';
             if (place._openNow === true) openLabel = '<span style="color:#10b981;font-weight:600">Open now</span>';
             else if (place._openNow === false) openLabel = '<span style="color:#ef4444;font-weight:600">Closed now</span>';
@@ -1366,57 +1325,25 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
                         <span style="flex:1;line-height:1.45;">${openLabel}${wdLines ? `<div style="margin-top:6px;color:#64748b;font-size:0.8rem;">${wdLines}</div>` : ''}</span>
                     </div>`;
-            thirdMapBtn = extraMapUrl
-                ? `<a href="${extraMapUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #0f766e;" title="Open provider page"><i class="fas fa-up-right-from-square"></i></a>`
-                : '';
         } else if (fromOsm) {
-            rating = '—';
-            reviewCount = null;
-            reviewText = '';
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
             clinicDisplay = 'OpenStreetMap · Dermatology listing';
-            extraMapUrl = `https://www.openstreetmap.org/#map=17/${place.lat}/${place.lon}`;
             const osmHours = (place._weekdayText || []).slice(0, 2).map((x) => escHtml(x)).join('<br>');
-            midBlockHtml = `
-                <div style="background: #ecfdf5; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #a7f3d0;">
-                    <p style="color: #065f46; font-size: 0.85rem; margin: 0; line-height: 1.5;">
-                        <i class="fas fa-leaf" style="margin-right: 6px;"></i>
-                        OpenStreetMap data is community-maintained. Ratings/reviews are usually unavailable for many clinics.
-                    </p>
-                </div>`;
             hoursRowHtml = `
                     <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
                         <span style="color: #64748b;">${osmHours || 'Opening hours: not in OSM — call the facility'}</span>
                     </div>`;
-            thirdMapBtn = extraMapUrl
-                ? `<a href="${extraMapUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #047857;" title="View on OpenStreetMap.org"><i class="fas fa-map"></i></a>`
-                : '';
         } else {
-            rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
-                ? Number(place._apiRating).toFixed(1)
-                : (4.5 + (seed % 6) / 10).toFixed(1);
-            reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
-                ? place._userRatingsTotal
-                : (20 + (seed * 7 % 480));
-            reviewText = mockReviews[seed % mockReviews.length];
             const hour = new Date().getHours();
-            openHour = 8 + (seed % 2);
-            closeHour = 18 + (seed % 4);
-            isOpen = hour >= openHour && hour < closeHour;
-            statusColor = isOpen ? "#1e8e3e" : "#d93025";
+            const openHour = 8 + (seed % 2);
+            const closeHour = 18 + (seed % 4);
+            const isOpen = hour >= openHour && hour < closeHour;
+            const statusColor = isOpen ? "#1e8e3e" : "#d93025";
             doctorDisplay = operator ? `Dr. ${operator}` : (name.length > 25 ? name.substring(0, 25) + '...' : name);
             clinicDisplay = operator ? name : (name.includes('Dr.') ? "Dermatology Clinic" : name);
-            midBlockHtml = `
-                <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; position: relative;">
-                    <i class="fas fa-quote-left" style="position: absolute; top: 10px; right: 10px; color: #cbd5e1; font-size: 1.5rem; opacity: 0.4;"></i>
-                    <p style="color: #475569; font-style: italic; font-size: 0.85rem; margin: 0; line-height: 1.5; padding-right: 20px;">
-                        "${escHtml(reviewText)}"
-                    </p>
-                    <div style="margin-top: 8px; font-size: 0.75rem; color: #94a3b8; font-weight: 600;">— Sample review (illustrative)</div>
-                </div>`;
             hoursRowHtml = `
                     <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
@@ -1426,22 +1353,21 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     </div>`;
         }
 
-        const popupRatingLine = fromOsm
+        const popupLine = fromOsm
             ? `OpenStreetMap · ${typeof distance === 'number' ? distance.toFixed(2) : distance} km`
-            : fromFoursquare
-                ? `⭐ ${rating}${reviewCount != null ? ` · ${reviewCount} reviews` : ''}`
-                : `⭐ ${rating} (${reviewCount} reviews)`;
+            : `${typeof distance === 'number' ? distance.toFixed(2) : distance} km away`;
 
         const ed = escHtml(doctorDisplay);
         const ec = escHtml(clinicDisplay);
         const ea = escHtml(address);
+        const googleReviewsHref = escHtml(googleReviewsUrl);
 
         const marker = L.marker([place.lat, place.lon], { icon: doctorIcon })
             .addTo(leafletMap)
             .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
                             <strong style="color:#2563eb">${ed}</strong><br>
                             <span style="font-size:0.8rem;color:#64748b">${ec}</span><br>
-                            <span style="font-size:0.85rem">${popupRatingLine}</span>
+                            <span style="font-size:0.85rem">${escHtml(popupLine)}</span>
                         </div>`);
         marker.on('click', () => _highlightNearbyCardForIndex(index));
         nearbyDoctorMarkers.push(marker);
@@ -1451,11 +1377,9 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 name: doctorDisplay,
                 clinic: clinicDisplay,
                 typeLabel: 'Skin Specialist',
-                rating,
-                reviews: reviewCount,
-                review: (fromFoursquare || !fromOsm) ? reviewText : '',
                 address,
                 distance,
+                googleReviewsUrl,
                 isSpecialist: true,
                 placeId: place._placeId || null
             };
@@ -1470,13 +1394,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     </div>
                     
                     <div style="flex: 1; min-width: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-                            <h3 style="color: #0f172a; margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.2;">${ed}</h3>
-                            <div style="display: flex; align-items: center; background: #fefce8; padding: 4px 8px; border-radius: 6px; border: 1px solid #fef08a;">
-                                <i class="fas fa-star" style="color: #eab308; font-size: 0.8rem; margin-right: 4px;"></i>
-                                <span style="color: #854d0e; font-weight: 700; font-size: 0.85rem;">${rating}</span>
-                            </div>
-                        </div>
+                        <h3 style="color: #0f172a; margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.2;">${ed}</h3>
                         <p style="color: #2563eb; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">${ec}</p>
                     </div>
                 </div>
@@ -1488,17 +1406,14 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     </div>
                     ${hoursRowHtml}
                 </div>
-
-                ${midBlockHtml}
                 
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
                     </button>
-                    <a href="${directionsHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;" title="Directions">
-                        <i class="fas fa-directions"></i>
+                    <a href="${googleReviewsHref}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #0f172a; font-weight: 600;" title="Open in Google Maps to read reviews">
+                        <i class="fab fa-google" style="margin-right: 8px; color: #4285f4;"></i> Reviews
                     </a>
-                    ${thirdMapBtn}
                 </div>
             </div>`;
         }
