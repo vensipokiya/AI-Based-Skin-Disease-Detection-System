@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import math
 import re
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import httpx
@@ -86,6 +87,191 @@ def _looks_dermatology(name: str, tags: Dict[str, Any]) -> bool:
     combo = " ".join([n, spec, spec2, desc])
     keys = ("dermat", "skin", "cosmetic", "laser", "tricholog", "venereolog")
     return any(k in combo for k in keys)
+
+
+# ── Live open / close status (uses server local time; good enough for demo) ──
+
+
+def _format_ampm(h: int, m: int) -> str:
+    h = h % 24
+    ampm = "AM" if h < 12 else "PM"
+    hh = h % 12
+    if hh == 0:
+        hh = 12
+    return f"{hh}:{m:02d} {ampm}"
+
+
+def _parse_fsq_hhmm(s: Any) -> Optional[Tuple[int, int]]:
+    if s is None:
+        return None
+    t = str(s).strip()
+    if not t.isdigit():
+        return None
+    if len(t) == 3:
+        t = "0" + t
+    if len(t) != 4:
+        return None
+    h, m = int(t[:2]), int(t[2:])
+    if h > 24 or m > 59:
+        return None
+    return h, m
+
+
+def _fsq_day_label(fsq_d: int) -> str:
+    return ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[fsq_d - 1] if 1 <= fsq_d <= 7 else ""
+
+
+def _compute_hours_live_foursquare(hours: Dict[str, Any]) -> Dict[str, Any]:
+    """state: open | closed | unknown; closes_at / opens_next are human-readable labels."""
+    out: Dict[str, Any] = {"state": "unknown", "closes_at": None, "opens_next": None}
+    regular = hours.get("regular")
+    now = datetime.now()
+    now_mins = now.hour * 60 + now.minute
+    fsq_today = now.weekday() + 1  # 1=Mon … 7=Sun (matches Foursquare)
+
+    if isinstance(regular, list) and regular:
+        intervals: List[Tuple[int, int]] = []
+        for b in regular:
+            if not isinstance(b, dict):
+                continue
+            try:
+                d = int(b.get("day"))
+            except (TypeError, ValueError):
+                continue
+            if d != fsq_today:
+                continue
+            o = _parse_fsq_hhmm(b.get("open"))
+            c = _parse_fsq_hhmm(b.get("close"))
+            if not o or not c:
+                continue
+            om, cm = o[0] * 60 + o[1], c[0] * 60 + c[1]
+            if cm <= om:
+                continue
+            intervals.append((om, cm))
+        intervals.sort(key=lambda x: x[0])
+
+        for om, cm in intervals:
+            if om <= now_mins < cm:
+                out["state"] = "open"
+                out["closes_at"] = f"Closes {_format_ampm(cm // 60, cm % 60)}"
+                return out
+
+        if intervals:
+            if now_mins < intervals[0][0]:
+                out["state"] = "closed"
+                first_om = intervals[0][0]
+                out["opens_next"] = f"Opens {_format_ampm(first_om // 60, first_om % 60)}"
+                return out
+            for om, _cm in intervals:
+                if now_mins < om:
+                    out["state"] = "closed"
+                    out["opens_next"] = f"Opens {_format_ampm(om // 60, om % 60)}"
+                    return out
+            if now_mins >= intervals[-1][1]:
+                out["state"] = "closed"
+            else:
+                out["state"] = "closed"
+        else:
+            out["state"] = "closed"
+
+        for delta in range(1, 8):
+            target = ((fsq_today - 1 + delta) % 7) + 1
+            for b in regular:
+                if not isinstance(b, dict):
+                    continue
+                try:
+                    d = int(b.get("day"))
+                except (TypeError, ValueError):
+                    continue
+                if d != target:
+                    continue
+                o = _parse_fsq_hhmm(b.get("open"))
+                if not o:
+                    continue
+                label = _fsq_day_label(target)
+                out["opens_next"] = f"Opens {_format_ampm(o[0], o[1])} ({label})"
+                return out
+        return out
+
+    on = hours.get("open_now")
+    if on is True:
+        out["state"] = "open"
+    elif on is False:
+        out["state"] = "closed"
+    return out
+
+
+_OSM_DAY = {"mo": 0, "tu": 1, "we": 2, "th": 3, "fr": 4, "sa": 5, "su": 6}
+_OSM_DAY_LABELS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+
+def _osm_expand_days(prefix: str) -> Set[int]:
+    m = re.match(r"^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))?$", prefix, re.I)
+    if not m:
+        return set()
+    a, b = m.group(1).lower(), m.group(2)
+    ia = _OSM_DAY.get(a, -1)
+    if b is None:
+        return {ia} if ia >= 0 else set()
+    ib = _OSM_DAY.get(b.lower(), -1)
+    if ia < 0 or ib < 0:
+        return set()
+    if ia <= ib:
+        return set(range(ia, ib + 1))
+    return set(range(ia, 7)) | set(range(0, ib + 1))
+
+
+def _compute_hours_live_osm(opening: str) -> Dict[str, Any]:
+    out: Dict[str, Any] = {"state": "unknown", "closes_at": None, "opens_next": None}
+    if not opening or not str(opening).strip():
+        return out
+    s = str(opening).strip()
+    low = s.lower().replace(" ", "")
+    if low in ("24/7", "24/7open", "open24/7"):
+        out["state"] = "open"
+        out["closes_at"] = "Open 24 hours"
+        return out
+    now = datetime.now()
+    wd = now.weekday()  # Mon=0
+    now_mins = now.hour * 60 + now.minute
+    m = re.match(
+        r"^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))?\s+(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})",
+        s,
+        re.I,
+    )
+    if m:
+        prefix = f"{m.group(1)}-{m.group(2)}" if m.group(2) else m.group(1)
+        days = _osm_expand_days(prefix)
+        if not days:
+            return out
+        h1, m1, h2, m2 = int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6))
+        om, cm = h1 * 60 + m1, h2 * 60 + m2
+        if cm <= om:
+            return out
+        if wd in days:
+            if om <= now_mins < cm:
+                out["state"] = "open"
+                out["closes_at"] = f"Closes {_format_ampm(h2, m2)}"
+                return out
+            if now_mins < om:
+                out["state"] = "closed"
+                out["opens_next"] = f"Opens {_format_ampm(h1, m1)}"
+                return out
+            out["state"] = "closed"
+            for add in range(1, 8):
+                nwd = (wd + add) % 7
+                if nwd in days:
+                    out["opens_next"] = f"Opens {_format_ampm(h1, m1)} ({_OSM_DAY_LABELS[nwd]})"
+                    return out
+            return out
+        out["state"] = "closed"
+        for add in range(1, 8):
+            nwd = (wd + add) % 7
+            if nwd in days:
+                out["opens_next"] = f"Opens {_format_ampm(h1, m1)} ({_OSM_DAY_LABELS[nwd]})"
+                return out
+        return out
+    return out
 
 
 # ── Foursquare Places ────────────────────────────────────────────────────────
@@ -221,6 +407,12 @@ def _fsq_result_to_row(
     review_count = stats.get("total_ratings") or stats.get("total_tips") or None
     hours = base.get("hours") or {}
     doctor_name = (base.get("related_places") or {}).get("parent", {}).get("name")
+    live = _compute_hours_live_foursquare(hours)
+    open_now_val = hours.get("open_now")
+    if live["state"] == "open":
+        open_now_val = True
+    elif live["state"] == "closed":
+        open_now_val = False
     return {
         "name": base.get("name") or src.get("name") or "Clinic",
         "doctor_name": doctor_name,
@@ -233,7 +425,8 @@ def _fsq_result_to_row(
         "lng": plng,
         "place_id": fsq_id,
         "provider": "foursquare",
-        "open_now": hours.get("open_now"),
+        "open_now": open_now_val,
+        "hours_live": live,
         "weekday_text": _fsq_weekday_text(hours),
         "reviews": tips,
         "business_status": "OPERATIONAL" if base.get("closed_bucket") in (None, "VeryLikelyOpen") else "CLOSED_TEMPORARILY",
@@ -560,6 +753,12 @@ def _element_to_row(
     opening = str(tags.get("opening_hours", "")).strip()
     doctor_name = (tags.get("contact:person") or tags.get("doctor") or tags.get("operator") or "").strip() or None
     hours_lines = _beautify_osm_opening_hours(opening) if opening else None
+    live = _compute_hours_live_osm(opening)
+    on = None
+    if live["state"] == "open":
+        on = True
+    elif live["state"] == "closed":
+        on = False
     return {
         "name": name,
         "doctor_name": doctor_name,
@@ -572,7 +771,8 @@ def _element_to_row(
         "lng": plng,
         "place_id": pid,
         "provider": "openstreetmap",
-        "open_now": None,
+        "open_now": on,
+        "hours_live": live,
         "weekday_text": hours_lines,
         "reviews": [],
         "business_status": None,
@@ -680,6 +880,12 @@ async def _enrich_nominatim_rows_opening_hours(
             oh = str(tags.get("opening_hours") or "").strip()
             if oh:
                 r["weekday_text"] = _beautify_osm_opening_hours(oh)
+                live = _compute_hours_live_osm(oh)
+                r["hours_live"] = live
+                if live["state"] == "open":
+                    r["open_now"] = True
+                elif live["state"] == "closed":
+                    r["open_now"] = False
 
     for r in rows:
         r.pop("_osm_type", None)
@@ -733,6 +939,7 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
                         "place_id": f"nominatim_{it.get('osm_type','x')}_{it.get('osm_id', '')}",
                         "provider": "openstreetmap",
                         "open_now": None,
+                        "hours_live": {"state": "unknown", "closes_at": None, "opens_next": None},
                         "weekday_text": None,
                         "reviews": [],
                         "business_status": None,

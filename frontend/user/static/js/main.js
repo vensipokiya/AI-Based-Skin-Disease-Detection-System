@@ -842,16 +842,50 @@ function nearbyVenueSubtitle(place, doctorDisplay, venueName, operatorTag) {
     return '';
 }
 
-/** Opening hours block: times only; omitted entirely when there is no schedule data. */
-function nearbyOpeningHoursRow(lines) {
+/** Green/red open vs closed + close time or next open (from API hours_live). */
+function nearbyLiveHoursStatusHtml(place) {
+    const live = place._hoursLive;
+    if (live && live.state === 'open') {
+        const extra = live.closes_at
+            ? `<span style="color:#64748b;font-weight:500;"> · ${escHtml(live.closes_at)}</span>`
+            : '';
+        return `<div style="line-height:1.45;"><span style="color:#10b981;font-weight:700;">Open now</span>${extra}</div>`;
+    }
+    if (live && live.state === 'closed') {
+        const extra = live.opens_next
+            ? `<span style="color:#64748b;font-weight:500;"> · ${escHtml(live.opens_next)}</span>`
+            : '';
+        return `<div style="line-height:1.45;"><span style="color:#ef4444;font-weight:700;">Closed</span>${extra}</div>`;
+    }
+    if (place._openNow === true) {
+        return `<div style="line-height:1.45;"><span style="color:#10b981;font-weight:700;">Open now</span></div>`;
+    }
+    if (place._openNow === false) {
+        return `<div style="line-height:1.45;"><span style="color:#ef4444;font-weight:700;">Closed</span></div>`;
+    }
+    return '';
+}
+
+function nearbyOpeningHoursBlock(lines) {
     if (!lines || !lines.length) return '';
     const body = lines.map((x) => escHtml(String(x))).join('<br>');
     return `
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+                            <span style="color: #0f172a; font-weight: 700; font-size: 0.8rem; display: block; margin-bottom: 4px;">Opening hours</span>
+                            <div style="color: #334155; font-size: 0.85rem; line-height: 1.5;">${body}</div>
+                        </div>`;
+}
+
+/** Single clock row: live status + optional full schedule list. */
+function nearbyClockCardHtml(liveHtml, scheduleLines) {
+    const schedule = nearbyOpeningHoursBlock(scheduleLines);
+    if (!liveHtml && !schedule) return '';
+    return `
                     <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <div style="flex: 1; min-width: 0; line-height: 1.5; color: #334155;">
-                            <span style="color: #0f172a; font-weight: 700; font-size: 0.8rem; display: block; margin-bottom: 4px;">Opening hours</span>
-                            ${body}
+                        <div style="flex: 1; min-width: 0;">
+                            ${liveHtml || ''}
+                            ${schedule}
                         </div>
                     </div>`;
 }
@@ -881,6 +915,7 @@ function normalizeDoctorPlace(p) {
             _doctorName: p.doctor_name || null,
             _reviews: Array.isArray(p.reviews) ? p.reviews : [],
             _openNow: p.open_now,
+            _hoursLive: p.hours_live && typeof p.hours_live === 'object' ? p.hours_live : null,
             _weekdayText: Array.isArray(p.weekday_text) ? p.weekday_text : null,
             _businessStatus: p.business_status || null,
             _placeUrl: p.place_url || null,
@@ -1344,48 +1379,32 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
             clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
-            let statusLine = '';
-            if (place._openNow === true) statusLine = '<div style="margin-bottom:6px;"><span style="color:#10b981;font-weight:600">Open now</span></div>';
-            else if (place._openNow === false) statusLine = '<div style="margin-bottom:6px;"><span style="color:#ef4444;font-weight:600">Closed now</span></div>';
+            const liveHtml = nearbyLiveHoursStatusHtml(place);
             const wd = (place._weekdayText || []).slice(0, 8);
-            const hoursBody = wd.length
-                ? `<div style="color:#0f172a;font-weight:700;font-size:0.8rem;margin-bottom:4px;">Opening hours</div><div style="color:#334155;font-size:0.85rem;line-height:1.5;">${wd.map((x) => escHtml(String(x))).join('<br>')}</div>`
-                : '';
-            if (!statusLine && !hoursBody) {
-                hoursRowHtml = '';
-            } else {
-                hoursRowHtml = `
-                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
-                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <div style="flex:1;min-width:0;line-height:1.45;">
-                            ${statusLine}
-                            ${hoursBody}
-                        </div>
-                    </div>`;
-            }
+            hoursRowHtml = nearbyClockCardHtml(liveHtml, wd.length ? wd : null);
         } else if (fromOsm) {
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
             clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
+            const liveHtml = nearbyLiveHoursStatusHtml(place);
             const wd = (place._weekdayText || []).slice(0, 12);
-            hoursRowHtml = nearbyOpeningHoursRow(wd);
+            hoursRowHtml = nearbyClockCardHtml(liveHtml, wd.length ? wd : null);
         } else {
             const hour = new Date().getHours();
             const openHour = 8 + (seed % 2);
             const closeHour = 18 + (seed % 4);
             const isOpen = hour >= openHour && hour < closeHour;
-            const statusColor = isOpen ? "#1e8e3e" : "#d93025";
             doctorDisplay = operator ? `Dr. ${operator}` : (name.length > 25 ? name.substring(0, 25) + '...' : name);
             clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
+            const st = isOpen ? '#10b981' : '#ef4444';
+            const sub = isOpen ? `Closes ${closeHour}:00` : `Opens ${openHour}:00`;
             hoursRowHtml = `
                     <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <div style="flex:1;min-width:0;">
-                            <span style="color:#0f172a;font-weight:700;font-size:0.8rem;display:block;margin-bottom:4px;">Opening hours</span>
-                            <span style="color: ${statusColor === '#1e8e3e' ? '#10b981' : '#ef4444'}; font-weight: 600;">${isOpen ? 'Open now' : 'Closed'}</span>
-                            <span style="color: #94a3b8;"> · </span>
-                            <span style="color: #64748b;">${isOpen ? 'Closes ' + closeHour + ':00' : 'Opens ' + openHour + ':00'}</span>
+                        <div style="flex:1;min-width:0;line-height:1.45;">
+                            <span style="color:${st};font-weight:700;">${isOpen ? 'Open now' : 'Closed'}</span>
+                            <span style="color:#64748b;font-weight:500;"> · ${sub}</span>
                         </div>
                     </div>`;
         }
