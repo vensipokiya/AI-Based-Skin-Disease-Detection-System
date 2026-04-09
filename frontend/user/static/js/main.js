@@ -842,16 +842,9 @@ function nearbyVenueSubtitle(place, doctorDisplay, venueName, operatorTag) {
     return '';
 }
 
-/** Opening hours block with a clear label and one line per rule. */
-function nearbyOpeningHoursRow(lines, emptyMessage) {
-    const msg = emptyMessage || 'Opening hours not listed — contact the clinic or check Google Reviews.';
-    if (!lines || !lines.length) {
-        return `
-                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
-                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="color: #64748b; line-height: 1.45;">${escHtml(msg)}</span>
-                    </div>`;
-    }
+/** Opening hours block: times only; omitted entirely when there is no schedule data. */
+function nearbyOpeningHoursRow(lines) {
+    if (!lines || !lines.length) return '';
     const body = lines.map((x) => escHtml(String(x))).join('<br>');
     return `
                     <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
@@ -1357,8 +1350,11 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             const wd = (place._weekdayText || []).slice(0, 8);
             const hoursBody = wd.length
                 ? `<div style="color:#0f172a;font-weight:700;font-size:0.8rem;margin-bottom:4px;">Opening hours</div><div style="color:#334155;font-size:0.85rem;line-height:1.5;">${wd.map((x) => escHtml(String(x))).join('<br>')}</div>`
-                : '<span style="color:#64748b">No detailed schedule in listing — check Google Reviews for hours.</span>';
-            hoursRowHtml = `
+                : '';
+            if (!statusLine && !hoursBody) {
+                hoursRowHtml = '';
+            } else {
+                hoursRowHtml = `
                     <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
                         <div style="flex:1;min-width:0;line-height:1.45;">
@@ -1366,16 +1362,14 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                             ${hoursBody}
                         </div>
                     </div>`;
+            }
         } else if (fromOsm) {
             doctorDisplay = place._doctorName
                 ? `Dr. ${place._doctorName}`
                 : (name.length > 40 ? name.substring(0, 40) + '…' : name);
             clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
             const wd = (place._weekdayText || []).slice(0, 12);
-            hoursRowHtml = nearbyOpeningHoursRow(
-                wd,
-                'Opening hours not listed for this place — contact the clinic or check Google Reviews.'
-            );
+            hoursRowHtml = nearbyOpeningHoursRow(wd);
         } else {
             const hour = new Date().getHours();
             const openHour = 8 + (seed % 2);

@@ -101,15 +101,65 @@ def _fsq_extract_lat_lng(item: Dict[str, Any]) -> Optional[Tuple[float, float]]:
     return float(lat), float(lng)
 
 
+def _fsq_format_regular_hours(regular: List[Dict[str, Any]]) -> List[str]:
+    """Format Foursquare Places API hours.regular into readable lines."""
+    if not regular:
+        return []
+    day_names = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+    def fmt_time(t: Any) -> str:
+        if t is None or t == "":
+            return ""
+        s = str(t).strip()
+        if len(s) == 4 and s.isdigit():
+            return f"{s[:2]}:{s[2:]}"
+        return s
+
+    lines: List[str] = []
+    for block in regular:
+        if not isinstance(block, dict):
+            continue
+        day = block.get("day")
+        open_t = block.get("open")
+        close = block.get("close")
+        if day is None:
+            continue
+        try:
+            di = int(day)
+        except (TypeError, ValueError):
+            continue
+        # Common: 1=Mon … 7=Sun (Foursquare) or 0=Sun … 6=Sat
+        if 1 <= di <= 7:
+            label = day_names[di - 1]
+        elif 0 <= di <= 6:
+            label = day_names[di]
+        else:
+            label = f"Day {di}"
+        o = fmt_time(open_t)
+        c = fmt_time(close)
+        if not o and not c:
+            continue
+        if o and c:
+            lines.append(f"{label}: {o}–{c}")
+        else:
+            lines.append(f"{label}: {o or c}")
+    return lines
+
+
 def _fsq_weekday_text(hours_obj: Dict[str, Any]) -> Optional[List[str]]:
     if not isinstance(hours_obj, dict):
         return None
     display = hours_obj.get("display")
     if isinstance(display, list):
         out = [str(x) for x in display if str(x).strip()]
-        return out or None
+        if out:
+            return out
     if isinstance(display, str) and display.strip():
         return [display.strip()]
+    regular = hours_obj.get("regular")
+    if isinstance(regular, list) and regular:
+        out = _fsq_format_regular_hours(regular)
+        return out or None
     return None
 
 
@@ -562,6 +612,80 @@ async def _fetch_overpass(client: httpx.AsyncClient, lat: float, lng: float) -> 
     return []
 
 
+async def _enrich_nominatim_rows_opening_hours(
+    client: httpx.AsyncClient,
+    rows: List[Dict[str, Any]],
+) -> None:
+    """Fill weekday_text from Overpass using Nominatim osm ids (opening_hours tag)."""
+    need: List[Dict[str, Any]] = []
+    for r in rows:
+        oid = r.get("_osm_id")
+        otype = (r.get("_osm_type") or "").lower()
+        if oid is None or otype not in ("node", "way", "relation"):
+            continue
+        need.append(r)
+    if not need:
+        for r in rows:
+            r.pop("_osm_type", None)
+            r.pop("_osm_id", None)
+        return
+
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    chunk_size = 18
+    for off in range(0, len(need), chunk_size):
+        chunk = need[off : off + chunk_size]
+        parts: List[str] = []
+        for r in chunk:
+            try:
+                oid = int(r["_osm_id"])
+            except (TypeError, ValueError):
+                continue
+            otype = str(r["_osm_type"]).lower()
+            if otype == "node":
+                parts.append(f"node({oid});")
+            elif otype == "way":
+                parts.append(f"way({oid});")
+            elif otype == "relation":
+                parts.append(f"relation({oid});")
+        if not parts:
+            continue
+        q = f"[out:json][timeout:25];\n({''.join(parts)});\nout tags;"
+        data: Optional[Dict[str, Any]] = None
+        for url in OVERPASS_ENDPOINTS:
+            try:
+                resp = await client.post(url, data={"data": q}, headers=headers, timeout=40.0)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                logger.debug("[nearby-osm] enrich hours %s: %s", url, e)
+                continue
+        if not data:
+            continue
+        by_key: Dict[str, Dict[str, Any]] = {}
+        for el in data.get("elements") or []:
+            typ = el.get("type")
+            eid = el.get("id")
+            if typ and eid is not None:
+                by_key[f"{typ}_{eid}"] = el.get("tags") or {}
+        for r in chunk:
+            try:
+                oid = int(r["_osm_id"])
+            except (TypeError, ValueError):
+                continue
+            otype = str(r["_osm_type"]).lower()
+            tags = by_key.get(f"{otype}_{oid}")
+            if not tags:
+                continue
+            oh = str(tags.get("opening_hours") or "").strip()
+            if oh:
+                r["weekday_text"] = _beautify_osm_opening_hours(oh)
+
+    for r in rows:
+        r.pop("_osm_type", None)
+        r.pop("_osm_id", None)
+
+
 async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: float) -> List[Dict[str, Any]]:
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     # ~10-15km bounding box to keep results relevant
@@ -612,13 +736,17 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
                         "weekday_text": None,
                         "reviews": [],
                         "business_status": None,
+                        "_osm_type": it.get("osm_type"),
+                        "_osm_id": it.get("osm_id"),
                     }
                 )
         except Exception as e:
             logger.warning("[nearby-nominatim] keyword failed %r: %s", kw, e)
 
     rows.sort(key=lambda x: x["distance_km"])
-    return _limit_to_nearby_radius(rows)
+    rows = _limit_to_nearby_radius(rows)
+    await _enrich_nominatim_rows_opening_hours(client, rows)
+    return rows
 
 
 async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]:
