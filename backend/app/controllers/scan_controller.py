@@ -9,11 +9,13 @@ class ScanController:
 
     async def get_scan_history(self, user_id: int):
         """Retrieves the complete scan history and statistics for a user."""
-        return self.scan_service.get_history(user_id)
+        import anyio
+        return await anyio.to_thread.run_sync(self.scan_service.get_history, user_id)
 
     async def delete_scan_record(self, scan_id: int, user_id: int):
         """Deletes a specific scan record from the user's history."""
-        result = self.scan_service.delete_record(scan_id, user_id)
+        import anyio
+        result = await anyio.to_thread.run_sync(self.scan_service.delete_record, scan_id, user_id)
         if not result["success"]:
             raise HTTPException(status_code=404, detail=result.get("error"))
         return result
@@ -22,4 +24,5 @@ class ScanController:
         """Updates or saves the user's current geographic location for specialist search."""
         if lat is None or lng is None:
             raise HTTPException(status_code=400, detail="Latitude and Longitude are required.")
-        return self.scan_service.save_location(user_id, lat, lng, location_name)
+        import anyio
+        return await anyio.to_thread.run_sync(self.scan_service.save_location, user_id, lat, lng, location_name)

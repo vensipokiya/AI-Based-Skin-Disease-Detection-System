@@ -19,8 +19,13 @@ class PredictController:
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
 
         try:
+            # AI Inference and DB Persistence are blocking, offload to threads
+            import anyio
+            
             image_bytes = await file.read()
-            prediction_result = self.predict_service.predict(image_bytes)
+            prediction_result = await anyio.to_thread.run_sync(
+                self.predict_service.predict, image_bytes
+            )
             
             # Combine result for response
             response = prediction_result.copy()
@@ -28,7 +33,8 @@ class PredictController:
 
             # Persist to DB if user is logged in
             if current_user_id and current_user_id > 0:
-                self.scan_service.save_scan(
+                await anyio.to_thread.run_sync(
+                    self.scan_service.save_scan,
                     current_user_id, 
                     response["disease"], 
                     response["confidence"], 
@@ -38,4 +44,7 @@ class PredictController:
 
             return response
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+            # Log the full error internally but return a clean message
+            from ..utils.logger import get_logger
+            get_logger(__name__).error(f"Inference Failure: {str(e)}")
+            raise HTTPException(status_code=500, detail="An error occurred during image processing.")

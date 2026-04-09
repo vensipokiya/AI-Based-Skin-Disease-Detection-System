@@ -20,7 +20,7 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception:
-                # Handle cases where connection might have closed abruptly
-                pass
+                # Connection might have closed abruptly. 
+                continue
 
 manager = ConnectionManager()

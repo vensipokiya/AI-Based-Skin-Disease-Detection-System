@@ -144,24 +144,22 @@ class UserDao:
             return False
 
     def get_or_create_oauth_user(self, provider: str, provider_id: str, email: str, first_name: str, last_name: str, profile_image: str = None) -> Optional[Dict[str, Any]]:
+        # Whitelist providers to prevent SQL injection in column names
+        allowed_providers = ["google", "github", "apple", "facebook"]
+        if provider.lower() not in allowed_providers:
+            logger.error(f"Invalid OAuth provider attempt: {provider}")
+            return None
+        
+        provider = provider.lower()
+        id_col = f"{provider}_id"
+
         try:
             with self.db.cursor(dictionary=True, commit=True) as cursor:
-                # Ensure necessary columns exist (Safe Migrations)
-                cursor.execute("SHOW COLUMNS FROM users LIKE 'profile_image'")
-                if not cursor.fetchone():
-                    cursor.execute("ALTER TABLE users ADD COLUMN profile_image TEXT DEFAULT NULL")
-                
-                cursor.execute("SHOW COLUMNS FROM users LIKE 'auth_provider'")
-                if not cursor.fetchone():
-                    cursor.execute("ALTER TABLE users ADD COLUMN auth_provider VARCHAR(50) DEFAULT NULL")
-                
-                id_col = f"{provider}_id"
-                cursor.execute("SHOW COLUMNS FROM users LIKE %s", (id_col,))
-                if not cursor.fetchone():
-                    cursor.execute(f"ALTER TABLE users ADD COLUMN {id_col} VARCHAR(255) DEFAULT NULL")
-
                 # 1. Try to find by provider_id
-                cursor.execute(f"SELECT * FROM users WHERE {id_col} = %s", (provider_id,))
+                # Note: Parameters are only for values, not identifiers. 
+                # Whitelisting above makes the identifier safe.
+                query = f"SELECT * FROM users WHERE {id_col} = %s"
+                cursor.execute(query, (provider_id,))
                 user = cursor.fetchone()
 
                 if not user:
@@ -171,13 +169,15 @@ class UserDao:
 
                     if user:
                         # Link existing account
-                        cursor.execute(f"UPDATE users SET {id_col}=%s, auth_provider=%s, profile_image=%s WHERE id=%s", (provider_id, provider, profile_image, user["id"]))
+                        update_query = f"UPDATE users SET {id_col}=%s, auth_provider=%s, profile_image=%s WHERE id=%s"
+                        cursor.execute(update_query, (provider_id, provider, profile_image, user["id"]))
                     else:
                         # 3. Create new user
-                        cursor.execute(f"""
+                        insert_query = f"""
                             INSERT INTO users (first_name, last_name, email, password_hash, {id_col}, auth_provider, profile_image, role)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (first_name, last_name, email, f"{provider}_oauth_token", provider_id, provider, profile_image, "User"))
+                        """
+                        cursor.execute(insert_query, (first_name, last_name, email, f"{provider}_oauth_token", provider_id, provider, profile_image, "User"))
                         user_id = cursor.lastrowid
                         cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
                         user = cursor.fetchone()

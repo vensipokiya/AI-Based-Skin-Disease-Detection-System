@@ -33,18 +33,25 @@ async def delete_record(table: str, id: int, admin: dict = Depends(admin_require
     if table not in _ALLOWED_TABLES:
         raise HTTPException(status_code=400, detail="Invalid table")
 
-    conn = db_singleton.get_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail=DB_CONN_ERROR)
+    def _do_delete():
+        conn = db_singleton.get_connection()
+        if not conn:
+            raise Exception(DB_CONN_ERROR)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"DELETE FROM {table} WHERE id=%s", (id,))
+            conn.commit()
+        except mysql.connector.Error as err:
+            conn.rollback()
+            raise err
+        finally:
+            conn.close()
+
+    import anyio
     try:
-        cursor = conn.cursor()
-        cursor.execute(f"DELETE FROM {table} WHERE id=%s", (id,))  # noqa: S608 - table is allowlisted above
-        conn.commit()
-    except mysql.connector.Error as err:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(err)) from err
-    finally:
-        conn.close()
+        await anyio.to_thread.run_sync(_do_delete)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database deletion failed.")
 
     await manager.broadcast({"action": "delete", "table": table, "id": id})
     return {"status": "success", "message": "Deleted successfully"}
