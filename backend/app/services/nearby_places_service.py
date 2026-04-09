@@ -52,12 +52,14 @@ def _place_to_row(
     dist = haversine_km(origin_lat, origin_lng, float(plat), float(plng))
     addr = result.get("vicinity") or result.get("formatted_address") or ""
     rating = result.get("rating")
+    dkm = round(dist, 2)
     return {
         "name": result.get("name") or "Unknown clinic",
         "rating": float(rating) if rating is not None else None,
         "user_ratings_total": result.get("user_ratings_total"),
         "address": addr,
-        "distance_km": round(dist, 2),
+        "distance_km": dkm,
+        "distance": dkm,
         "lat": float(plat),
         "lng": float(plng),
         "place_id": result.get("place_id"),
@@ -131,13 +133,15 @@ def _mock_results(lat: float, lng: float, count: int = 20) -> List[Dict[str, Any
         dlng = random.uniform(-0.04, 0.04)
         plat, plng = lat + dlat, lng + dlng
         dist = haversine_km(lat, lng, plat, plng)
+        dkm = round(dist, 2)
         out.append(
             {
                 "name": f"{labels[i % len(labels)]} #{i + 1}",
                 "rating": round(3.8 + random.random() * 1.1, 1),
                 "user_ratings_total": random.randint(12, 420),
                 "address": "Demo data — set GOOGLE_PLACES_API_KEY for live Google Places results",
-                "distance_km": round(dist, 2),
+                "distance_km": dkm,
+                "distance": dkm,
                 "lat": plat,
                 "lng": plng,
                 "place_id": f"mock_{i}",
@@ -147,14 +151,26 @@ def _mock_results(lat: float, lng: float, count: int = 20) -> List[Dict[str, Any
     return out
 
 
-async def fetch_nearby_dermatologists(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]:
+async def fetch_nearby_dermatologists(
+    lat: float,
+    lng: float,
+    *,
+    allow_mock_fallback: bool = False,
+) -> Tuple[List[Dict[str, Any]], str]:
     """
-    Returns (results, source) where source is 'google_places', 'mock', or 'google_places+padded_mock'.
+    Returns (results, source).
+
+    source values:
+      - google_places: real results from Google (possibly < 20 in sparse areas)
+      - mock / google_places+padded_mock: only if allow_mock_fallback=True
+      - error_no_key, error_zero_results, error_api: real-only mode (empty list)
     """
     api_key = (settings.GOOGLE_PLACES_API_KEY or "").strip()
     if not api_key:
-        logger.warning("[nearby-places] GOOGLE_PLACES_API_KEY missing — returning %s mock results", MIN_RESULTS_TARGET)
-        return _mock_results(lat, lng, MIN_RESULTS_TARGET), "mock"
+        logger.warning("[nearby-places] GOOGLE_PLACES_API_KEY missing")
+        if allow_mock_fallback:
+            return _mock_results(lat, lng, MIN_RESULTS_TARGET), "mock"
+        return [], "error_no_key"
 
     seen_ids: Set[str] = set()
     merged_raw: List[Dict[str, Any]] = []
@@ -190,17 +206,15 @@ async def fetch_nearby_dermatologists(lat: float, lng: float) -> Tuple[List[Dict
         rows.sort(key=lambda x: x["distance_km"])
 
         if not rows:
-            logger.warning("[nearby-places] Zero parsed rows from Google — mock fallback")
-            return _mock_results(lat, lng, MIN_RESULTS_TARGET), "mock"
+            logger.warning("[nearby-places] Zero parsed rows from Google")
+            if allow_mock_fallback:
+                return _mock_results(lat, lng, MIN_RESULTS_TARGET), "mock"
+            return [], "error_zero_results"
 
         if len(rows) < 15:
-            logger.warning(
-                "[nearby-places] Only %s results after all radii/keywords — padding with mock to reach %s",
-                len(rows),
-                MIN_RESULTS_TARGET,
-            )
+            logger.warning("[nearby-places] Only %s Google results (sparse area or restrictive queries)", len(rows))
 
-        if len(rows) < MIN_RESULTS_TARGET:
+        if len(rows) < MIN_RESULTS_TARGET and allow_mock_fallback:
             mocks = _mock_results(lat, lng, MIN_RESULTS_TARGET - len(rows) + 5)
             existing = {(round(x["lat"], 5), round(x["lng"], 5)) for x in rows}
             for m in mocks:
@@ -212,11 +226,14 @@ async def fetch_nearby_dermatologists(lat: float, lng: float) -> Tuple[List[Dict
                 if len(rows) >= MIN_RESULTS_TARGET:
                     break
             rows.sort(key=lambda x: x["distance_km"])
-            return rows[: max(MIN_RESULTS_TARGET, len(rows))], "google_places+padded_mock"
+            logger.info("[nearby-places] final_count=%s (google_places+padded_mock)", len(rows))
+            return rows[:MIN_RESULTS_TARGET], "google_places+padded_mock"
 
         logger.info("[nearby-places] final_count=%s (google_places)", len(rows))
-        return rows[:50], "google_places"
+        return rows[:MIN_RESULTS_TARGET], "google_places"
 
     except Exception as e:
-        logger.exception("[nearby-places] API failure, using mock fallback: %s", e)
-        return _mock_results(lat, lng, MIN_RESULTS_TARGET), "mock"
+        logger.exception("[nearby-places] API failure: %s", e)
+        if allow_mock_fallback:
+            return _mock_results(lat, lng, MIN_RESULTS_TARGET), "mock"
+        return [], "error_api"

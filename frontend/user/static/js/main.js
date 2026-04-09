@@ -777,19 +777,30 @@ let _nearbyMapMoveTimer = null;
 let _lastNearbyMapCenter = null;
 let _suppressNearbyMapSearchUntil = 0;
 
-/** Normalize /api/nearby-dermatologists (Google Places) into legacy render shape */
+function escHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"/g, '&quot;');
+}
+
+/** Normalize /api/nearby (Google Places) into legacy render shape */
 function normalizeDoctorPlace(p) {
     if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
         const lon = p.lng != null ? p.lng : p.lon;
+        const dist = typeof p.distance_km === 'number'
+            ? p.distance_km
+            : (p.distance != null ? parseFloat(String(p.distance)) : parseFloat(String(p.distance_km)));
         return {
             tags: { name: p.name },
             lat: +p.lat,
             lon: +lon,
-            distance: typeof p.distance_km === 'number' ? p.distance_km : parseFloat(String(p.distance_km)),
+            distance: Number.isFinite(dist) ? dist : 0,
             street: p.address || '',
             city: '',
             _apiRating: p.rating,
             _userRatingsTotal: p.user_ratings_total,
+            _placeId: p.place_id || null,
             _fromPlacesApi: true
         };
     }
@@ -1142,13 +1153,46 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
     }
 
     try {
-        const res = await fetch(`${API_URL}/api/nearby-dermatologists?lat=${lat}&lng=${lng}`);
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const doctors = await res.json();
-        console.log('[nearby] /api/nearby-dermatologists response length:', Array.isArray(doctors) ? doctors.length : 0);
+        const res = await fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}`);
+        const doctors = await res.json().catch(() => null);
+        if (!res.ok) {
+            const msg = (doctors && doctors.detail) ? doctors.detail : `Server error ${res.status}`;
+            console.error('[nearby] /api/nearby failed:', msg);
+            if (listEl) {
+                const hint = document.getElementById('location-accuracy-hint');
+                const hintHtml = hint ? hint.outerHTML : '';
+                const safeMsg = typeof msg === 'string' ? escHtml(msg) : escHtml('Set GOOGLE_PLACES_API_KEY in backend/.env, enable Places API and billing in Google Cloud.');
+                listEl.innerHTML = hintHtml + `
+                    <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
+                        <h3 style="color:#991b1b;margin-bottom:0.75rem;">Google Places not available</h3>
+                        <p style="color:#7f1d1d;font-size:0.9rem;line-height:1.5;">${safeMsg}</p>
+                        <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                            <i class="fab fa-google"></i> Open Google Maps
+                        </a>
+                    </div>`;
+            }
+            return;
+        }
+        console.log('[nearby] /api/nearby response length:', Array.isArray(doctors) ? doctors.length : 0);
 
         if (!doctors || doctors.length === 0) {
-            searchOverpassInBackground(lat, lng, listEl, '', []);
+            if (listEl) {
+                const hint = document.getElementById('location-accuracy-hint');
+                const hintHtml = hint ? hint.outerHTML : '';
+                listEl.innerHTML = hintHtml + `
+                    <div style="text-align:center;padding:2rem;background:#fffbeb;border:1px solid #fde68a;border-radius:16px;margin:0.5rem;">
+                        <h3 style="color:#92400e;margin-bottom:0.75rem;">No places in this area</h3>
+                        <p style="color:#78350f;font-size:0.9rem;line-height:1.5;">Google returned no dermatology listings for this map center. Try moving the map or searching another city.</p>
+                        <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                            <i class="fab fa-google"></i> Search on Google Maps
+                        </a>
+                    </div>`;
+            }
+            if (leafletMap) {
+                leafletMap.eachLayer(layer => {
+                    if (layer instanceof L.Marker && layer !== userMarker) leafletMap.removeLayer(layer);
+                });
+            }
             return;
         }
 
@@ -1160,77 +1204,19 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
             _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
         }
     } catch (err) {
-        console.error('Backend nearby-dermatologists failed:', err);
-        searchOverpassInBackground(lat, lng, listEl, '', []);
-    }
-}
-
-// Runs Overpass API in background — updates list if better results found
-async function searchOverpassInBackground(lat, lng, listEl, cacheKey, existingPlaces) {
-    const endpoints = [
-        'https://overpass-api.de/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter',
-        'https://lz4.overpass-api.de/api/interpreter'
-    ];
-
-    async function fetchFromOverpass(q) {
-        const queryData = "?data=" + encodeURIComponent(q);
-        const promises = endpoints.map(url =>
-            fetch(url + queryData, { method: 'GET', headers: { 'Accept': 'application/json' } })
-                .then(res => res.ok ? res.json() : null)
-                .catch(() => null)
-        );
-        const results = await Promise.all(promises);
-        for (const data of results) {
-            if (data && data.elements && data.elements.length > 0) {
-                return data.elements.filter(p => p.tags && p.tags.name);
-            }
+        console.error('Backend /api/nearby failed:', err);
+        if (listEl) {
+            const hint = document.getElementById('location-accuracy-hint');
+            const hintHtml = hint ? hint.outerHTML : '';
+            listEl.innerHTML = hintHtml + `
+                <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
+                    <h3 style="color:#991b1b;margin-bottom:0.75rem;">Could not load nearby places</h3>
+                    <p style="color:#7f1d1d;font-size:0.9rem;">Check that the backend is running and GOOGLE_PLACES_API_KEY is set.</p>
+                    <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:1rem;display:inline-flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                        <i class="fab fa-google"></i> Open Google Maps
+                    </a>
+                </div>`;
         }
-        return [];
-    }
-
-    try {
-        const q = `[out:json][timeout:30];
-            (
-              nwr["healthcare:speciality"~"dermatology|skin|aesthetic|cosmetic|laser",i](around:15000,${lat},${lng});
-              nwr["speciality"~"dermatology|skin|aesthetic|cosmetic|laser",i](around:15000,${lat},${lng});
-              nwr["name"~"Derma|Skin|Clinic|Dermatology|Cosmetic|Aesthetic|Laser|Dr\\.",i](around:15000,${lat},${lng});
-              nwr["healthcare"="doctor"]["name"~"Skin|Derma",i](around:15000,${lat},${lng});
-              nwr["amenity"="doctors"]["name"~"Skin|Derma",i](around:15000,${lat},${lng});
-              nwr["healthcare"="clinic"]["name"~"Skin|Derma",i](around:15000,${lat},${lng});
-            );
-            out center body;`;
-        const apiResults = await fetchFromOverpass(q);
-
-        if (apiResults.length === 0) return; // No better data, keep existing
-
-        // Merge API results with existing
-        const seenNames = new Set(existingPlaces.map(p => (p.tags?.name || '').toLowerCase()));
-        let merged = [...existingPlaces];
-
-        apiResults.forEach(p => {
-            const name = p.tags?.name;
-            if (!name || seenNames.has(name.toLowerCase())) return;
-            seenNames.add(name.toLowerCase());
-            merged.push({
-                ...p,
-                lat: p.lat || p.center?.lat,
-                lon: p.lon || p.center?.lon
-            });
-        });
-
-        merged = merged.filter(p => p.lat && p.lon);
-        merged.forEach(p => p.distance = parseFloat(getDistanceKm(lat, lng, p.lat, p.lon)));
-        merged.sort((a, b) => a.distance - b.distance);
-        merged = merged.slice(0, 25);
-
-        // Only update UI if we got MORE results than what's already shown
-        if (merged.length > existingPlaces.length) {
-            sessionStorage.setItem(cacheKey, JSON.stringify(merged));
-            renderDermatologistList(merged, listEl, lat, lng);
-        }
-    } catch (e) {
-        // Silent fail — existing list stays visible
     }
 }
 
@@ -1242,16 +1228,16 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         if (listEl) listEl.innerHTML = `
             <div style="text-align: center; padding: 4rem 1.5rem; background: #fff; border-radius: 16px; border: 1px dashed #ced4da; margin: 1rem;">
                 <div style="font-size: 3.5rem; margin-bottom: 2rem;">🔍</div>
-                <h3 style="margin-bottom: 1rem; color: #3c4043; font-weight: 500;">No Specialized Skin Clinics Found</h3>
+                <h3 style="margin-bottom: 1rem; color: #3c4043; font-weight: 500;">No listings to show</h3>
                 <p style="color: #70757a; margin-bottom: 2.5rem; font-size: 0.95rem; line-height: 1.5;">
-                    We couldn't find a dedicated dermatologist in the OpenStreetMap database within 10km of your location. 
+                    Try panning the map or searching another area.
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},13z" target="_blank" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                    <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},13z" target="_blank" rel="noopener" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
                         <i class="fab fa-google"></i> Search on Google Maps
                     </a>
-                    <button class="btn btn-secondary" onclick="window.location.reload()" style="border-radius: 24px; padding: 0.8rem 2rem;">
-                        <i class="fas fa-redo"></i> Retry Deep Search
+                    <button type="button" class="btn btn-secondary" onclick="window.location.reload()" style="border-radius: 24px; padding: 0.8rem 2rem;">
+                        <i class="fas fa-redo"></i> Retry
                     </button>
                 </div>
             </div>`;
@@ -1281,42 +1267,118 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
     finalPlaces.forEach((place, index) => {
         const name = place.tags.name;
         const operator = place.tags.operator || place.tags['contact:person'] || "";
-        // Support both backend proxy format (top-level city/street) and Overpass format (tags)
         const city = place.city || place.tags['addr:city'] || place.tags['addr:suburb'] || "";
         const street = place.street || place.tags['addr:street'] || place.tags['addr:housenumber'] || "";
         const address = street ? `${street}${city ? ", " + city : ""}` : (city || "Location available on map");
-        const phone = place.tags.phone || place.tags['contact:phone'] || "";
         const distance = place.distance;
+        const seed = (name && name.length) ? name.length + index : index;
+        const fromGoogle = !!place._fromPlacesApi;
 
-        const seed = name.length + index;
-        const rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
-            ? Number(place._apiRating).toFixed(1)
-            : (4.5 + (seed % 6) / 10).toFixed(1);
-        const reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
-            ? place._userRatingsTotal
-            : (20 + (seed * 7 % 480));
-        const reviewText = mockReviews[seed % mockReviews.length];
+        let rating;
+        let reviewCount;
+        let reviewText;
+        let statusColor;
+        let isOpen;
+        let openHour;
+        let closeHour;
+        let doctorDisplay;
+        let clinicDisplay;
+        let midBlockHtml;
+        let hoursRowHtml;
+        let googlePlaceUrl = '';
 
-        // Mock Timings
-        const hour = new Date().getHours();
-        const openHour = 8 + (seed % 2);
-        const closeHour = 18 + (seed % 4);
-        const isOpen = hour >= openHour && hour < closeHour;
-        const statusColor = isOpen ? "#1e8e3e" : "#d93025";
+        if (fromGoogle) {
+            rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
+                ? Number(place._apiRating).toFixed(1)
+                : '—';
+            reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
+                ? place._userRatingsTotal
+                : null;
+            reviewText = '';
+            doctorDisplay = name.length > 40 ? name.substring(0, 40) + '…' : name;
+            clinicDisplay = 'Google Places · Skin specialist';
+            midBlockHtml = `
+                <div style="background: #eff6ff; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #bfdbfe;">
+                    <p style="color: #1e40af; font-size: 0.85rem; margin: 0; line-height: 1.5;">
+                        <i class="fab fa-google" style="margin-right: 6px;"></i>
+                        Ratings and hours come from Google. Open the listing for full details.
+                    </p>
+                </div>`;
+            hoursRowHtml = `
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
+                        <span style="color: #64748b;">See Google Maps for opening hours</span>
+                    </div>`;
+            if (place._placeId) {
+                googlePlaceUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(place._placeId)}`;
+            }
+        } else {
+            rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
+                ? Number(place._apiRating).toFixed(1)
+                : (4.5 + (seed % 6) / 10).toFixed(1);
+            reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
+                ? place._userRatingsTotal
+                : (20 + (seed * 7 % 480));
+            reviewText = mockReviews[seed % mockReviews.length];
+            const hour = new Date().getHours();
+            openHour = 8 + (seed % 2);
+            closeHour = 18 + (seed % 4);
+            isOpen = hour >= openHour && hour < closeHour;
+            statusColor = isOpen ? "#1e8e3e" : "#d93025";
+            doctorDisplay = operator ? `Dr. ${operator}` : (name.length > 25 ? name.substring(0, 25) + '...' : name);
+            clinicDisplay = operator ? name : (name.includes('Dr.') ? "Dermatology Clinic" : name);
+            midBlockHtml = `
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; position: relative;">
+                    <i class="fas fa-quote-left" style="position: absolute; top: 10px; right: 10px; color: #cbd5e1; font-size: 1.5rem; opacity: 0.4;"></i>
+                    <p style="color: #475569; font-style: italic; font-size: 0.85rem; margin: 0; line-height: 1.5; padding-right: 20px;">
+                        "${escHtml(reviewText)}"
+                    </p>
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: #94a3b8; font-weight: 600;">— Sample review (illustrative)</div>
+                </div>`;
+            hoursRowHtml = `
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
+                        <span style="color: ${statusColor === '#1e8e3e' ? '#10b981' : '#ef4444'}; font-weight: 600;">${isOpen ? 'Open Now' : 'Closed'}</span>
+                        <span style="color: #94a3b8;">•</span>
+                        <span style="color: #64748b;">${isOpen ? 'Closes ' + closeHour + ':00' : 'Opens ' + openHour + ':00'}</span>
+                    </div>`;
+        }
 
-        const doctorDisplay = operator ? `Dr. ${operator}` : (name.length > 25 ? name.substring(0, 25) + '...' : name);
-        const clinicDisplay = operator ? name : (name.includes('Dr.') ? "Dermatology Clinic" : name);
+        const popupRatingLine = fromGoogle
+            ? `⭐ ${rating}${reviewCount != null ? ` · ${reviewCount} reviews` : ''}`
+            : `⭐ ${rating} (${reviewCount} reviews)`;
 
-        // Add marker to map
+        const ed = escHtml(doctorDisplay);
+        const ec = escHtml(clinicDisplay);
+        const ea = escHtml(address);
+
         L.marker([place.lat, place.lon], { icon: doctorIcon })
             .addTo(leafletMap)
             .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
-                            <strong style="color:#2563eb">${doctorDisplay}</strong><br>
-                            <span style="font-size:0.8rem;color:#64748b">${clinicDisplay}</span><br>
-                            <span style="font-size:0.85rem">⭐ ${rating} (${reviewCount} reviews)</span>
+                            <strong style="color:#2563eb">${ed}</strong><br>
+                            <span style="font-size:0.8rem;color:#64748b">${ec}</span><br>
+                            <span style="font-size:0.85rem">${popupRatingLine}</span>
                         </div>`);
 
         if (listEl) {
+            const bookPayload = {
+                name: doctorDisplay,
+                clinic: clinicDisplay,
+                typeLabel: 'Skin Specialist',
+                rating,
+                reviews: reviewCount,
+                review: fromGoogle ? '' : reviewText,
+                address,
+                distance,
+                isSpecialist: true,
+                placeId: place._placeId || null
+            };
+            const bookOnclick = `checkLoginAndBook('${encodeURIComponent(JSON.stringify(bookPayload)).replace(/'/g, "%27")}')`;
+
+            const googleBtn = googlePlaceUrl
+                ? `<a href="${googlePlaceUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #4285f4;" title="Open in Google Maps"><i class="fab fa-google"></i></a>`
+                : '';
+
             listEl.innerHTML += `
             <div class="doctor-card" style="display: flex; flex-direction: column; padding: 1.5rem; background: #fff; border-radius: 16px; margin-bottom: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
                 
@@ -1327,54 +1389,34 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     
                     <div style="flex: 1; min-width: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-                            <h3 style="color: #0f172a; margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.2;">${doctorDisplay}</h3>
+                            <h3 style="color: #0f172a; margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.2;">${ed}</h3>
                             <div style="display: flex; align-items: center; background: #fefce8; padding: 4px 8px; border-radius: 6px; border: 1px solid #fef08a;">
                                 <i class="fas fa-star" style="color: #eab308; font-size: 0.8rem; margin-right: 4px;"></i>
                                 <span style="color: #854d0e; font-weight: 700; font-size: 0.85rem;">${rating}</span>
                             </div>
                         </div>
-                        <p style="color: #2563eb; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">${clinicDisplay}</p>
+                        <p style="color: #2563eb; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">${ec}</p>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-bottom: 1.25rem;">
-                    <div style="display: flex; items: center; gap: 8px; color: #64748b; font-size: 0.85rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px; color: #64748b; font-size: 0.85rem;">
                         <i class="fas fa-map-marker-alt" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="line-height: 1.4;">${address} <strong>(${distance} km)</strong></span>
+                        <span style="line-height: 1.4;">${ea} <strong>(${typeof distance === 'number' ? distance.toFixed(2) : distance} km)</strong></span>
                     </div>
-                    <div style="display: flex; items: center; gap: 8px; font-size: 0.85rem;">
-                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="color: ${statusColor === '#1e8e3e' ? '#10b981' : '#ef4444'}; font-weight: 600;">${isOpen ? 'Open Now' : 'Closed'}</span>
-                        <span style="color: #94a3b8;">•</span>
-                        <span style="color: #64748b;">${isOpen ? 'Closes ' + closeHour + ':00' : 'Opens ' + openHour + ':00'}</span>
-                    </div>
+                    ${hoursRowHtml}
                 </div>
 
-                <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; position: relative;">
-                    <i class="fas fa-quote-left" style="position: absolute; top: 10px; right: 10px; color: #cbd5e1; font-size: 1.5rem; opacity: 0.4;"></i>
-                    <p style="color: #475569; font-style: italic; font-size: 0.85rem; margin: 0; line-height: 1.5; padding-right: 20px;">
-                        "${reviewText}"
-                    </p>
-                    <div style="margin-top: 8px; font-size: 0.75rem; color: #94a3b8; font-weight: 600;">— Verified Patient</div>
-                </div>
+                ${midBlockHtml}
                 
-                <div style="display: flex; gap: 0.75rem;">
-                    <button onclick="checkLoginAndBook('${encodeURIComponent(JSON.stringify({
-                name: doctorDisplay,
-                clinic: clinicDisplay,
-                typeLabel: 'Skin Specialist',
-                rating,
-                reviews: reviewCount,
-                review: reviewText,
-                address,
-                distance,
-                isSpecialist: true
-            })).replace(/'/g, "%27")}')" class="btn btn-primary" style="flex: 2; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600;">
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600;">
                         <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
                     </button>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;">
                         <i class="fas fa-directions"></i>
                     </a>
+                    ${googleBtn}
                 </div>
             </div>`;
         }
