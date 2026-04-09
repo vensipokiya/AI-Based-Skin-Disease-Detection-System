@@ -37,11 +37,13 @@ async def forgot_reset_password(data: ForgotPasswordResetRequest):
 
 @router.post("/google")
 async def google_auth(data: dict, request: Request):
-    return auth_controller.google_auth(request, data.get("token"))
+    """Processes Google OAuth tokens for login."""
+    return await auth_controller.google_auth(request, data)
 
 @router.post("/apple")
 async def apple_auth(data: dict, request: Request):
-    return auth_controller.apple_auth(request, data.get("token"), data.get("user"))
+    """Processes Apple OAuth tokens and user info for login."""
+    return await auth_controller.apple_auth(request, data)
 
 @router.get("/google/login")
 async def google_login(request: Request):

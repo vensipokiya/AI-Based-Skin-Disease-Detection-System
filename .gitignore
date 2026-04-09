@@ -56,6 +56,17 @@ desktop.ini
 backend/app/uploads/user_uploads/*
 !backend/app/uploads/user_uploads/.gitkeep
 
+# Legacy Redundant Folders (to be excluded from analysis)
+backend/api/
+backend/config/
+backend/core/
+backend/dao/
+backend/db/
+backend/models/
+backend/services/
+backend/utils/
+backend/logs/
+
 # Scratch and Temporary
 /tmp/
 .gemini/
@@ -89,6 +100,4 @@ backend/app/uploads/user_uploads/*
 /routes/
 /database/
 /logs/
-/tmp/
 *.ipynb
-"olved conflicts after force pull"

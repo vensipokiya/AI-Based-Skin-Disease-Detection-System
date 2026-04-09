@@ -16,6 +16,40 @@ window.DermaUtils = {
     hide: (id) => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); },
     show: (id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); },
 
+    /**
+     * Swaps visibility between main tabs and updates button state.
+     * @param {string} tabId - The ID of the tab content to show.
+     * @param {HTMLElement} btn - The button element that was clicked.
+     */
+    switchMainTab: (tabId, btn) => {
+        // Hide all tab content
+        document.querySelectorAll('.main-tab-content').forEach(el => {
+            el.classList.add('hidden');
+            el.classList.remove('fade-in');
+        });
+        
+        // Show the selected tab
+        const target = document.getElementById(tabId);
+        if (target) {
+            target.classList.remove('hidden');
+            target.classList.add('fade-in');
+        }
+
+        // Update button styles
+        document.querySelectorAll('.tab-btn-main').forEach(el => {
+            el.className = 'btn btn-secondary tab-btn-main';
+            el.style.background = 'transparent';
+            el.style.color = 'var(--text-light)';
+            el.style.boxShadow = 'none';
+        });
+
+        // Set active button
+        btn.className = 'btn btn-primary tab-btn-main active';
+        btn.style.background = 'linear-gradient(135deg, var(--primary-color), var(--accent-color))';
+        btn.style.color = 'var(--white)';
+        btn.style.boxShadow = 'var(--shadow-md)';
+    },
+
     // ── UI Components ──
     togglePasswordVisibility: function (inputId, btn) {
         const input = document.getElementById(inputId);

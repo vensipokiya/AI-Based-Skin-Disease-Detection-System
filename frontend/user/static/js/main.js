@@ -229,7 +229,7 @@ async function startCamera() {
         videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         video.srcObject = videoStream;
         video.style.display = 'block';
-        
+
         // Ensure video plays
         await video.play();
 
@@ -481,7 +481,7 @@ function displayResult(data) {
             const isPrimary = index === 0;
             const barMaxWidth = 100;
             const widthPct = (item.confidence / 100) * barMaxWidth;
-            
+
             // Generate modern pill-based breakdown
             listEl.innerHTML += `
             <div style="padding: 0.6rem 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; border-bottom: 1px solid #f1f5f9;">
@@ -773,6 +773,28 @@ async function finalizeBooking() {
 let mapLoaded = false;
 let leafletMap = null;
 let userMarker = null;   // draggable / click-set marker
+let _nearbyMapMoveTimer = null;
+let _lastNearbyMapCenter = null;
+let _suppressNearbyMapSearchUntil = 0;
+
+/** Normalize /api/nearby-dermatologists (Google Places) into legacy render shape */
+function normalizeDoctorPlace(p) {
+    if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
+        const lon = p.lng != null ? p.lng : p.lon;
+        return {
+            tags: { name: p.name },
+            lat: +p.lat,
+            lon: +lon,
+            distance: typeof p.distance_km === 'number' ? p.distance_km : parseFloat(String(p.distance_km)),
+            street: p.address || '',
+            city: '',
+            _apiRating: p.rating,
+            _userRatingsTotal: p.user_ratings_total,
+            _fromPlacesApi: true
+        };
+    }
+    return p;
+}
 
 // ──── Initialise map & get user location ────────────────────────────────────
 function loadGoogleMapsNearby() {
@@ -833,7 +855,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     // Create / recreate map
     if (leafletMap) { leafletMap.remove(); leafletMap = null; }
     leafletMap = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
-    
+
     // Add zoom control top right
     L.control.zoom({ position: 'topright' }).addTo(leafletMap);
 
@@ -849,7 +871,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
         iconSize: [24, 24], iconAnchor: [12, 12]
     });
 
-    if (userMarker) { try { leafletMap.removeLayer(userMarker); } catch(e){} }
+    if (userMarker) { try { leafletMap.removeLayer(userMarker); } catch (e) { } }
     userMarker = L.marker([lat, lng], { icon: userIcon, draggable: true })
         .addTo(leafletMap)
         .bindPopup('<strong>📍 Your Location</strong><br><span style="font-size:0.8rem;color:#64748b;">Drag me or click map to correct</span>')
@@ -872,13 +894,13 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
 
     // ── Locate Me Button ────────────────────────────────────────────────────
     const locateBtn = L.control({ position: 'topright' });
-    locateBtn.onAdd = function() {
+    locateBtn.onAdd = function () {
         const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
         div.innerHTML = `
             <a href="#" title="Get my precise location" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; border-radius:4px; color:#2563eb; font-size:1.1rem;">
                 <i class="fas fa-crosshairs"></i>
             </a>`;
-        div.onclick = function(e) {
+        div.onclick = function (e) {
             e.preventDefault();
             if (navigator.geolocation) {
                 div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i></a>';
@@ -891,8 +913,8 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
                     refreshDoctorSearch(nLat, nLng, list);
                     div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
                 }, () => {
-                   alert("Could not get a more precise location.");
-                   div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
+                    alert("Could not get a more precise location.");
+                    div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
                 }, { enableHighAccuracy: true });
             }
         };
@@ -904,7 +926,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     addLocationSearchBox(list);
 
     // ── Google Maps bar ─────────────────────────────────────────────────────
-    const gBar  = document.getElementById('google-maps-bar');
+    const gBar = document.getElementById('google-maps-bar');
     const gLink = document.getElementById('google-maps-link');
     if (gBar && gLink) {
         gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
@@ -933,6 +955,58 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     searchNearbyDermatologists(lat, lng, list);
     saveLocationToBackend(lat, lng);
     mapLoaded = true;
+
+    // ── Search This Area Logic (Google Maps Style) ──────────────────────────
+    const searchThisAreaBtn = document.createElement('button');
+    searchThisAreaBtn.id = 'search-this-area-btn';
+    searchThisAreaBtn.innerHTML = '<i class="fas fa-redo"></i> Search this area';
+    searchThisAreaBtn.style.cssText = 'position:absolute; top:80px; left:50%; transform:translateX(-50%); z-index:2000; padding:0.6rem 1.25rem; background:white; border:1px solid #e2e8f0; border-radius:24px; box-shadow:0 4px 12px rgba(0,0,0,0.1); font-size:0.9rem; font-weight:600; color:#2563eb; cursor:pointer; display:none; transition:all 0.2s;';
+    searchThisAreaBtn.onmouseover = () => { searchThisAreaBtn.style.background = '#f8fafc'; };
+    searchThisAreaBtn.onmouseout = () => { searchThisAreaBtn.style.background = 'white'; };
+
+    const mapPanel = document.querySelector('.right-panel-map');
+    if (mapPanel) mapPanel.appendChild(searchThisAreaBtn);
+
+    leafletMap.on('moveend', () => {
+        const center = leafletMap.getCenter();
+        const distFromLast = getDistanceKm(lat, lng, center.lat, center.lng);
+        // Show button if moved more than 500m
+        if (distFromLast > 0.5) {
+            searchThisAreaBtn.style.display = 'block';
+        }
+    });
+
+    searchThisAreaBtn.onclick = () => {
+        const center = leafletMap.getCenter();
+        searchThisAreaBtn.style.display = 'none';
+        refreshDoctorSearch(center.lat, center.lng, list);
+    };
+
+    // Google Maps–style: after user pans map, debounce search at new map center (does not move user pin)
+    _suppressNearbyMapSearchUntil = Date.now() + 2800;
+    _lastNearbyMapCenter = { lat, lng };
+    leafletMap.on('moveend', () => {
+        if (Date.now() < _suppressNearbyMapSearchUntil) return;
+        const c = leafletMap.getCenter();
+        if (!_lastNearbyMapCenter) {
+            _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
+            return;
+        }
+        const moved = parseFloat(getDistanceKm(_lastNearbyMapCenter.lat, _lastNearbyMapCenter.lng, c.lat, c.lng));
+        if (moved < 0.35) return;
+        if (_nearbyMapMoveTimer) clearTimeout(_nearbyMapMoveTimer);
+        _nearbyMapMoveTimer = setTimeout(() => {
+            _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
+            const gLink2 = document.getElementById('google-maps-link');
+            if (gLink2) gLink2.href = `https://www.google.com/maps/search/dermatologist/@${c.lat},${c.lng},14z`;
+            leafletMap.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer !== userMarker) leafletMap.removeLayer(layer);
+            });
+            searchNearbyDermatologists(c.lat, c.lng, list);
+            saveLocationToBackend(c.lat, c.lng);
+            _nearbyMapMoveTimer = null;
+        }, 1500);
+    });
 }
 
 // ──── Search Box with Global Support ─────────────────────────────────────────
@@ -956,7 +1030,7 @@ function addLocationSearchBox(listEl) {
     if (mapPanel) mapPanel.appendChild(wrapper);
 
     const input = document.getElementById('loc-search-input');
-    const btn   = document.getElementById('loc-search-btn');
+    const btn = document.getElementById('loc-search-btn');
     const resultsDiv = document.getElementById('loc-search-results');
 
     async function doSearch() {
@@ -1015,24 +1089,27 @@ function saveLocationToBackend(lat, lng) {
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`, {
         headers: { 'Accept-Language': 'en' }
     })
-    .then(r => r.json())
-    .then(geo => {
-        const city = geo.address?.city || geo.address?.town || geo.address?.village || 'Unknown';
-        const state = geo.address?.state || '';
-        const name = state ? `${city}, ${state}` : city;
-        const token = localStorage.getItem('dermacare_token');
-        if (token) {
-            fetch(`${API_URL}/api/scan/location`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ latitude: lat, longitude: lng, location_name: name })
-            }).catch(() => {});
-        }
-    }).catch(() => {});
+        .then(r => r.json())
+        .then(geo => {
+            const city = geo.address?.city || geo.address?.town || geo.address?.village || 'Unknown';
+            const state = geo.address?.state || '';
+            const name = state ? `${city}, ${state}` : city;
+            const token = localStorage.getItem('dermacare_token');
+            if (token) {
+                fetch(`${API_URL}/api/scan/location`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ latitude: lat, longitude: lng, location_name: name })
+                }).catch(() => { });
+            }
+        }).catch(() => { });
 }
 
 // ──── Refresh search from a new position ────────────────────────────────────
 function refreshDoctorSearch(lat, lng, listEl) {
+    _lastNearbyMapCenter = { lat, lng };
+    _suppressNearbyMapSearchUntil = Date.now() + 2200;
+
     // Update Google Maps link
     const gLink = document.getElementById('google-maps-link');
     if (gLink) gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
@@ -1065,23 +1142,25 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
     }
 
     try {
-        const res = await fetch(`${API_URL}/api/nearby-doctors?lat=${lat}&lng=${lng}`);
+        const res = await fetch(`${API_URL}/api/nearby-dermatologists?lat=${lat}&lng=${lng}`);
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const doctors = await res.json();
+        console.log('[nearby] /api/nearby-dermatologists response length:', Array.isArray(doctors) ? doctors.length : 0);
 
         if (!doctors || doctors.length === 0) {
             searchOverpassInBackground(lat, lng, listEl, '', []);
             return;
         }
 
-        const places = doctors.map(d => ({
-            tags: { name: d.name, 'addr:street': d.street || '', healthcare: d.type || 'clinic' },
-            lat: d.lat, lon: d.lon, distance: d.distance, city: d.city || ''
-        }));
+        const places = doctors.map(d => normalizeDoctorPlace(d));
 
         renderDermatologistList(places, listEl, lat, lng);
+        if (leafletMap) {
+            const c = leafletMap.getCenter();
+            _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
+        }
     } catch (err) {
-        console.error('Backend nearby-doctors failed:', err);
+        console.error('Backend nearby-dermatologists failed:', err);
         searchOverpassInBackground(lat, lng, listEl, '', []);
     }
 }
@@ -1111,7 +1190,16 @@ async function searchOverpassInBackground(lat, lng, listEl, cacheKey, existingPl
     }
 
     try {
-        const q = `[out:json][timeout:20];(nwr["healthcare:speciality"~"dermatology|skin|aesthetic",i](around:50000,${lat},${lng});nwr["name"~"Derma|Skin|Clinic",i](around:50000,${lat},${lng}););out center body;`;
+        const q = `[out:json][timeout:30];
+            (
+              nwr["healthcare:speciality"~"dermatology|skin|aesthetic|cosmetic|laser",i](around:15000,${lat},${lng});
+              nwr["speciality"~"dermatology|skin|aesthetic|cosmetic|laser",i](around:15000,${lat},${lng});
+              nwr["name"~"Derma|Skin|Clinic|Dermatology|Cosmetic|Aesthetic|Laser|Dr\\.",i](around:15000,${lat},${lng});
+              nwr["healthcare"="doctor"]["name"~"Skin|Derma",i](around:15000,${lat},${lng});
+              nwr["amenity"="doctors"]["name"~"Skin|Derma",i](around:15000,${lat},${lng});
+              nwr["healthcare"="clinic"]["name"~"Skin|Derma",i](around:15000,${lat},${lng});
+            );
+            out center body;`;
         const apiResults = await fetchFromOverpass(q);
 
         if (apiResults.length === 0) return; // No better data, keep existing
@@ -1134,20 +1222,21 @@ async function searchOverpassInBackground(lat, lng, listEl, cacheKey, existingPl
         merged = merged.filter(p => p.lat && p.lon);
         merged.forEach(p => p.distance = parseFloat(getDistanceKm(lat, lng, p.lat, p.lon)));
         merged.sort((a, b) => a.distance - b.distance);
-        merged = merged.slice(0, 15);
+        merged = merged.slice(0, 25);
 
         // Only update UI if we got MORE results than what's already shown
         if (merged.length > existingPlaces.length) {
             sessionStorage.setItem(cacheKey, JSON.stringify(merged));
             renderDermatologistList(merged, listEl, lat, lng);
         }
-    } catch(e) {
+    } catch (e) {
         // Silent fail — existing list stays visible
     }
 }
 
 // Separate function to render the list for caching purposes
 function renderDermatologistList(finalPlaces, listEl, lat, lng) {
+    finalPlaces = finalPlaces.map(p => normalizeDoctorPlace(p));
 
     if (finalPlaces.length === 0) {
         if (listEl) listEl.innerHTML = `
@@ -1155,7 +1244,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 <div style="font-size: 3.5rem; margin-bottom: 2rem;">🔍</div>
                 <h3 style="margin-bottom: 1rem; color: #3c4043; font-weight: 500;">No Specialized Skin Clinics Found</h3>
                 <p style="color: #70757a; margin-bottom: 2.5rem; font-size: 0.95rem; line-height: 1.5;">
-                    We couldn't find a dedicated dermatologist in the OpenStreetMap database within 150km of your location. 
+                    We couldn't find a dedicated dermatologist in the OpenStreetMap database within 10km of your location. 
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <a href="https://www.google.com/maps/search/dermatologist/@${lat},${lng},13z" target="_blank" class="btn" style="background: #2563eb; color: white; border-radius: 24px; padding: 0.8rem 2rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
@@ -1193,16 +1282,19 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         const name = place.tags.name;
         const operator = place.tags.operator || place.tags['contact:person'] || "";
         // Support both backend proxy format (top-level city/street) and Overpass format (tags)
-        const city   = place.city || place.tags['addr:city'] || place.tags['addr:suburb'] || "";
+        const city = place.city || place.tags['addr:city'] || place.tags['addr:suburb'] || "";
         const street = place.street || place.tags['addr:street'] || place.tags['addr:housenumber'] || "";
         const address = street ? `${street}${city ? ", " + city : ""}` : (city || "Location available on map");
         const phone = place.tags.phone || place.tags['contact:phone'] || "";
         const distance = place.distance;
 
-        // Mocking sophisticated data for "Google Maps" feel
         const seed = name.length + index;
-        const rating = (4.5 + (seed % 6) / 10).toFixed(1);
-        const reviewCount = 20 + (seed * 7 % 480);
+        const rating = (place._apiRating != null && !Number.isNaN(Number(place._apiRating)))
+            ? Number(place._apiRating).toFixed(1)
+            : (4.5 + (seed % 6) / 10).toFixed(1);
+        const reviewCount = (place._userRatingsTotal != null && !Number.isNaN(Number(place._userRatingsTotal)))
+            ? place._userRatingsTotal
+            : (20 + (seed * 7 % 480));
         const reviewText = mockReviews[seed % mockReviews.length];
 
         // Mock Timings

@@ -15,6 +15,7 @@ from .utils.logger import get_logger
 from .config.settings import settings
 from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin_routes
 from .services.predict_service import PredictService
+from .services.nearby_places_service import fetch_nearby_dermatologists
 from .utils.websocket import manager
 
 logger = get_logger(__name__)
@@ -40,11 +41,23 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="DermaCare AI", version="2.0.0", lifespan=lifespan)
 
 # CORS Configuration
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# Standard CORS: in production, ALLOWED_ORIGINS should be specific domains.
+# If allow_origins=["*"], allow_credentials MUST be False.
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
+if not allowed_origins or "*" in allowed_origins:
+    # Use a safer default or handle wildcard with credentials correctly
+    # Note: browser's don't allow credentials with "*"
+    allowed_allow_origins = ["*"] if not allowed_origins else allowed_origins
+    allow_credentials = False if "*" in allowed_allow_origins else True
+else:
+    allowed_allow_origins = allowed_origins
+    allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=allowed_allow_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -84,77 +97,91 @@ app.include_router(admin_routes.router)
 
 # ── User Page Routes ────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
-async def read_index(request: Request):
+def read_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
-async def read_login(request: Request):
+def read_login(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/register", response_class=HTMLResponse)
-async def read_register(request: Request):
+def read_register(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
 @app.get("/detect", response_class=HTMLResponse)
-async def read_detect(request: Request):
+def read_detect(request: Request):
     return templates.TemplateResponse("detection.html", {"request": request})
 
 @app.get("/scan-result", response_class=HTMLResponse)
-async def read_scan_result(request: Request):
+def read_scan_result(request: Request):
     return templates.TemplateResponse("scan_result.html", {"request": request})
 
 @app.get("/history", response_class=HTMLResponse)
-async def read_history(request: Request):
+def read_history(request: Request):
     return templates.TemplateResponse("history.html", {"request": request})
 
 @app.get("/profile", response_class=HTMLResponse)
-async def read_profile(request: Request):
+def read_profile(request: Request):
     return templates.TemplateResponse("profile.html", {"request": request})
 
 @app.get("/about", response_class=HTMLResponse)
-async def read_about(request: Request):
+def read_about(request: Request):
     return templates.TemplateResponse("about_us.html", {"request": request})
 
 @app.get("/forgot-password", response_class=HTMLResponse)
-async def read_forgot(request: Request):
+def read_forgot(request: Request):
     return templates.TemplateResponse("forgot_pass.html", {"request": request})
 
 @app.get("/nearby", response_class=HTMLResponse)
-async def read_nearby(request: Request):
+def read_nearby(request: Request):
     return templates.TemplateResponse("nearby_dermatologist.html", {"request": request})
 
 @app.get("/booking", response_class=HTMLResponse)
-async def read_booking(request: Request):
+def read_booking(request: Request):
     return templates.TemplateResponse("booking_appointment.html", {"request": request})
 
 @app.get("/confirm-booking", response_class=HTMLResponse)
-async def read_confirm_booking(request: Request):
+def read_confirm_booking(request: Request):
     return templates.TemplateResponse("confirm_booking.html", {"request": request})
 
 # ── Admin Page Route ────────────────────────────────────────────────────────
 @app.get("/admin", response_class=HTMLResponse)
-async def read_admin(request: Request):
+def read_admin(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+def haversine(lat1, lon1, lat2, lon2):
+    """Calculates the great-circle distance between two points in kilometers."""
+    r_earth = 6371  # km
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lon2 - lon1)
+    a = math.sin(d_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2)**2
+    # Ensure a is within [0, 1] to avoid math domain errors with sqrt (e.g. 1.000000000001)
+    a = max(0, min(1, a))
+    return r_earth * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 # ── Nearby Doctors Proxy ──────────────────────────────────────────────────
 @app.get("/api/nearby-doctors")
 async def nearby_doctors(lat: float, lng: float):
-    """Proxy endpoint: searches Nominatim in parallel for faster results."""
-    keywords = ["dermatologist", "skin clinic", "dermatology hospital", "skin specialist", "cosmetologist"]
+    """
+    Proxy endpoint to fetch nearby dermatologists from OpenStreetMap (Nominatim).
+    Uses asynchronous gathering for high performance.
+    """
+    keywords = ["dermatologist", "skin doctor", "dermatology clinic", "skin clinic", "hair and skin clinic", "cosmetologist", "aesthetic clinic"]
     all_results = []
     seen_names = set()
     headers = {"User-Agent": "DermaCareAI/2.0 (student-project)"}
     
-    # Tighten viewbox for better proximity (approx 20km radius)
-    view_margin = 0.2
+    # Tighten viewbox for better proximity (approx 5-10km radius)
+    view_margin = 0.1
     
     async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
         tasks = []
         for kw in keywords:
             url = (
                 f"https://nominatim.openstreetmap.org/search"
-                f"?q={kw}&format=json&limit=15&addressdetails=1"
-                f"&viewbox={lng-view_margin},{lat+view_margin},{lng+view_margin},{lat-view_margin}&bounded=1"
+                f"?q={kw}&format=json&limit=40&addressdetails=1"
+                f"&viewbox={lng-view_margin},{lat+view_margin},{lng+view_margin},{lat-view_margin}&bounded=0"
             )
             tasks.append(client.get(url))
         
@@ -179,30 +206,37 @@ async def nearby_doctors(lat: float, lng: float):
                         "type": item.get("type", "doctor"),
                     })
 
-    def haversine(lat1, lon1, lat2, lon2):
-        r_earth = 6371 # km
-        phi1, phi2 = math.radians(lat1), math.radians(lat2)
-        d_phi = math.radians(lat2 - lat1)
-        d_lambda = math.radians(lon2 - lon1)
-        a = math.sin(d_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2)**2
-        return r_earth * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
     for r in all_results:
         r["distance"] = round(haversine(lat, lng, r["lat"], r["lon"]), 1)
     
-    # Filter to only show results within 25km radius to avoid '106km' nonsense
-    nearby_filtered = [r for r in all_results if r["distance"] <= 25.0]
+    # Filter to only show results within 5km radius (as requested)
+    nearby_filtered = [r for r in all_results if r["distance"] <= 5.0]
     
-    # If too few results, fallback to a slightly wider search or keep what we have
-    if len(nearby_filtered) < 3:
-        nearby_filtered = all_results[:10]
+    # Fallback to 10km if 5km is too empty
+    if len(nearby_filtered) < 2:
+        nearby_filtered = [r for r in all_results if r["distance"] <= 10.0]
         
     nearby_filtered.sort(key=lambda x: x["distance"])
-    return nearby_filtered[:15]
+    return nearby_filtered[:25]
+
+
+@app.get("/api/nearby-dermatologists")
+async def nearby_dermatologists(lat: float, lng: float):
+    """
+    Production nearby search: Google Places Nearby Search (pagination + radius expansion),
+    Haversine distance, sorted nearest-first. Mock fallback if API fails or key missing.
+    """
+    results, source = await fetch_nearby_dermatologists(lat, lng)
+    logger.info("[nearby-dermatologists] lat=%s lng=%s count=%s source=%s", lat, lng, len(results), source)
+    if len(results) < 15:
+        logger.warning("[nearby-dermatologists] result_count=%s below 15 (source=%s)", len(results), source)
+    return results
+
 
 # ── Websocket Endpoint ──────────────────────────────────────────────────────
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    """Handles real-time dashboard notifications via WebSockets."""
     await manager.connect(websocket)
     try:
         while True:

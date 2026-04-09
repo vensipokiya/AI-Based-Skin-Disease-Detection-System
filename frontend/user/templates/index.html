@@ -46,10 +46,10 @@
             <div class="tab-buttons"
                 style="display: inline-flex; background: var(--white); padding: 0.5rem; border-radius: var(--border-radius-full); box-shadow: var(--shadow-md); gap: 0.5rem;">
                 <button id="how-it-works-btn" class="btn btn-primary tab-btn-main active"
-                    onclick="switchMainTab('how-it-works', this)" style="border: none; padding: 0.75rem 2rem;">How it
+                    onclick="DermaUtils.switchMainTab('how-it-works', this)" style="border: none; padding: 0.75rem 2rem;">How it
                     Works</button>
                 <button id="features-btn" class="btn btn-secondary tab-btn-main"
-                    onclick="switchMainTab('features', this)"
+                    onclick="DermaUtils.switchMainTab('features', this)"
                     style="border: none; padding: 0.75rem 2rem; background: transparent; color: var(--text-light); box-shadow: none;">Features</button>
             </div>
         </div>
@@ -131,32 +131,9 @@
 {% block extra_js %}
     <script src="/static/user/js/main.js"></script>
     <script>
-        function switchMainTab(tabId, btn) {
-            // Hide all tab content
-            document.querySelectorAll('.main-tab-content').forEach(el => {
-                el.classList.add('hidden');
-                el.classList.remove('fade-in');
-            });
-            // Show the selected tab
-            const target = document.getElementById(tabId);
-            if (target) {
-                target.classList.remove('hidden');
-                target.classList.add('fade-in');
-            }
-
-            // Update button styles
-            document.querySelectorAll('.tab-btn-main').forEach(el => {
-                el.className = 'btn btn-secondary tab-btn-main';
-                el.style.background = 'transparent';
-                el.style.color = 'var(--text-light)';
-                el.style.boxShadow = 'none';
-            });
-
-            // Set active button
-            btn.className = 'btn btn-primary tab-btn-main active';
-            btn.style.background = 'linear-gradient(135deg, var(--primary-color), var(--accent-color))';
-            btn.style.color = 'var(--white)';
-            btn.style.boxShadow = 'var(--shadow-md)';
-        }
+        // Use the shared utility for tab switching
+        document.addEventListener('DOMContentLoaded', () => {
+             // Initial state handled by HTML classes, but we could trigger logic here if needed
+        });
     </script>
 {% endblock %}

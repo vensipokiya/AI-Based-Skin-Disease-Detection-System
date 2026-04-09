@@ -55,4 +55,7 @@ class Settings:
     GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
     APPLE_CLIENT_ID: str = os.environ.get("APPLE_CLIENT_ID", "").strip()
 
+    # Google Places API (Nearby Search) — optional; nearby dermatologists fall back to mock data if unset
+    GOOGLE_PLACES_API_KEY: str = os.environ.get("GOOGLE_PLACES_API_KEY", "").strip()
+
 settings = Settings()

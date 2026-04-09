@@ -1,10 +1,18 @@
 from ..dao.user_dao import UserDao
 
 class UserService:
+    """Service layer for user profile management and appointments."""
+    
     def __init__(self, user_dao=None):
+        """Initializes the service with an optional DAO."""
         self.user_dao = user_dao if user_dao else UserDao()
 
     def get_profile(self, user_id: int) -> dict:
+        """
+        Fetches the complete user profile data.
+        :param user_id: The unique ID of the user.
+        :return: A dictionary containing success status and profile data.
+        """
         user = self.user_dao.get_user_by_id(user_id)
         if not user:
              return {"success": False, "error": "User not found"}
@@ -25,6 +33,12 @@ class UserService:
         }
     
     def update_profile(self, user_id: int, data: dict) -> dict:
+        """
+        Updates the user's personal and medical profile.
+        :param user_id: The unique ID of the user.
+        :param data: Dictionary of profile fields to update.
+        :return: Success/Failure dictionary.
+        """
         updated = self.user_dao.update_user_profile(
             user_id,
             data.get("first_name"),
@@ -40,6 +54,12 @@ class UserService:
         return {"success": False, "error": "Update failed"}
 
     def create_appointment(self, user_id: int, data: dict) -> dict:
+        """
+        Records a new specialist appointment in the database.
+        :param user_id: ID of the user booking the appointment.
+        :param data: Appointment details (doctor, date, time).
+        :return: Success message or error.
+        """
         success = self.user_dao.create_appointment(
             user_id,
             data.get("doctor_name"),

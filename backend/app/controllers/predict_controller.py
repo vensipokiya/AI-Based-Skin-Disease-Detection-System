@@ -5,11 +5,16 @@ import base64
 from typing import Optional
 
 class PredictController:
+    """Controller for processing skin image uploads and running AI predictions."""
     def __init__(self, predict_service=None, scan_service=None):
+        """Initializes the controller with Predict and Scan services."""
         self.predict_service = predict_service if predict_service else PredictService()
         self.scan_service = scan_service if scan_service else ScanService()
 
     async def predict_skin_condition(self, file: UploadFile, current_user_id: Optional[int] = None):
+        """
+        Receives an image file, runs AI prediction, and persists results if user is authenticated.
+        """
         if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
 
