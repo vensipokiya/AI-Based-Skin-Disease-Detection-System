@@ -909,10 +909,23 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
     // Add zoom control top right
     L.control.zoom({ position: 'topright' }).addTo(leafletMap);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap, © CARTO',
-        subdomains: 'abcd', maxZoom: 20
+    // Primary OSM tiles; fallback to HOT tiles if primary host is blocked/throttled.
+    const primaryTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
     }).addTo(leafletMap);
+
+    primaryTiles.on('tileerror', () => {
+        if (leafletMap._osmFallbackAdded) return;
+        leafletMap._osmFallbackAdded = true;
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors, HOT',
+            maxZoom: 19
+        }).addTo(leafletMap);
+    });
+
+    // Fix blank map panel after dynamic show/hide layout transitions.
+    setTimeout(() => leafletMap.invalidateSize(), 80);
 
     // ── User marker (draggable so user can correct it) ──────────────────────
     const userIcon = L.divIcon({
