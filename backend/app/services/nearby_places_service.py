@@ -35,6 +35,14 @@ OVERPASS_ENDPOINTS = (
     "https://overpass.kumi.systems/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
 )
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_KEYWORDS = (
+    "dermatologist",
+    "dermatology clinic",
+    "skin clinic",
+    "hospital dermatology",
+    "skin specialist",
+)
 
 USER_AGENT = "DermaCareAI/2.0 (nearby health POIs; student project)"
 
@@ -335,6 +343,65 @@ async def _fetch_overpass(client: httpx.AsyncClient, lat: float, lng: float) -> 
     return []
 
 
+async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: float) -> List[Dict[str, Any]]:
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    # ~10-15km bounding box to keep results relevant
+    margin = 0.12
+    viewbox = f"{lng-margin},{lat+margin},{lng+margin},{lat-margin}"
+    rows: List[Dict[str, Any]] = []
+    seen: Set[str] = set()
+
+    for kw in NOMINATIM_KEYWORDS:
+        params = {
+            "q": kw,
+            "format": "json",
+            "limit": "30",
+            "addressdetails": "1",
+            "viewbox": viewbox,
+            "bounded": "0",
+        }
+        try:
+            resp = await client.get(NOMINATIM_URL, params=params, headers=headers, timeout=25.0)
+            resp.raise_for_status()
+            items = resp.json() or []
+            logger.info("[nearby-nominatim] keyword=%r results=%s", kw, len(items))
+            for it in items:
+                name = (it.get("display_name", "").split(",")[0] or "").strip()
+                ilat, ilon = it.get("lat"), it.get("lon")
+                if not name or ilat is None or ilon is None:
+                    continue
+                plat, plng = float(ilat), float(ilon)
+                key = f"{name.lower()}|{round(plat,4)}|{round(plng,4)}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                dist = round(haversine_km(lat, lng, plat, plng), 2)
+                rows.append(
+                    {
+                        "name": name,
+                        "doctor_name": None,
+                        "rating": None,
+                        "user_ratings_total": None,
+                        "address": it.get("display_name") or name,
+                        "distance_km": dist,
+                        "distance": dist,
+                        "lat": plat,
+                        "lng": plng,
+                        "place_id": f"nominatim_{it.get('osm_type','x')}_{it.get('osm_id', '')}",
+                        "provider": "openstreetmap",
+                        "open_now": None,
+                        "weekday_text": None,
+                        "reviews": [],
+                        "business_status": None,
+                    }
+                )
+        except Exception as e:
+            logger.warning("[nearby-nominatim] keyword failed %r: %s", kw, e)
+
+    rows.sort(key=lambda x: x["distance_km"])
+    return rows[:MIN_RESULTS_TARGET]
+
+
 async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]:
     try:
         async with httpx.AsyncClient() as client:
@@ -355,7 +422,12 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
         rows.sort(key=lambda x: x["distance_km"])
 
         if not rows:
-            logger.warning("[nearby-osm] zero results near lat=%s lng=%s", lat, lng)
+            logger.warning("[nearby-osm] zero results near lat=%s lng=%s; trying nominatim fallback", lat, lng)
+            async with httpx.AsyncClient() as client:
+                n_rows = await _fetch_nominatim_rows(client, lat, lng)
+            if n_rows:
+                logger.info("[nearby-nominatim] final_count=%s", len(n_rows))
+                return n_rows, "openstreetmap"
             return [], "error_zero_results"
 
         logger.info("[nearby-osm] final_count=%s", min(len(rows), MIN_RESULTS_TARGET))
@@ -363,6 +435,15 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
 
     except Exception as e:
         logger.exception("[nearby-osm] API failure: %s", e)
+        # Resilient fallback when Overpass is down/throttled.
+        try:
+            async with httpx.AsyncClient() as client:
+                n_rows = await _fetch_nominatim_rows(client, lat, lng)
+            if n_rows:
+                logger.info("[nearby-nominatim] fallback_count=%s", len(n_rows))
+                return n_rows, "openstreetmap"
+        except Exception as ne:
+            logger.warning("[nearby-nominatim] fallback failed: %s", ne)
         return [], "error_api"
 
 
