@@ -817,6 +817,19 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
+/** Always use this string — do not depend on DOM (innerHTML clears remove #location-accuracy-hint). */
+function buildLocationAccuracyHintHtml() {
+    return `<div id="location-accuracy-hint" style="padding:1.25rem;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:16px;margin-bottom:1.5rem;font-size:0.9rem;color:#0369a1;display:flex;align-items:flex-start;gap:0.75rem;box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div style="background:#0284c7;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas fa-map-marker-alt" style="font-size:0.9rem;"></i>
+        </div>
+        <div>
+            <strong style="display:block;margin-bottom:4px;color:#0c4a6e;">Location Incorrect?</strong>
+            <span>Search your area using the <strong>box on the map</strong> or simply <strong>click anywhere on the map</strong> to find doctors there.</span>
+        </div>
+    </div>`;
+}
+
 /** Normalize /api/nearby (Google Places or OpenStreetMap) into legacy render shape */
 function normalizeDoctorPlace(p) {
     if (p && p.name != null && p.lat != null && (p.lng != null || p.lon != null)) {
@@ -1002,23 +1015,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
         gBar.style.display = 'block';
     }
 
-    // ── Helpful Hint (Prominent) ──
-    const hint = document.createElement('div');
-    hint.id = 'location-accuracy-hint';
-    hint.style.cssText = 'padding:1.25rem;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:16px;margin-bottom:1.5rem;font-size:0.9rem;color:#0369a1;display:flex;align-items:flex-start;gap:0.75rem;box-shadow:0 2px 6px rgba(0,0,0,0.03);';
-    hint.innerHTML = `
-        <div style="background:#0284c7;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <i class="fas fa-map-marker-alt" style="font-size:0.9rem;"></i>
-        </div>
-        <div>
-            <strong style="display:block;margin-bottom:4px;color:#0c4a6e;">Location Incorrect?</strong>
-            <span>Search your area using the <strong>box on the map</strong> or simply <strong>click anywhere on the map</strong> to find doctors there.</span>
-        </div>`;
-    if (list) {
-        const existing = document.getElementById('location-accuracy-hint');
-        if (existing) existing.remove();
-        list.insertBefore(hint, list.firstChild);
-    }
+    // Hint is injected by searchNearbyDermatologists (loading) and renderDermatologistList (results) via buildLocationAccuracyHintHtml().
 
     // Run initial search
     searchNearbyDermatologists(lat, lng, list);
@@ -1189,9 +1186,7 @@ function refreshDoctorSearch(lat, lng, listEl) {
 // ──── Search nearby dermatologists via backend proxy ─────────────────────────
 async function searchNearbyDermatologists(lat, lng, listEl) {
     if (listEl) {
-        // Keep the accuracy hint if it exists
-        const hint = document.getElementById('location-accuracy-hint');
-        const hintHtml = hint ? hint.outerHTML : '';
+        const hintHtml = buildLocationAccuracyHintHtml();
         listEl.innerHTML = hintHtml + `
             <div style="text-align:center;padding:2.5rem 1rem;">
                 <div style="width:60px;height:60px;margin:0 auto 1.5rem;background:rgba(37,99,235,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;">
@@ -1209,8 +1204,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
             const msg = (doctors && doctors.detail) ? doctors.detail : `Server error ${res.status}`;
             console.error('[nearby] /api/nearby failed:', msg);
             if (listEl) {
-                const hint = document.getElementById('location-accuracy-hint');
-                const hintHtml = hint ? hint.outerHTML : '';
+                const hintHtml = buildLocationAccuracyHintHtml();
                 const safeMsg = typeof msg === 'string' ? escHtml(msg) : escHtml('OpenStreetMap (Overpass) could not be reached. Try again shortly.');
                 listEl.innerHTML = hintHtml + `
                     <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
@@ -1227,8 +1221,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
 
         if (!doctors || doctors.length === 0) {
             if (listEl) {
-                const hint = document.getElementById('location-accuracy-hint');
-                const hintHtml = hint ? hint.outerHTML : '';
+                const hintHtml = buildLocationAccuracyHintHtml();
                 listEl.innerHTML = hintHtml + `
                     <div style="text-align:center;padding:2rem;background:#fffbeb;border:1px solid #fde68a;border-radius:16px;margin:0.5rem;">
                         <h3 style="color:#92400e;margin-bottom:0.75rem;">No places in this area</h3>
@@ -1252,8 +1245,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
     } catch (err) {
         console.error('Backend /api/nearby failed:', err);
         if (listEl) {
-            const hint = document.getElementById('location-accuracy-hint');
-            const hintHtml = hint ? hint.outerHTML : '';
+            const hintHtml = buildLocationAccuracyHintHtml();
             listEl.innerHTML = hintHtml + `
                 <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
                     <h3 style="color:#991b1b;margin-bottom:0.75rem;">Could not load nearby places</h3>
@@ -1271,7 +1263,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
     finalPlaces = finalPlaces.map(p => normalizeDoctorPlace(p));
 
     if (finalPlaces.length === 0) {
-        if (listEl) listEl.innerHTML = `
+        if (listEl) listEl.innerHTML = buildLocationAccuracyHintHtml() + `
             <div style="text-align: center; padding: 4rem 1.5rem; background: #fff; border-radius: 16px; border: 1px dashed #ced4da; margin: 1rem;">
                 <div style="font-size: 3.5rem; margin-bottom: 2rem;">🔍</div>
                 <h3 style="margin-bottom: 1rem; color: #3c4043; font-weight: 500;">No listings to show</h3>
@@ -1292,7 +1284,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
     }
 
     clearNearbyDoctorMarkers();
-    if (listEl) listEl.innerHTML = "";
+    if (listEl) listEl.innerHTML = buildLocationAccuracyHintHtml();
 
     const doctorIcon = L.divIcon({
         className: 'doctor-marker',
