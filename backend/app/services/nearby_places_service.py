@@ -57,6 +57,16 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return r_earth * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def _looks_dermatology(name: str, tags: Dict[str, Any]) -> bool:
+    n = (name or "").lower()
+    spec = str(tags.get("healthcare:speciality", "")).lower()
+    spec2 = str(tags.get("speciality", "")).lower()
+    desc = str(tags.get("description", "")).lower()
+    combo = " ".join([n, spec, spec2, desc])
+    keys = ("dermat", "skin", "cosmetic", "laser", "tricholog", "venereolog")
+    return any(k in combo for k in keys)
+
+
 # ── Google Places ───────────────────────────────────────────────────────────
 
 
@@ -278,6 +288,8 @@ def _element_to_row(
     name = (tags.get("name") or tags.get("operator") or "").strip()
     if not name:
         return None
+    if not _looks_dermatology(name, tags):
+        return None
     ll = _element_lat_lon(el)
     if not ll:
         return None
@@ -288,9 +300,11 @@ def _element_to_row(
     oid = el.get("id")
     typ = el.get("type", "x")
     pid = f"osm_{typ}_{oid}" if oid is not None else f"osm_{typ}_{plat:.5f}_{plng:.5f}"
+    opening = str(tags.get("opening_hours", "")).strip()
+    doctor_name = (tags.get("contact:person") or tags.get("doctor") or tags.get("operator") or "").strip() or None
     return {
         "name": name,
-        "doctor_name": None,
+        "doctor_name": doctor_name,
         "rating": None,
         "user_ratings_total": None,
         "address": addr,
@@ -301,7 +315,7 @@ def _element_to_row(
         "place_id": pid,
         "provider": "openstreetmap",
         "open_now": None,
-        "weekday_text": None,
+        "weekday_text": [f"Hours: {opening}"] if opening else None,
         "reviews": [],
         "business_status": None,
     }
@@ -311,13 +325,10 @@ def _overpass_query(lat: float, lng: float) -> str:
     r = AROUND_METERS
     return f"""[out:json][timeout:20];
 (
-  nwr["amenity"="hospital"](around:{r},{lat},{lng});
-  nwr["amenity"="clinic"](around:{r},{lat},{lng});
-  nwr["amenity"="doctors"](around:{r},{lat},{lng});
-  nwr["healthcare"="hospital"](around:{r},{lat},{lng});
-  nwr["healthcare"="clinic"](around:{r},{lat},{lng});
-  nwr["healthcare"="doctor"](around:{r},{lat},{lng});
   nwr["healthcare:speciality"~"dermatology|skin",i](around:{r},{lat},{lng});
+  nwr["speciality"~"dermatology|skin",i](around:{r},{lat},{lng});
+  nwr["name"~"Dermat|Skin|Derma|Cosmetic|Laser",i]["amenity"~"hospital|clinic|doctors"](around:{r},{lat},{lng});
+  nwr["name"~"Dermat|Skin|Derma|Cosmetic|Laser",i]["healthcare"~"hospital|clinic|doctor"](around:{r},{lat},{lng});
 );
 out center tags 60;
 """

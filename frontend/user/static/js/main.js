@@ -1372,20 +1372,23 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             rating = '—';
             reviewCount = null;
             reviewText = '';
-            doctorDisplay = name.length > 40 ? name.substring(0, 40) + '…' : name;
-            clinicDisplay = 'OpenStreetMap · Hospital / clinic';
+            doctorDisplay = place._doctorName
+                ? `Dr. ${place._doctorName}`
+                : (name.length > 40 ? name.substring(0, 40) + '…' : name);
+            clinicDisplay = 'OpenStreetMap · Dermatology listing';
             extraMapUrl = `https://www.openstreetmap.org/#map=17/${place.lat}/${place.lon}`;
+            const osmHours = (place._weekdayText || []).slice(0, 2).map((x) => escHtml(x)).join('<br>');
             midBlockHtml = `
                 <div style="background: #ecfdf5; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid #a7f3d0;">
                     <p style="color: #065f46; font-size: 0.85rem; margin: 0; line-height: 1.5;">
                         <i class="fas fa-leaf" style="margin-right: 6px;"></i>
-                        OpenStreetMap does not include star ratings or reviews. Add <code style="font-size:0.75rem;">GOOGLE_PLACES_API_KEY</code> in backend <code style="font-size:0.75rem;">.env</code> for Google data.
+                        OpenStreetMap data is community-maintained. Ratings/reviews are usually unavailable; for full verified details add <code style="font-size:0.75rem;">GOOGLE_PLACES_API_KEY</code>.
                     </p>
                 </div>`;
             hoursRowHtml = `
                     <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
                         <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="color: #64748b;">Opening hours: not in OSM — call the facility</span>
+                        <span style="color: #64748b;">${osmHours || 'Opening hours: not in OSM — call the facility'}</span>
                     </div>`;
             thirdMapBtn = extraMapUrl
                 ? `<a href="${extraMapUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #047857;" title="View on OpenStreetMap.org"><i class="fas fa-map"></i></a>`
