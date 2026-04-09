@@ -773,9 +773,42 @@ async function finalizeBooking() {
 let mapLoaded = false;
 let leafletMap = null;
 let userMarker = null;   // draggable / click-set marker
+let nearbyDoctorMarkers = []; // Google Maps–style: synced with list; index matches cards
 let _nearbyMapMoveTimer = null;
 let _lastNearbyMapCenter = null;
 let _suppressNearbyMapSearchUntil = 0;
+
+function clearNearbyDoctorMarkers() {
+    nearbyDoctorMarkers = [];
+    if (!leafletMap) return;
+    leafletMap.eachLayer(layer => {
+        if (layer instanceof L.Marker && layer !== userMarker) leafletMap.removeLayer(layer);
+    });
+}
+
+/** List row click → pan map and open marker popup (like Google Maps) */
+function focusNearbyDoctorAtIndex(index) {
+    if (!leafletMap || index == null) return;
+    const m = nearbyDoctorMarkers[index];
+    if (!m) return;
+    leafletMap.setView(m.getLatLng(), 16);
+    m.openPopup();
+    document.querySelectorAll('.nearby-place-card').forEach((el) => {
+        const i = parseInt(el.getAttribute('data-nearby-place-index'), 10);
+        el.classList.toggle('nearby-place-card-active', i === index);
+    });
+}
+
+window.focusNearbyDoctorAtIndex = focusNearbyDoctorAtIndex;
+
+function _highlightNearbyCardForIndex(index) {
+    document.querySelectorAll('.nearby-place-card').forEach((el) => {
+        const i = parseInt(el.getAttribute('data-nearby-place-index'), 10);
+        el.classList.toggle('nearby-place-card-active', i === index);
+    });
+    const row = document.querySelector(`[data-nearby-place-index="${index}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
 function escHtml(s) {
     return String(s == null ? '' : s)
@@ -1010,9 +1043,7 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
             _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
             const gLink2 = document.getElementById('google-maps-link');
             if (gLink2) gLink2.href = `https://www.google.com/maps/search/dermatologist/@${c.lat},${c.lng},14z`;
-            leafletMap.eachLayer(layer => {
-                if (layer instanceof L.Marker && layer !== userMarker) leafletMap.removeLayer(layer);
-            });
+            clearNearbyDoctorMarkers();
             searchNearbyDermatologists(c.lat, c.lng, list);
             saveLocationToBackend(c.lat, c.lng);
             _nearbyMapMoveTimer = null;
@@ -1125,12 +1156,7 @@ function refreshDoctorSearch(lat, lng, listEl) {
     const gLink = document.getElementById('google-maps-link');
     if (gLink) gLink.href = `https://www.google.com/maps/search/dermatologist/@${lat},${lng},14z`;
 
-    // Clear existing doctor markers (keep user marker & tiles)
-    leafletMap.eachLayer(layer => {
-        if (layer instanceof L.Marker && layer !== userMarker) {
-            leafletMap.removeLayer(layer);
-        }
-    });
+    clearNearbyDoctorMarkers();
 
     searchNearbyDermatologists(lat, lng, listEl);
     saveLocationToBackend(lat, lng);
@@ -1188,11 +1214,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
                         </a>
                     </div>`;
             }
-            if (leafletMap) {
-                leafletMap.eachLayer(layer => {
-                    if (layer instanceof L.Marker && layer !== userMarker) leafletMap.removeLayer(layer);
-                });
-            }
+            clearNearbyDoctorMarkers();
             return;
         }
 
@@ -1241,9 +1263,11 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                     </button>
                 </div>
             </div>`;
+        clearNearbyDoctorMarkers();
         return;
     }
 
+    clearNearbyDoctorMarkers();
     if (listEl) listEl.innerHTML = "";
 
     const doctorIcon = L.divIcon({
@@ -1352,13 +1376,15 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         const ec = escHtml(clinicDisplay);
         const ea = escHtml(address);
 
-        L.marker([place.lat, place.lon], { icon: doctorIcon })
+        const marker = L.marker([place.lat, place.lon], { icon: doctorIcon })
             .addTo(leafletMap)
             .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
                             <strong style="color:#2563eb">${ed}</strong><br>
                             <span style="font-size:0.8rem;color:#64748b">${ec}</span><br>
                             <span style="font-size:0.85rem">${popupRatingLine}</span>
                         </div>`);
+        marker.on('click', () => _highlightNearbyCardForIndex(index));
+        nearbyDoctorMarkers.push(marker);
 
         if (listEl) {
             const bookPayload = {
@@ -1373,14 +1399,14 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 isSpecialist: true,
                 placeId: place._placeId || null
             };
-            const bookOnclick = `checkLoginAndBook('${encodeURIComponent(JSON.stringify(bookPayload)).replace(/'/g, "%27")}')`;
+            const bookOnclick = `event.stopPropagation();checkLoginAndBook('${encodeURIComponent(JSON.stringify(bookPayload)).replace(/'/g, "%27")}')`;
 
             const googleBtn = googlePlaceUrl
-                ? `<a href="${googlePlaceUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #4285f4;" title="Open in Google Maps"><i class="fab fa-google"></i></a>`
+                ? `<a href="${googlePlaceUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #4285f4;" title="Open in Google Maps"><i class="fab fa-google"></i></a>`
                 : '';
 
             listEl.innerHTML += `
-            <div class="doctor-card" style="display: flex; flex-direction: column; padding: 1.5rem; background: #fff; border-radius: 16px; margin-bottom: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+            <div class="doctor-card nearby-place-card" data-nearby-place-index="${index}" onclick="focusNearbyDoctorAtIndex(${index})" style="display: flex; flex-direction: column; padding: 1.5rem; background: #fff; border-radius: 16px; margin-bottom: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;">
                 
                 <div style="display: flex; gap: 1.25rem; align-items: flex-start; margin-bottom: 1rem;">
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
@@ -1410,10 +1436,10 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                 ${midBlockHtml}
                 
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600;">
+                    <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
                     </button>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 44px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #64748b;">
                         <i class="fas fa-directions"></i>
                     </a>
                     ${googleBtn}

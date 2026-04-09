@@ -1,3 +1,22 @@
+import os
+
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_BACKEND_DIR = os.path.dirname(_APP_DIR)
+_PROJECT_ROOT = os.path.dirname(_BACKEND_DIR)
+
+# Load backend/.env and optional project-root .env before Settings reads os.environ
+try:
+    from dotenv import load_dotenv
+
+    for _env_path in (
+        os.path.join(_BACKEND_DIR, ".env"),
+        os.path.join(_PROJECT_ROOT, ".env"),
+    ):
+        if os.path.isfile(_env_path):
+            load_dotenv(_env_path, override=False)
+except ImportError:
+    pass
+
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -5,7 +24,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
-import os
 
 from .config.database import DatabaseSingleton
 from .utils.logger import get_logger
@@ -24,6 +42,14 @@ async def lifespan(app: FastAPI):
         logger.info("[OK] MySQL Database connected.")
     else:
         logger.warning("[WARNING] MySQL connection failed.")
+
+    if not (getattr(settings, "GOOGLE_PLACES_API_KEY", None) or "").strip():
+        logger.warning(
+            "[nearby] GOOGLE_PLACES_API_KEY is not set — add backend/.env and restart. "
+            "/api/nearby will return 503 until configured."
+        )
+    else:
+        logger.info("[OK] Google Places API key loaded for /api/nearby.")
         
     # Pre-load AI model assets
     try:
@@ -60,10 +86,9 @@ app.add_middleware(
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
-# ── Path Resolution ─────────────────────────────────────────────────────────
-WORKING_DIR = os.getcwd()
-FRONTEND_DIR = os.path.join(WORKING_DIR, "frontend")
-UPLOADS_ROOT = os.path.join(WORKING_DIR, "backend", "app", "uploads")
+# ── Path Resolution (from __file__, not cwd — works when uvicorn cwd is backend or project root)
+FRONTEND_DIR = os.path.join(_PROJECT_ROOT, "frontend")
+UPLOADS_ROOT = os.path.join(_BACKEND_DIR, "app", "uploads")
 USER_UPLOADS = os.path.join(UPLOADS_ROOT, "user_uploads")
 
 # Ensure upload directories exist
