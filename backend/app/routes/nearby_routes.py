@@ -1,5 +1,7 @@
 """
-Nearby doctors, clinics, and hospitals from OpenStreetMap (/api/nearby). No API key required.
+Nearby dermatology-related places (/api/nearby).
+
+Uses Google Places when GOOGLE_PLACES_API_KEY is set; otherwise OpenStreetMap (Overpass).
 """
 from fastapi import APIRouter, HTTPException, Query
 
@@ -25,7 +27,7 @@ async def _nearby_response(lat: float, lng: float):
 
 @router.get("/nearby")
 async def get_nearby_places(lat: float = Query(..., description="Latitude"), lng: float = Query(..., description="Longitude")):
-    """Nearby health facilities from OpenStreetMap (Overpass). Same JSON shape as before."""
+    """Nearby places: Google Places (if configured) else OSM."""
     return await _nearby_response(lat, lng)
 
 
