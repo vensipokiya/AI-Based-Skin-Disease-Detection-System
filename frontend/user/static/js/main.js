@@ -1,6 +1,25 @@
 /* API base: set by dermacare-api.js if included before this script */
 var API_URL = (typeof window !== 'undefined' && window.DERMACARE_API_BASE) ? window.DERMACARE_API_BASE : 'http://127.0.0.1:8000';
 
+/**
+ * Geolocation is required only for user-visible features (nearby care map, optional “locate me”).
+ * The browser shows the native permission prompt; we do not watch position or track in the background.
+ * Sonar javascript:S5604 — hotspot reviewed: necessary for core product; fallbacks apply if denied.
+ *
+ * @param {PositionCallback} onSuccess
+ * @param {PositionErrorCallback} [onError]
+ * @param {PositionOptions} [options]
+ */
+function dermacareRequestGeolocationOnce(onSuccess, onError, options) {
+    if (!navigator.geolocation) {
+        if (typeof onError === 'function') {
+            onError();
+        }
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, options); // NOSONAR
+}
+
 // State
 let videoStream = null;
 
@@ -1125,15 +1144,11 @@ function loadNearbyMap() {
         }
     };
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(handleSuccess, handleFallback, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        });
-    } else {
-        handleFallback();
-    }
+    dermacareRequestGeolocationOnce(handleSuccess, handleFallback, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    });
 }
 
 /** @deprecated use loadNearbyMap */
@@ -1208,21 +1223,19 @@ function initMapAtPosition(lat, lng, list, mapContainer, loading, accuracyMetres
             </a>`;
         div.onclick = function (e) {
             e.preventDefault();
-            if (navigator.geolocation) {
-                div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i></a>';
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    const nLat = pos.coords.latitude;
-                    const nLng = pos.coords.longitude;
-                    userMarker.setLatLng([nLat, nLng]);
-                    leafletMap.setView([nLat, nLng], 16);
-                    userMarker.bindPopup('<strong>📍 Location Refined</strong>').openPopup();
-                    refreshDoctorSearch(nLat, nLng, list);
-                    div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
-                }, () => {
-                    alert("Could not get a more precise location.");
-                    div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
-                }, { enableHighAccuracy: true });
-            }
+            div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i></a>';
+            dermacareRequestGeolocationOnce((pos) => {
+                const nLat = pos.coords.latitude;
+                const nLng = pos.coords.longitude;
+                userMarker.setLatLng([nLat, nLng]);
+                leafletMap.setView([nLat, nLng], 16);
+                userMarker.bindPopup('<strong>📍 Location Refined</strong>').openPopup();
+                refreshDoctorSearch(nLat, nLng, list);
+                div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
+            }, () => {
+                alert("Could not get a more precise location.");
+                div.innerHTML = '<a href="#" style="background:#fff; width:34px; height:34px; line-height:34px; text-align:center; display:block; color:#2563eb;"><i class="fas fa-crosshairs"></i></a>';
+            }, { enableHighAccuracy: true });
         };
         return div;
     };
