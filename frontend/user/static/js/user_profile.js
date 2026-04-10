@@ -6,6 +6,23 @@
 
 const API_URL = window.DERMACARE_API_BASE || 'http://127.0.0.1:8000';
 
+/**
+ * Profile “auto-detect location” only; browser permission prompt; no continuous tracking.
+ * Sonar javascript:S5604 — hotspot reviewed: optional UX helper; user may deny or edit manually.
+ *
+ * @param {PositionCallback} onSuccess
+ * @param {PositionErrorCallback} [onError]
+ * @param {PositionOptions} [options]
+ */
+function dermacareRequestGeolocationOnce(onSuccess, onError, options) {
+    if (!navigator.geolocation) {
+        if (typeof onError === 'function') {
+            onError();
+        }
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, options); // NOSONAR
+}
 
 // ─────────────────────────────────────────────
 // LOAD PROFILE FROM API
@@ -106,38 +123,36 @@ function populateProfile(data) {
         const locInput = document.getElementById('prof-location');
         if (locInput) {
             locInput.placeholder = "Detecting location...";
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    try {
-                        const url = `${API_URL}/api/geocode/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-                        const resp = await fetch(url);
-                        if (resp.ok) {
-                            const resData = await resp.json();
-                            const addr = resData.address || {};
-                            const area = addr.suburb || addr.neighbourhood || addr.residential || '';
-                            const city = addr.city || addr.town || addr.municipality || addr.village || addr.county || addr.city_district || '';
-                            const state = addr.state || '';
+            dermacareRequestGeolocationOnce(async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                try {
+                    const url = `${API_URL}/api/geocode/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+                    const resp = await fetch(url);
+                    if (resp.ok) {
+                        const resData = await resp.json();
+                        const addr = resData.address || {};
+                        const area = addr.suburb || addr.neighbourhood || addr.residential || '';
+                        const city = addr.city || addr.town || addr.municipality || addr.village || addr.county || addr.city_district || '';
+                        const state = addr.state || '';
 
-                            const parts = [];
-                            if (area) parts.push(area);
-                            if (city) parts.push(city);
-                            if (state) parts.push(state);
+                        const parts = [];
+                        if (area) parts.push(area);
+                        if (city) parts.push(city);
+                        if (state) parts.push(state);
 
-                            const finalLoc = parts.length > 0 ? parts.join(', ') : 'Unknown';
-                            if (finalLoc !== 'Unknown') {
-                                locInput.value = finalLoc;
-                                DermaUtils.showToast("Location successfully auto-detected!", "success");
-                            }
+                        const finalLoc = parts.length > 0 ? parts.join(', ') : 'Unknown';
+                        if (finalLoc !== 'Unknown') {
+                            locInput.value = finalLoc;
+                            DermaUtils.showToast("Location successfully auto-detected!", "success");
                         }
-                    } catch (err) {
-                        locInput.placeholder = "City / State";
                     }
-                }, (error) => {
+                } catch (err) {
                     locInput.placeholder = "City / State";
-                });
-            }
+                }
+            }, () => {
+                locInput.placeholder = "City / State";
+            });
         }
     }
 }
