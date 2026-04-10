@@ -944,6 +944,17 @@ function nearbyListingHoursSectionHtml(place, scheduleLines) {
                     </div>`;
 }
 
+/** When OSM has no opening_hours, still show a maps-style hint + Google link. */
+function nearbyHoursNotListedHtml(googleReviewsUrl) {
+    const href = escHtml(googleReviewsUrl);
+    return `
+                    <div style="margin-top: 10px; font-size: 0.8125rem; line-height: 1.45; color: #5f6368;">
+                        <i class="fas fa-clock" style="color:#9aa0a6;margin-right:6px;"></i>
+                        <span>Hours not listed on the map.</span>
+                        <a href="${href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:#1a73e8;font-weight:500;text-decoration:none;margin-left:4px;">Check Google Maps</a>
+                    </div>`;
+}
+
 /** Second line under title: facility name when the title is the doctor; otherwise omit (no provider labels). */
 function nearbyVenueSubtitle(place, doctorDisplay, venueName, operatorTag) {
     const vn = (venueName || '').trim();
@@ -1577,6 +1588,10 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                             <span style="color:#64748b;font-weight:500;"> · ${sub}</span>
                         </div>
                     </div>`;
+        }
+
+        if (!hoursRowHtml || !String(hoursRowHtml).trim()) {
+            hoursRowHtml = nearbyHoursNotListedHtml(googleReviewsUrl);
         }
 
         let docLine = nearbyFormatDoctorLine(place, name);

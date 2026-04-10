@@ -811,6 +811,7 @@ def _element_to_row(
         on = True
     elif live["state"] == "closed":
         on = False
+    otype = str(typ).lower() if typ else ""
     return {
         "name": name,
         "doctor_name": doctor_name,
@@ -830,6 +831,9 @@ def _element_to_row(
         "business_status": None,
         "category": category_label,
         "wheelchair": wh,
+        # Internal: used for batched opening_hours fetch, stripped before API response.
+        "_osm_type": otype if otype in ("node", "way", "relation") else None,
+        "_osm_id": int(oid) if oid is not None else None,
     }
 
 
@@ -849,6 +853,106 @@ def _overpass_query(lat: float, lng: float) -> str:
 );
 out center tags 60;
 """
+
+
+_PLACE_ID_OSM_RE = re.compile(r"^(?:osm|nominatim)_(node|way|relation)_(\d+)$", re.I)
+
+
+def _osm_ref_from_row(r: Dict[str, Any]) -> Optional[Tuple[str, int]]:
+    otype = r.get("_osm_type")
+    oid = r.get("_osm_id")
+    if otype and oid is not None:
+        ot = str(otype).lower()
+        if ot in ("node", "way", "relation"):
+            try:
+                return ot, int(oid)
+            except (TypeError, ValueError):
+                pass
+    m = _PLACE_ID_OSM_RE.match(str(r.get("place_id") or "").strip())
+    if m:
+        return m.group(1).lower(), int(m.group(2))
+    return None
+
+
+def _strip_osm_internal_refs(rows: List[Dict[str, Any]]) -> None:
+    for r in rows:
+        r.pop("_osm_type", None)
+        r.pop("_osm_id", None)
+
+
+async def _batch_enrich_opening_hours(client: httpx.AsyncClient, rows: List[Dict[str, Any]]) -> None:
+    """
+    Batched Overpass `out tags` for rows that still lack opening-hours text and live status.
+    Covers Nominatim results (merge) and OSM objects whose first response omitted opening_hours.
+    """
+    unique_refs: List[Tuple[str, int]] = []
+    seen: Set[str] = set()
+    row_by_key: Dict[str, List[Dict[str, Any]]] = {}
+
+    for r in rows:
+        if r.get("weekday_text"):
+            continue
+        live = r.get("hours_live") or {}
+        if live.get("state") in ("open", "closed"):
+            continue
+        ref = _osm_ref_from_row(r)
+        if not ref:
+            continue
+        sk = f"{ref[0]}_{ref[1]}"
+        row_by_key.setdefault(sk, []).append(r)
+        if sk not in seen:
+            seen.add(sk)
+            unique_refs.append(ref)
+
+    if not unique_refs:
+        return
+
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    chunk_size = 20
+    for off in range(0, len(unique_refs), chunk_size):
+        chunk = unique_refs[off : off + chunk_size]
+        parts: List[str] = []
+        for otype, oid in chunk:
+            if otype == "node":
+                parts.append(f"node({oid});")
+            elif otype == "way":
+                parts.append(f"way({oid});")
+            elif otype == "relation":
+                parts.append(f"relation({oid});")
+        if not parts:
+            continue
+        q = f"[out:json][timeout:20];\n({''.join(parts)});\nout tags;"
+        data: Optional[Dict[str, Any]] = None
+        for url in OVERPASS_ENDPOINTS:
+            try:
+                resp = await client.post(url, data={"data": q}, headers=headers, timeout=24.0)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                logger.debug("[nearby-osm] batch hours %s: %s", url, e)
+        if not data:
+            continue
+        for el in data.get("elements") or []:
+            typ = el.get("type")
+            eid = el.get("id")
+            if not typ or eid is None:
+                continue
+            sk = f"{str(typ).lower()}_{int(eid)}"
+            tags = el.get("tags") or {}
+            oh = str(tags.get("opening_hours") or "").strip()
+            if not oh:
+                continue
+            for target in row_by_key.get(sk, []):
+                target["weekday_text"] = _beautify_osm_opening_hours(oh)
+                live = _compute_hours_live_osm(oh)
+                target["hours_live"] = live
+                if live["state"] == "open":
+                    target["open_now"] = True
+                elif live["state"] == "closed":
+                    target["open_now"] = False
+
+    logger.info("[nearby-osm] batch opening_hours keys=%s", len(unique_refs))
 
 
 async def _fetch_overpass(client: httpx.AsyncClient, lat: float, lng: float) -> List[Dict[str, Any]]:
@@ -1023,10 +1127,7 @@ async def _fetch_nominatim_rows(
     rows = _limit_to_nearby_radius(rows)
     if enrich_opening_hours:
         await _enrich_nominatim_rows_opening_hours(client, rows)
-    else:
-        for r in rows:
-            r.pop("_osm_type", None)
-            r.pop("_osm_id", None)
+    # else: keep _osm_type / _osm_id for _batch_enrich_opening_hours in _fetch_osm
     return rows
 
 
@@ -1082,10 +1183,14 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
                     keywords=NOMINATIM_KEYWORDS,
                 )
                 if n_rows:
+                    await _batch_enrich_opening_hours(client, n_rows)
+                    _strip_osm_internal_refs(n_rows)
                     logger.info("[nearby-nominatim] final_count=%s", len(n_rows))
                     return n_rows, "openstreetmap"
                 return [], "error_zero_results"
 
+            await _batch_enrich_opening_hours(client, rows)
+            _strip_osm_internal_refs(rows)
             logger.info("[nearby-osm] final_count=%s", min(len(rows), MIN_RESULTS_TARGET))
             return rows[:MIN_RESULTS_TARGET], "openstreetmap"
 
@@ -1101,9 +1206,11 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
                     enrich_opening_hours=False,
                     keywords=NOMINATIM_KEYWORDS,
                 )
-            if n_rows:
-                logger.info("[nearby-nominatim] fallback_count=%s", len(n_rows))
-                return n_rows, "openstreetmap"
+                if n_rows:
+                    await _batch_enrich_opening_hours(client, n_rows)
+                    _strip_osm_internal_refs(n_rows)
+                    logger.info("[nearby-nominatim] fallback_count=%s", len(n_rows))
+                    return n_rows, "openstreetmap"
         except Exception as ne:
             logger.warning("[nearby-nominatim] fallback failed: %s", ne)
         return [], "error_api"
