@@ -845,12 +845,32 @@ function nearbyFormatAddressLines(rawAddress, venueName) {
     return { primary, secondary };
 }
 
-/** Free location thumbnail (no Google key); CSP must allow staticmap.openstreetmap.de. */
+/** Web Mercator tile index at zoom z (for thumbnails). */
+function nearbyLatLonToTileXY(lat, lon, z) {
+    const latRad = (lat * Math.PI) / 180;
+    const n = 2 ** z;
+    let x = Math.floor(((lon + 180) / 360) * n);
+    let y = Math.floor(
+        ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n
+    );
+    const max = n - 1;
+    x = Math.max(0, Math.min(max, x));
+    y = Math.max(0, Math.min(max, y));
+    return { x, y };
+}
+
+/**
+ * One OSM raster tile as list thumbnail (same host as Leaflet uses).
+ * Avoids staticmap.openstreetmap.de — that host often fails with net::ERR_NAME_NOT_RESOLVED
+ * when DNS/network cannot resolve it, even though the main map tiles load fine.
+ */
 function nearbyStaticMapImageUrl(lat, lon) {
     const la = Number(lat);
     const lo = Number(lon);
     if (!Number.isFinite(la) || !Number.isFinite(lo)) return '';
-    return `https://staticmap.openstreetmap.de/staticmap.php?center=${la},${lo}&zoom=16&size=176x176&maptype=mapnik&markers=${la},${lo},lightblue1`;
+    const z = 16;
+    const { x, y } = nearbyLatLonToTileXY(la, lo, z);
+    return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
 }
 
 /** Opens Google Maps search for this place so users can read Google reviews (no Places API key required). */
