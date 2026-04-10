@@ -8,14 +8,14 @@
     <meta name="description" content="{% block description %}AI-powered skin disease detection system providing instant risk assessment and medical guidance.{% endblock %}">
     
     <!-- Security Headers (SonarCloud Hotspot Fix) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://appleid.cdn-apple.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://ui-avatars.com https://developers.google.com https://upload.wikimedia.org https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://tile.openstreetmap.fr https://*.tile.openstreetmap.fr https://staticmap.openstreetmap.de; connect-src 'self' https://unpkg.com https://ipapi.co;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://appleid.cdn-apple.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self'; img-src 'self' data: https://images.unsplash.com https://ui-avatars.com https://developers.google.com https://upload.wikimedia.org https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://tile.openstreetmap.fr https://*.tile.openstreetmap.fr https://staticmap.openstreetmap.de; connect-src 'self' https://unpkg.com https://ipapi.co;">
     
-    <!-- Stylesheets -->
+    <!-- Stylesheets (Inter is self-hosted — no external font CSS, SRI-safe) -->
+    <link rel="stylesheet" href="/shared/static/css/inter-self-hosted.css">
     <link rel="stylesheet" href="/static/user/css/style.css">
     <link rel="stylesheet" href="/shared/static/css/header.css">
     <link rel="stylesheet" href="/shared/static/css/footer.css">
     <link rel="stylesheet" href="/shared/static/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
 </head>
