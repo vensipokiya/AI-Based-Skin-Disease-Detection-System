@@ -63,6 +63,17 @@ NOMINATIM_KEYWORDS = (
 NOMINATIM_HOSPITAL_KEYWORDS = ("hospital", "clinic", "medical centre")
 USER_AGENT = "DermaCareAI/2.0 (nearby health POIs; student project)"
 
+# Google Places API (optional: settings.GOOGLE_PLACES_API_KEY)
+NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
+MAX_NEARBY_PAGES = 3
+PAGE_DELAY_SEC = 2.0
+DETAILS_FIELDS = (
+    "name,geometry,formatted_address,rating,user_ratings_total,"
+    "opening_hours,reviews,business_status"
+)
+DETAILS_CONCURRENCY = 6
+
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r_earth = 6371.0
@@ -176,8 +187,11 @@ def _compute_hours_live_foursquare(hours: Dict[str, Any]) -> Dict[str, Any]:
         for b in regular:
             if not isinstance(b, dict):
                 continue
+            raw_day = b.get("day")
+            if raw_day is None:
+                continue
             try:
-                d = int(b.get("day"))
+                d = int(raw_day)
             except (TypeError, ValueError):
                 continue
             if d != fsq_today:
@@ -217,8 +231,11 @@ def _compute_hours_live_foursquare(hours: Dict[str, Any]) -> Dict[str, Any]:
             for b in regular:
                 if not isinstance(b, dict):
                     continue
+                raw_day = b.get("day")
+                if raw_day is None:
+                    continue
                 try:
-                    d = int(b.get("day"))
+                    d = int(raw_day)
                 except (TypeError, ValueError):
                     continue
                 if d != target:
@@ -538,6 +555,30 @@ async def _fetch_foursquare_rows(lat: float, lng: float, api_key: str) -> List[D
             rows.append(row)
     rows.sort(key=lambda x: x["distance_km"])
     return _limit_to_nearby_radius(rows)
+
+
+def _nearby_result_to_stub(
+    r: Dict[str, Any], origin_lat: float, origin_lng: float
+) -> Optional[Dict[str, Any]]:
+    """Turn one Nearby Search result into a minimal stub for Place Details follow-up."""
+    place_id = r.get("place_id")
+    if not place_id:
+        return None
+    loc = (r.get("geometry") or {}).get("location") or {}
+    try:
+        plat = float(loc["lat"])
+        plng = float(loc["lng"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    dkm = round(haversine_km(origin_lat, origin_lng, plat, plng), 2)
+    name = (r.get("name") or "").strip() or "Place"
+    return {
+        "place_id": str(place_id),
+        "lat": plat,
+        "lng": plng,
+        "distance_km": dkm,
+        "name_preview": name,
+    }
 
 
 async def _fetch_google_nearby_stubs(
