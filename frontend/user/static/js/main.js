@@ -820,6 +820,39 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
+/** Short, scannable address lines (reduces Nominatim “wall of text”). */
+function nearbyFormatAddressLines(rawAddress, venueName) {
+    let s = String(rawAddress || '').replace(/\s+/g, ' ').trim();
+    const vn = String(venueName || '').trim();
+    if (!s) return { primary: 'Location shown on map', secondary: '' };
+    const low = s.toLowerCase();
+    const vnl = vn.toLowerCase();
+    if (vn && low.startsWith(vnl)) {
+        const rest = s.slice(vn.length).replace(/^[,;\s]+/, '').trim();
+        if (rest.length > 0) s = rest;
+    }
+    const parts = s.split(',').map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return { primary: s, secondary: '' };
+    let take = Math.min(3, parts.length);
+    let primary = parts.slice(0, take).join(', ');
+    if (primary.length > 130) {
+        take = 2;
+        primary = parts.slice(0, take).join(', ');
+    }
+    const secondary = parts.length > take
+        ? parts.slice(take, Math.min(parts.length, take + 2)).join(', ')
+        : '';
+    return { primary, secondary };
+}
+
+/** Free location thumbnail (no Google key); CSP must allow staticmap.openstreetmap.de. */
+function nearbyStaticMapImageUrl(lat, lon) {
+    const la = Number(lat);
+    const lo = Number(lon);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return '';
+    return `https://staticmap.openstreetmap.de/staticmap.php?center=${la},${lo}&zoom=16&size=176x176&maptype=mapnik&markers=${la},${lo},lightblue1`;
+}
+
 /** Opens Google Maps search for this place so users can read Google reviews (no Places API key required). */
 function buildGoogleMapsSearchUrl(lat, lon, name, address) {
     const parts = [name, address].filter(Boolean).map((x) => String(x).trim()).filter(Boolean);
@@ -886,24 +919,26 @@ function nearbyRatingSummaryHtml(place) {
     if (typeof r === 'number' && Number.isFinite(r)) {
         const stars = nearbyStarIconsHtml(r);
         const countStr = n != null && n !== ''
-            ? `<span style="color:#64748b;margin-left:6px;">(${escHtml(String(n))})</span>`
+            ? `<span style="color:#70757a;margin-left:6px;font-size:0.8125rem;">(${escHtml(String(n))})</span>`
             : '';
         return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin-top:6px;">
-            <span style="color:#0f172a;font-weight:600;font-size:0.88rem;">${escHtml(r.toFixed(1))}</span>
+            <span style="color:#202124;font-weight:600;font-size:0.875rem;">${escHtml(r.toFixed(1))}</span>
             <span style="letter-spacing:-3px;line-height:1;">${stars}</span>
             ${countStr}
         </div>`;
     }
-    return `<div style="margin-top:6px;font-size:0.8rem;color:#94a3b8;">No public rating for this listing</div>`;
+    return `<div style="margin-top:4px;font-size:0.8125rem;color:#70757a;">No ratings yet</div>`;
 }
 
-/** Live hours line + optional weekday list (maps-style, no clock icon on the status line). */
+/** Live hours line + optional weekday list (Google Maps–style density). */
 function nearbyListingHoursSectionHtml(place, scheduleLines) {
     const liveHtml = nearbyLiveHoursStatusHtml(place);
-    const schedule = nearbyOpeningHoursBlock(scheduleLines);
+    const schedule = (scheduleLines && scheduleLines.length)
+        ? nearbyOpeningHoursBlockCompact(scheduleLines)
+        : '';
     if (!liveHtml && !schedule) return '';
     return `
-                    <div style="margin-top: 10px; font-size: 0.85rem; line-height: 1.5; color: #64748b;">
+                    <div style="margin-top: 10px; font-size: 0.875rem; line-height: 1.45; color: #5f6368;">
                         ${liveHtml || ''}
                         ${schedule}
                     </div>`;
@@ -955,6 +990,16 @@ function nearbyOpeningHoursBlock(lines) {
                         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
                             <span style="color: #0f172a; font-weight: 700; font-size: 0.8rem; display: block; margin-bottom: 4px;">Opening hours</span>
                             <div style="color: #334155; font-size: 0.85rem; line-height: 1.5;">${body}</div>
+                        </div>`;
+}
+
+function nearbyOpeningHoursBlockCompact(lines) {
+    if (!lines || !lines.length) return '';
+    const body = lines.map((x) => escHtml(String(x))).join('<br>');
+    return `
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f3f4;">
+                            <span style="color: #5f6368; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 4px;">Hours</span>
+                            <div style="color: #5f6368; font-size: 0.78rem; line-height: 1.45;">${body}</div>
                         </div>`;
 }
 
@@ -1545,11 +1590,12 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         const ratingRowHtml = nearbyRatingSummaryHtml(place);
         const categoryLabel = nearbyCategoryLabel(place);
         const wheelchairRowHtml = nearbyWheelchairIconHtml(place);
+        const addrLines = nearbyFormatAddressLines(address, name);
+        const thumbUrl = nearbyStaticMapImageUrl(place.lat, place.lon);
 
         const popupLine = `${typeof distance === 'number' ? distance.toFixed(2) : distance} km away`;
 
         const titleHtml = escHtml(combinedTitle);
-        const ea = escHtml(address);
         const googleReviewsHref = escHtml(googleReviewsUrl);
 
         if (leafletMap) {
@@ -1578,31 +1624,43 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             };
             const bookOnclick = `event.stopPropagation();checkLoginAndBook('${encodeURIComponent(JSON.stringify(bookPayload)).replace(/'/g, "%27")}')`;
 
-            listEl.innerHTML += `
-            <div class="doctor-card nearby-place-card" data-nearby-place-index="${index}" onclick="focusNearbyDoctorAtIndex(${index})" style="display: flex; flex-direction: column; padding: 1.5rem; background: #fff; border-radius: 16px; margin-bottom: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;">
+            const addrSecondaryHtml = addrLines.secondary
+                ? `<p style="margin:4px 0 0 20px;font-size:0.75rem;color:#80868b;line-height:1.4;">${escHtml(addrLines.secondary)}</p>`
+                : '';
+            const thumbImgHtml = thumbUrl
+                ? `<img src="${thumbUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">`
+                : '';
 
-                <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.25rem;">
-                    <div style="flex: 1; min-width: 0;">
-                        <h3 style="color: #0f172a; margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.3;">${titleHtml}</h3>
+            listEl.innerHTML += `
+            <div class="doctor-card nearby-place-card" data-nearby-place-index="${index}" onclick="focusNearbyDoctorAtIndex(${index})" style="display:flex;flex-direction:column;padding:1rem 1rem 1.1rem;background:#fff;border-radius:18px;margin-bottom:1rem;border:1px solid #e8eaed;box-shadow:0 1px 2px rgba(60,64,67,0.08),0 2px 6px rgba(60,64,67,0.06);cursor:pointer;">
+
+                <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:12px;">
+                    <div style="flex:1;min-width:0;">
+                        <h3 style="margin:0;font-size:1.125rem;font-weight:600;color:#202124;line-height:1.3;letter-spacing:-0.01em;">${titleHtml}</h3>
                         ${ratingRowHtml}
-                        <div style="margin-top: 6px; font-size: 0.82rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap;">
+                        <div style="margin-top:6px;font-size:0.8125rem;color:#202124;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">
                             <span>${escHtml(categoryLabel)}</span>${wheelchairRowHtml}
                         </div>
-                        <p style="margin: 8px 0 0 0; font-size: 0.84rem; color: #64748b; line-height: 1.45;">${ea}<span style="color:#94a3b8;"> · ${typeof distance === 'number' ? distance.toFixed(2) : distance} km</span></p>
+                        <p style="margin:10px 0 0 0;font-size:0.8125rem;color:#5f6368;line-height:1.45;">
+                            <i class="fas fa-map-marker-alt" style="color:#9aa0a6;margin-right:6px;font-size:0.8rem;"></i><span>${escHtml(addrLines.primary)}</span>
+                        </p>
+                        ${addrSecondaryHtml}
+                        <p style="margin:6px 0 0 20px;font-size:0.75rem;color:#80868b;">${typeof distance === 'number' ? distance.toFixed(2) : distance} km away</p>
                         ${hoursRowHtml}
-                        <p style="margin: 8px 0 0 0; font-size: 0.8rem; color: #64748b;">On-site services</p>
+                        <p style="margin:8px 0 0 0;font-size:0.75rem;color:#70757a;">On-site services</p>
                     </div>
-                    <div style="width: 72px; height: 72px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: linear-gradient(145deg, #e2e8f0, #f1f5f9); display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
-                        <i class="fas fa-hospital" style="font-size: 1.75rem; color: #94a3b8;"></i>
+                    <div class="nearby-card-thumb">
+                        ${thumbImgHtml}
+                        <div class="nearby-card-thumb-fallback" aria-hidden="true"><i class="fas fa-hospital"></i></div>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600; cursor: pointer;">
-                        <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                    <button type="button" onclick="${bookOnclick}" class="btn" style="flex:2;min-width:140px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;height:44px;font-weight:600;cursor:pointer;border:none;background:#e8f4fc;color:#0f766e;box-shadow:none;">
+                        <i class="fas fa-calendar-check" style="margin-right:8px;color:#0d9488;"></i> Book Appointment
                     </button>
-                    <a href="${googleReviewsHref}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex: 1; min-width: 120px; text-decoration: none; display: flex; align-items: center; justify-content: center; border-radius: 10px; height: 44px; background: #fff; border: 1.5px solid #e2e8f0; color: #0f172a; font-weight: 600;" title="Open in Google Maps to read reviews">
-                        <i class="fab fa-google" style="margin-right: 8px; color: #4285f4;"></i> Reviews
+                    <a href="${googleReviewsHref}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="btn btn-secondary" style="flex:1;min-width:120px;text-decoration:none;display:flex;align-items:center;justify-content:center;border-radius:10px;height:44px;background:#fff;border:1.5px solid #e2e8f0;color:#0f172a;font-weight:600;" title="Open in Google Maps to read reviews">
+                        <i class="fab fa-google" style="margin-right:8px;color:#4285f4;"></i> Reviews
                     </a>
                 </div>
             </div>`;
