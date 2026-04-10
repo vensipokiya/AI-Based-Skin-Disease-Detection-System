@@ -777,6 +777,9 @@ let nearbyDoctorMarkers = []; // Google Maps–style: synced with list; index ma
 let _nearbyMapMoveTimer = null;
 let _lastNearbyMapCenter = null;
 let _suppressNearbyMapSearchUntil = 0;
+/** Monotonic id so only the latest /api/nearby response updates the list (avoids stuck “Scanning…”). */
+let _nearbySearchSeq = 0;
+let _nearbyFetchAbort = null;
 
 function clearNearbyDoctorMarkers() {
     nearbyDoctorMarkers = [];
@@ -1329,7 +1332,19 @@ function refreshDoctorSearch(lat, lng, listEl) {
 }
 
 // ──── Search nearby dermatologists via backend proxy ─────────────────────────
+const NEARBY_FETCH_TIMEOUT_MS = 55000;
+
 async function searchNearbyDermatologists(lat, lng, listEl) {
+    const mySeq = ++_nearbySearchSeq;
+    if (_nearbyFetchAbort) {
+        try { _nearbyFetchAbort.abort(); } catch (e) { /* noop */ }
+    }
+    const ac = new AbortController();
+    _nearbyFetchAbort = ac;
+    const timeoutId = setTimeout(() => {
+        try { ac.abort(); } catch (e) { /* noop */ }
+    }, NEARBY_FETCH_TIMEOUT_MS);
+
     if (listEl) {
         listEl.innerHTML = `
             <div style="text-align:center;padding:2.5rem 1rem;">
@@ -1342,8 +1357,12 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
     }
 
     try {
-        const res = await fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}`);
+        const res = await fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}`, { signal: ac.signal });
+        if (mySeq !== _nearbySearchSeq) return;
+
         const doctors = await res.json().catch(() => null);
+        if (mySeq !== _nearbySearchSeq) return;
+
         if (!res.ok) {
             const msg = (doctors && doctors.detail) ? doctors.detail : `Server error ${res.status}`;
             console.error('[nearby] /api/nearby failed:', msg);
@@ -1362,7 +1381,19 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
         }
         console.log('[nearby] /api/nearby response length:', Array.isArray(doctors) ? doctors.length : 0);
 
-        if (!doctors || doctors.length === 0) {
+        if (!Array.isArray(doctors)) {
+            console.error('[nearby] /api/nearby returned non-array:', doctors);
+            if (listEl) {
+                listEl.innerHTML = `
+                    <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
+                        <h3 style="color:#991b1b;margin-bottom:0.75rem;">Unexpected server response</h3>
+                        <p style="color:#7f1d1d;font-size:0.9rem;">The nearby list could not be loaded. Try refreshing the page.</p>
+                    </div>`;
+            }
+            return;
+        }
+
+        if (doctors.length === 0) {
             if (listEl) {
                 listEl.innerHTML = `
                     <div style="text-align:center;padding:2rem;background:#fffbeb;border:1px solid #fde68a;border-radius:16px;margin:0.5rem;">
@@ -1379,14 +1410,38 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
 
         const places = doctors.map(d => normalizeDoctorPlace(d));
 
-        renderDermatologistList(places, listEl, lat, lng);
+        try {
+            renderDermatologistList(places, listEl, lat, lng);
+        } catch (renderErr) {
+            console.error('[nearby] render list failed:', renderErr);
+            if (listEl && mySeq === _nearbySearchSeq) {
+                listEl.innerHTML = `
+                    <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
+                        <h3 style="color:#991b1b;margin-bottom:0.75rem;">Could not display results</h3>
+                        <p style="color:#7f1d1d;font-size:0.9rem;">Try refreshing. If it keeps happening, open the browser console for details.</p>
+                    </div>`;
+            }
+            return;
+        }
         if (leafletMap) {
             const c = leafletMap.getCenter();
             _lastNearbyMapCenter = { lat: c.lat, lng: c.lng };
         }
     } catch (err) {
+        if (err && err.name === 'AbortError') {
+            if (mySeq !== _nearbySearchSeq) return;
+            if (listEl) {
+                listEl.innerHTML = `
+                    <div style="text-align:center;padding:2rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;margin:0.5rem;">
+                        <h3 style="color:#9a3412;margin-bottom:0.75rem;">Request timed out</h3>
+                        <p style="color:#7c2d12;font-size:0.9rem;line-height:1.5;">The map data service is slow or unreachable. Try again in a moment, or move the map slightly to search again.</p>
+                        <button type="button" class="btn btn-primary" style="margin-top:1rem;" onclick="location.reload()">Reload page</button>
+                    </div>`;
+            }
+            return;
+        }
         console.error('Backend /api/nearby failed:', err);
-        if (listEl) {
+        if (listEl && mySeq === _nearbySearchSeq) {
             listEl.innerHTML = `
                 <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
                     <h3 style="color:#991b1b;margin-bottom:0.75rem;">Could not load nearby places</h3>
@@ -1396,6 +1451,8 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
                     </a>
                 </div>`;
         }
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
@@ -1435,10 +1492,11 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
     });
 
     finalPlaces.forEach((place, index) => {
-        const name = place.tags.name;
-        const operator = place.tags.operator || place.tags['contact:person'] || "";
-        const city = place.city || place.tags['addr:city'] || place.tags['addr:suburb'] || "";
-        const street = place.street || place.tags['addr:street'] || place.tags['addr:housenumber'] || "";
+        const tags = place.tags && typeof place.tags === 'object' ? place.tags : {};
+        const name = tags.name != null ? tags.name : (place.name != null ? place.name : '');
+        const operator = tags.operator || tags['contact:person'] || "";
+        const city = place.city || tags['addr:city'] || tags['addr:suburb'] || "";
+        const street = place.street || tags['addr:street'] || tags['addr:housenumber'] || "";
         let address = street ? `${street}${city ? ", " + city : ""}` : (city || "Location available on map");
         const distance = place.distance;
         const seed = (name && name.length) ? name.length + index : index;
@@ -1493,14 +1551,18 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
         const ea = escHtml(address);
         const googleReviewsHref = escHtml(googleReviewsUrl);
 
-        const marker = L.marker([place.lat, place.lon], { icon: doctorIcon })
-            .addTo(leafletMap)
-            .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
+        if (leafletMap) {
+            const marker = L.marker([place.lat, place.lon], { icon: doctorIcon })
+                .addTo(leafletMap)
+                .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
                             <strong style="color:#2563eb">${titleHtml}</strong><br>
                             <span style="font-size:0.85rem">${escHtml(popupLine)}</span>
                         </div>`);
-        marker.on('click', () => _highlightNearbyCardForIndex(index));
-        nearbyDoctorMarkers.push(marker);
+            marker.on('click', () => _highlightNearbyCardForIndex(index));
+            nearbyDoctorMarkers.push(marker);
+        } else {
+            nearbyDoctorMarkers.push(null);
+        }
 
         if (listEl) {
             const bookPayload = {
