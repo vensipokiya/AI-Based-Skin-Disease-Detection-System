@@ -19,19 +19,22 @@ from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-MIN_RESULTS_TARGET = 20
-MAX_RETURN = 25
-AROUND_METERS = 12000
+MIN_RESULTS_TARGET = 40
+MAX_RETURN = 40
+AROUND_METERS = 22000
 PRIMARY_RADIUS_KM = 5.0
 FALLBACK_RADIUS_KM = 10.0
+EXTENDED_RADIUS_KM = 22.0
 MIN_ACCEPTABLE_COUNT = 3
+# When Overpass finds fewer than this after filtering, merge Nominatim keyword hits (deduped).
+MERGE_NOMINATIM_IF_FEWER_THAN = 10
 
 FOURSQUARE_SEARCH_URL = "https://api.foursquare.com/v3/places/search"
 FOURSQUARE_DETAILS_URL = "https://api.foursquare.com/v3/places/{fsq_id}"
 FOURSQUARE_TIPS_URL = "https://api.foursquare.com/v3/places/{fsq_id}/tips"
 FSQ_RADIUS_M_PRIMARY = 5000
 FSQ_RADIUS_M_FALLBACK = 10000
-FSQ_LIMIT_PER_QUERY = 20
+FSQ_LIMIT_PER_QUERY = 25
 FSQ_DETAILS_CONCURRENCY = 6
 FSQ_SEARCH_TERMS = (
     "dermatologist",
@@ -69,14 +72,33 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def _limit_to_nearby_radius(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Keep places within 5km by default.
-    If results are too few, expand to 10km.
+    Prefer 5km, then 10km, then up to EXTENDED_RADIUS_KM if still sparse.
     """
-    within_5 = [r for r in rows if float(r.get("distance_km", 9999)) <= PRIMARY_RADIUS_KM]
-    if len(within_5) >= MIN_ACCEPTABLE_COUNT:
-        return within_5[:MIN_RESULTS_TARGET]
-    within_10 = [r for r in rows if float(r.get("distance_km", 9999)) <= FALLBACK_RADIUS_KM]
-    return within_10[:MIN_RESULTS_TARGET]
+    rows_sorted = sorted(rows, key=lambda x: float(x.get("distance_km", 9999)))
+
+    def _within(km: float) -> List[Dict[str, Any]]:
+        return [r for r in rows_sorted if float(r.get("distance_km", 9999)) <= km]
+
+    w5 = _within(PRIMARY_RADIUS_KM)
+    if len(w5) >= MIN_ACCEPTABLE_COUNT:
+        return w5[:MIN_RESULTS_TARGET]
+    w10 = _within(FALLBACK_RADIUS_KM)
+    if len(w10) >= MIN_ACCEPTABLE_COUNT:
+        return w10[:MIN_RESULTS_TARGET]
+    w_ext = _within(EXTENDED_RADIUS_KM)
+    return w_ext[:MIN_RESULTS_TARGET]
+
+
+def _row_dedupe_key(r: Dict[str, Any]) -> str:
+    pid = r.get("place_id")
+    if pid:
+        return f"id:{pid}"
+    try:
+        la, lo = round(float(r["lat"]), 4), round(float(r["lng"]), 4)
+    except (KeyError, TypeError, ValueError):
+        la, lo = 0.0, 0.0
+    nm = str(r.get("name") or "").strip().lower()[:48]
+    return f"{la}|{lo}|{nm}"
 
 
 def _looks_dermatology(name: str, tags: Dict[str, Any]) -> bool:
@@ -85,7 +107,18 @@ def _looks_dermatology(name: str, tags: Dict[str, Any]) -> bool:
     spec2 = str(tags.get("speciality", "")).lower()
     desc = str(tags.get("description", "")).lower()
     combo = " ".join([n, spec, spec2, desc])
-    keys = ("dermat", "skin", "cosmetic", "laser", "tricholog", "venereolog")
+    keys = (
+        "dermat",
+        "skin",
+        "cosmetic",
+        "laser",
+        "tricholog",
+        "venereolog",
+        "aesthetic",
+        "cosmetolog",
+        "medispa",
+        "mesotherapy",
+    )
     return any(k in combo for k in keys)
 
 
@@ -796,12 +829,16 @@ def _element_to_row(
 
 def _overpass_query(lat: float, lng: float) -> str:
     r = AROUND_METERS
-    return f"""[out:json][timeout:20];
+    # Broader union: tagged speciality, name hints on clinics/doctors, and common amenity types.
+    return f"""[out:json][timeout:28];
 (
   nwr["healthcare:speciality"~"dermatology|skin",i](around:{r},{lat},{lng});
   nwr["speciality"~"dermatology|skin",i](around:{r},{lat},{lng});
-  nwr["name"~"Dermat|Skin|Derma|Cosmetic|Laser",i]["amenity"~"hospital|clinic|doctors"](around:{r},{lat},{lng});
-  nwr["name"~"Dermat|Skin|Derma|Cosmetic|Laser",i]["healthcare"~"hospital|clinic|doctor"](around:{r},{lat},{lng});
+  nwr["name"~"Dermat|Skin|Derma|Cosmetic|Laser|Aesthetic|Tricholog|Medispa",i]["amenity"~"hospital|clinic|doctors"](around:{r},{lat},{lng});
+  nwr["name"~"Dermat|Skin|Derma|Cosmetic|Laser|Aesthetic|Tricholog|Medispa",i]["healthcare"~"hospital|clinic|doctor"](around:{r},{lat},{lng});
+  nwr["amenity"="doctors"]["name"~"Dermat|Skin|Derma|Cosmetic|Laser|Aesthetic|Tricholog|Medispa",i](around:{r},{lat},{lng});
+  nwr["healthcare"="doctor"]["name"~"Dermat|Skin|Derma|Cosmetic|Laser|Aesthetic|Tricholog",i](around:{r},{lat},{lng});
+  nwr["amenity"="clinic"]["name"~"Dermat|Skin|Derma|Cosmetic|Laser|Aesthetic|Tricholog|Medispa",i](around:{r},{lat},{lng});
 );
 out center tags 60;
 """
@@ -909,8 +946,8 @@ async def _enrich_nominatim_rows_opening_hours(
 
 async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: float) -> List[Dict[str, Any]]:
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-    # ~10-15km bounding box to keep results relevant
-    margin = 0.12
+    # ~15–18km bounding box to keep results relevant
+    margin = 0.15
     viewbox = f"{lng-margin},{lat+margin},{lng+margin},{lat-margin}"
     rows: List[Dict[str, Any]] = []
     seen: Set[str] = set()
@@ -919,7 +956,7 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
         params = {
             "q": kw,
             "format": "json",
-            "limit": "30",
+            "limit": "40",
             "addressdetails": "1",
             "viewbox": viewbox,
             "bounded": "0",
@@ -992,6 +1029,23 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
 
         rows.sort(key=lambda x: x["distance_km"])
         rows = _limit_to_nearby_radius(rows)
+
+        if len(rows) < MERGE_NOMINATIM_IF_FEWER_THAN:
+            try:
+                async with httpx.AsyncClient() as client:
+                    n_rows = await _fetch_nominatim_rows(client, lat, lng)
+                seen = {_row_dedupe_key(r) for r in rows}
+                for r in n_rows:
+                    k = _row_dedupe_key(r)
+                    if k in seen:
+                        continue
+                    seen.add(k)
+                    rows.append(r)
+                rows.sort(key=lambda x: x["distance_km"])
+                rows = _limit_to_nearby_radius(rows)
+                logger.info("[nearby-osm] merged nominatim; count=%s", len(rows))
+            except Exception as e:
+                logger.warning("[nearby-osm] nominatim merge skipped: %s", e)
 
         if not rows:
             logger.warning("[nearby-osm] zero results near lat=%s lng=%s; trying nominatim fallback", lat, lng)
