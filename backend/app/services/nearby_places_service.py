@@ -223,8 +223,12 @@ def _compute_hours_live_foursquare(hours: Dict[str, Any]) -> Dict[str, Any]:
                     out["state"] = "closed"
                     out["opens_next"] = f"Opens {_format_ampm(om // 60, om % 60)}"
                     return out
-        # No open interval matched (empty day or after last close / between slots).
-        out["state"] = "closed"
+            if now_mins >= intervals[-1][1]:
+                out["state"] = "closed"
+            else:
+                out["state"] = "closed"
+        else:
+            out["state"] = "closed"
 
         for delta in range(1, 8):
             target = ((fsq_today - 1 + delta) % 7) + 1
@@ -677,21 +681,15 @@ def _details_to_row(
     dkm = round(dist, 2)
     oh = result.get("opening_hours") or {}
     reviews_out: List[Dict[str, Any]] = []
-    raw_reviews = result.get("reviews")
-    if isinstance(raw_reviews, list):
-        for r in raw_reviews:
-            if len(reviews_out) >= 5:
-                break
-            if not isinstance(r, dict):
-                continue
-            reviews_out.append(
-                {
-                    "author_name": r.get("author_name"),
-                    "rating": r.get("rating"),
-                    "text": r.get("text"),
-                    "relative_time_description": r.get("relative_time_description"),
-                }
-            )
+    for r in (result.get("reviews") or [])[:5]:
+        reviews_out.append(
+            {
+                "author_name": r.get("author_name"),
+                "rating": r.get("rating"),
+                "text": r.get("text"),
+                "relative_time_description": r.get("relative_time_description"),
+            }
+        )
     name = result.get("name") or stub.get("name_preview") or "Clinic"
     addr = result.get("formatted_address") or ""
     return {

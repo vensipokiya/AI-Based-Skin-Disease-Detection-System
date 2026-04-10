@@ -123,9 +123,8 @@ const TAB_CONFIG = {
 };
 
 function switchAdminTab(tabName) {
-    document.querySelectorAll('.sidebar-menu .sidebar-nav-btn').forEach((el) => {
-        el.classList.toggle('active', el.dataset.adminTab === tabName);
-    });
+    document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
 
     Object.keys(TAB_CONFIG).forEach(key => {
         const el = document.getElementById(TAB_CONFIG[key].view);
