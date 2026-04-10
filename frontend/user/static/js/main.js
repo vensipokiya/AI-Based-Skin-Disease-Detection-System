@@ -1332,7 +1332,8 @@ function refreshDoctorSearch(lat, lng, listEl) {
 }
 
 // ──── Search nearby dermatologists via backend proxy ─────────────────────────
-const NEARBY_FETCH_TIMEOUT_MS = 55000;
+// Backend may chain Overpass + Nominatim; allow enough time for slow public mirrors.
+const NEARBY_FETCH_TIMEOUT_MS = 120000;
 
 async function searchNearbyDermatologists(lat, lng, listEl) {
     const mySeq = ++_nearbySearchSeq;

@@ -43,9 +43,9 @@ FSQ_SEARCH_TERMS = (
     "skin specialist",
 )
 
+# Try two mirrors only — a third retry often pushes total wall time past browser limits.
 OVERPASS_ENDPOINTS = (
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
 )
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
@@ -55,6 +55,12 @@ NOMINATIM_KEYWORDS = (
     "skin clinic",
     "hospital dermatology",
     "skin specialist",
+)
+# Fewer Nominatim round-trips when supplementing Overpass (opening hours skipped).
+NOMINATIM_KEYWORDS_MERGE = (
+    "dermatologist",
+    "dermatology clinic",
+    "skin clinic",
 )
 
 USER_AGENT = "DermaCareAI/2.0 (nearby health POIs; student project)"
@@ -830,7 +836,8 @@ def _element_to_row(
 def _overpass_query(lat: float, lng: float) -> str:
     r = AROUND_METERS
     # Broader union: tagged speciality, name hints on clinics/doctors, and common amenity types.
-    return f"""[out:json][timeout:28];
+    # timeout: server-side cap; keep moderate so slow mirrors fail fast to the next endpoint.
+    return f"""[out:json][timeout:22];
 (
   nwr["healthcare:speciality"~"dermatology|skin",i](around:{r},{lat},{lng});
   nwr["speciality"~"dermatology|skin",i](around:{r},{lat},{lng});
@@ -850,7 +857,7 @@ async def _fetch_overpass(client: httpx.AsyncClient, lat: float, lng: float) -> 
     last_err: Optional[Exception] = None
     for url in OVERPASS_ENDPOINTS:
         try:
-            resp = await client.post(url, data={"data": q}, headers=headers, timeout=40.0)
+            resp = await client.post(url, data={"data": q}, headers=headers, timeout=26.0)
             resp.raise_for_status()
             data = resp.json()
             els = data.get("elements") or []
@@ -901,11 +908,11 @@ async def _enrich_nominatim_rows_opening_hours(
                 parts.append(f"relation({oid});")
         if not parts:
             continue
-        q = f"[out:json][timeout:25];\n({''.join(parts)});\nout tags;"
+        q = f"[out:json][timeout:18];\n({''.join(parts)});\nout tags;"
         data: Optional[Dict[str, Any]] = None
         for url in OVERPASS_ENDPOINTS:
             try:
-                resp = await client.post(url, data={"data": q}, headers=headers, timeout=40.0)
+                resp = await client.post(url, data={"data": q}, headers=headers, timeout=22.0)
                 resp.raise_for_status()
                 data = resp.json()
                 break
@@ -944,15 +951,23 @@ async def _enrich_nominatim_rows_opening_hours(
         r.pop("_osm_id", None)
 
 
-async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: float) -> List[Dict[str, Any]]:
+async def _fetch_nominatim_rows(
+    client: httpx.AsyncClient,
+    lat: float,
+    lng: float,
+    *,
+    enrich_opening_hours: bool = True,
+    keywords: Optional[Tuple[str, ...]] = None,
+) -> List[Dict[str, Any]]:
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     # ~15–18km bounding box to keep results relevant
     margin = 0.15
     viewbox = f"{lng-margin},{lat+margin},{lng+margin},{lat-margin}"
     rows: List[Dict[str, Any]] = []
     seen: Set[str] = set()
+    kw_list = keywords if keywords is not None else NOMINATIM_KEYWORDS
 
-    for kw in NOMINATIM_KEYWORDS:
+    for kw in kw_list:
         params = {
             "q": kw,
             "format": "json",
@@ -962,7 +977,7 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
             "bounded": "0",
         }
         try:
-            resp = await client.get(NOMINATIM_URL, params=params, headers=headers, timeout=25.0)
+            resp = await client.get(NOMINATIM_URL, params=params, headers=headers, timeout=18.0)
             resp.raise_for_status()
             items = resp.json() or []
             logger.info("[nearby-nominatim] keyword=%r results=%s", kw, len(items))
@@ -1006,7 +1021,12 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
 
     rows.sort(key=lambda x: x["distance_km"])
     rows = _limit_to_nearby_radius(rows)
-    await _enrich_nominatim_rows_opening_hours(client, rows)
+    if enrich_opening_hours:
+        await _enrich_nominatim_rows_opening_hours(client, rows)
+    else:
+        for r in rows:
+            r.pop("_osm_type", None)
+            r.pop("_osm_id", None)
     return rows
 
 
@@ -1015,56 +1035,72 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
         async with httpx.AsyncClient() as client:
             elements = await _fetch_overpass(client, lat, lng)
 
-        seen: Set[str] = set()
-        rows: List[Dict[str, Any]] = []
-        for el in elements:
-            row = _element_to_row(el, lat, lng)
-            if not row:
-                continue
-            key = f"{row['name'].lower()}|{round(row['lat'], 4)}|{round(row['lng'], 4)}"
-            if key in seen:
-                continue
-            seen.add(key)
-            rows.append(row)
+            seen: Set[str] = set()
+            rows: List[Dict[str, Any]] = []
+            for el in elements:
+                row = _element_to_row(el, lat, lng)
+                if not row:
+                    continue
+                key = f"{row['name'].lower()}|{round(row['lat'], 4)}|{round(row['lng'], 4)}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                rows.append(row)
 
-        rows.sort(key=lambda x: x["distance_km"])
-        rows = _limit_to_nearby_radius(rows)
+            rows.sort(key=lambda x: x["distance_km"])
+            rows = _limit_to_nearby_radius(rows)
 
-        if len(rows) < MERGE_NOMINATIM_IF_FEWER_THAN:
-            try:
-                async with httpx.AsyncClient() as client:
-                    n_rows = await _fetch_nominatim_rows(client, lat, lng)
-                seen = {_row_dedupe_key(r) for r in rows}
-                for r in n_rows:
-                    k = _row_dedupe_key(r)
-                    if k in seen:
-                        continue
-                    seen.add(k)
-                    rows.append(r)
-                rows.sort(key=lambda x: x["distance_km"])
-                rows = _limit_to_nearby_radius(rows)
-                logger.info("[nearby-osm] merged nominatim; count=%s", len(rows))
-            except Exception as e:
-                logger.warning("[nearby-osm] nominatim merge skipped: %s", e)
+            if len(rows) < MERGE_NOMINATIM_IF_FEWER_THAN:
+                try:
+                    n_rows = await _fetch_nominatim_rows(
+                        client,
+                        lat,
+                        lng,
+                        enrich_opening_hours=False,
+                        keywords=NOMINATIM_KEYWORDS_MERGE,
+                    )
+                    seen_k = {_row_dedupe_key(r) for r in rows}
+                    for r in n_rows:
+                        k = _row_dedupe_key(r)
+                        if k in seen_k:
+                            continue
+                        seen_k.add(k)
+                        rows.append(r)
+                    rows.sort(key=lambda x: x["distance_km"])
+                    rows = _limit_to_nearby_radius(rows)
+                    logger.info("[nearby-osm] merged nominatim; count=%s", len(rows))
+                except Exception as e:
+                    logger.warning("[nearby-osm] nominatim merge skipped: %s", e)
 
-        if not rows:
-            logger.warning("[nearby-osm] zero results near lat=%s lng=%s; trying nominatim fallback", lat, lng)
-            async with httpx.AsyncClient() as client:
-                n_rows = await _fetch_nominatim_rows(client, lat, lng)
-            if n_rows:
-                logger.info("[nearby-nominatim] final_count=%s", len(n_rows))
-                return n_rows, "openstreetmap"
-            return [], "error_zero_results"
+            if not rows:
+                logger.warning("[nearby-osm] zero results near lat=%s lng=%s; trying nominatim fallback", lat, lng)
+                n_rows = await _fetch_nominatim_rows(
+                    client,
+                    lat,
+                    lng,
+                    enrich_opening_hours=False,
+                    keywords=NOMINATIM_KEYWORDS,
+                )
+                if n_rows:
+                    logger.info("[nearby-nominatim] final_count=%s", len(n_rows))
+                    return n_rows, "openstreetmap"
+                return [], "error_zero_results"
 
-        logger.info("[nearby-osm] final_count=%s", min(len(rows), MIN_RESULTS_TARGET))
-        return rows[:MIN_RESULTS_TARGET], "openstreetmap"
+            logger.info("[nearby-osm] final_count=%s", min(len(rows), MIN_RESULTS_TARGET))
+            return rows[:MIN_RESULTS_TARGET], "openstreetmap"
 
     except Exception as e:
         logger.exception("[nearby-osm] API failure: %s", e)
         # Resilient fallback when Overpass is down/throttled.
         try:
             async with httpx.AsyncClient() as client:
-                n_rows = await _fetch_nominatim_rows(client, lat, lng)
+                n_rows = await _fetch_nominatim_rows(
+                    client,
+                    lat,
+                    lng,
+                    enrich_opening_hours=False,
+                    keywords=NOMINATIM_KEYWORDS,
+                )
             if n_rows:
                 logger.info("[nearby-nominatim] fallback_count=%s", len(n_rows))
                 return n_rows, "openstreetmap"
