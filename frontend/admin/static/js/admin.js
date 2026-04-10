@@ -122,16 +122,8 @@ const TAB_CONFIG = {
     'login-history': { view: 'admin-login-history-view', title: 'Login History', loader: () => adminLoadLoginHistory() }
 };
 
-/** Activate sidebar tab from keyboard (Enter/Space) — keeps Sonar/accessibility rules satisfied. */
-function adminSidebarNavKeydown(event, tabName) {
-    if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        switchAdminTab(tabName);
-    }
-}
-
 function switchAdminTab(tabName) {
-    document.querySelectorAll('.sidebar-menu li').forEach((el) => {
+    document.querySelectorAll('.sidebar-menu .sidebar-nav-btn').forEach((el) => {
         el.classList.toggle('active', el.dataset.adminTab === tabName);
     });
 

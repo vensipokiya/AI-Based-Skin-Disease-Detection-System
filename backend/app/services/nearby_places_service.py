@@ -74,6 +74,18 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return r_earth * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def _nominatim_primary_name(display_name: Any) -> str:
+    """First segment before comma; string-safe (no brittle indexing on non-strings)."""
+    if display_name is None:
+        return ""
+    text = display_name if isinstance(display_name, str) else str(display_name)
+    text = text.strip()
+    if not text:
+        return ""
+    head, _sep, _rest = text.partition(",")
+    return head.strip()
+
+
 def _limit_to_nearby_radius(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Closest-first, up to MIN_RESULTS_TARGET, within EXTENDED_RADIUS_KM.
@@ -197,10 +209,8 @@ def _compute_hours_live_foursquare(hours: Dict[str, Any]) -> Dict[str, Any]:
                     out["state"] = "closed"
                     out["opens_next"] = f"Opens {_format_ampm(om // 60, om % 60)}"
                     return out
-            # Past today's last interval or in a between-slots gap — still closed.
-            out["state"] = "closed"
-        else:
-            out["state"] = "closed"
+        # No open interval matched (empty day or after last close / between slots).
+        out["state"] = "closed"
 
         for delta in range(1, 8):
             target = ((fsq_today - 1 + delta) % 7) + 1
@@ -627,18 +637,20 @@ def _details_to_row(
     oh = result.get("opening_hours") or {}
     reviews_out: List[Dict[str, Any]] = []
     raw_reviews = result.get("reviews")
-    review_items: List[Dict[str, Any]] = [
-        x for x in (raw_reviews if isinstance(raw_reviews, list) else []) if isinstance(x, dict)
-    ]
-    for r in review_items[:5]:
-        reviews_out.append(
-            {
-                "author_name": r.get("author_name"),
-                "rating": r.get("rating"),
-                "text": r.get("text"),
-                "relative_time_description": r.get("relative_time_description"),
-            }
-        )
+    if isinstance(raw_reviews, list):
+        for r in raw_reviews:
+            if len(reviews_out) >= 5:
+                break
+            if not isinstance(r, dict):
+                continue
+            reviews_out.append(
+                {
+                    "author_name": r.get("author_name"),
+                    "rating": r.get("rating"),
+                    "text": r.get("text"),
+                    "relative_time_description": r.get("relative_time_description"),
+                }
+            )
     name = result.get("name") or stub.get("name_preview") or "Clinic"
     addr = result.get("formatted_address") or ""
     return {
@@ -1175,7 +1187,7 @@ async def _fetch_nominatim_rows(
             items = resp.json() or []
             logger.info("[nearby-nominatim] keyword=%r results=%s", kw, len(items))
             for it in items:
-                name = (it.get("display_name", "").split(",")[0] or "").strip()
+                name = _nominatim_primary_name(it.get("display_name"))
                 ilat, ilon = it.get("lat"), it.get("lon")
                 if not name or ilat is None or ilon is None:
                     continue
@@ -1361,7 +1373,7 @@ async def _fetch_nominatim_hospitals_bounded(
                 continue
             name = (it.get("name") or "").strip()
             if not name:
-                name = ((it.get("display_name") or "").split(",")[0] or "").strip()
+                name = _nominatim_primary_name(it.get("display_name"))
             if not name:
                 continue
             ilat, ilon = it.get("lat"), it.get("lon")

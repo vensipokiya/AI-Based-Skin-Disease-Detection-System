@@ -79,38 +79,46 @@
             </div>
 
 
-            <ul class="sidebar-menu" role="menu">
-                <li class="active" role="menuitem" tabindex="0" data-admin-tab="users"
-                    onclick="switchAdminTab('users')" onkeydown="adminSidebarNavKeydown(event, 'users')">
-                    <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
+            <ul class="sidebar-menu" role="list">
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn active" data-admin-tab="users" onclick="switchAdminTab('users')">
+                        <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="scans"
-                    onclick="switchAdminTab('scans')" onkeydown="adminSidebarNavKeydown(event, 'scans')">
-                    <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="scans" onclick="switchAdminTab('scans')">
+                        <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="medical"
-                    onclick="switchAdminTab('medical')" onkeydown="adminSidebarNavKeydown(event, 'medical')">
-                    <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="medical" onclick="switchAdminTab('medical')">
+                        <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="appointments"
-                    onclick="switchAdminTab('appointments')" onkeydown="adminSidebarNavKeydown(event, 'appointments')">
-                    <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="appointments" onclick="switchAdminTab('appointments')">
+                        <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="activity"
-                    onclick="switchAdminTab('activity')" onkeydown="adminSidebarNavKeydown(event, 'activity')">
-                    <i class="fas fa-chart-line"></i> <span class="nav-text">System Logs</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="activity" onclick="switchAdminTab('activity')">
+                        <i class="fas fa-chart-line"></i> <span class="nav-text">System Logs</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="locations"
-                    onclick="switchAdminTab('locations')" onkeydown="adminSidebarNavKeydown(event, 'locations')">
-                    <i class="fas fa-map-marker-alt"></i> <span class="nav-text">User Locations</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="locations" onclick="switchAdminTab('locations')">
+                        <i class="fas fa-map-marker-alt"></i> <span class="nav-text">User Locations</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="otps"
-                    onclick="switchAdminTab('otps')" onkeydown="adminSidebarNavKeydown(event, 'otps')">
-                    <i class="fas fa-key"></i> <span class="nav-text">OTP Verifications</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="otps" onclick="switchAdminTab('otps')">
+                        <i class="fas fa-key"></i> <span class="nav-text">OTP Verifications</span>
+                    </button>
                 </li>
-                <li role="menuitem" tabindex="0" data-admin-tab="login-history"
-                    onclick="switchAdminTab('login-history')" onkeydown="adminSidebarNavKeydown(event, 'login-history')">
-                    <i class="fas fa-history"></i> <span class="nav-text">Login History</span>
+                <li role="none">
+                    <button type="button" class="sidebar-nav-btn" data-admin-tab="login-history" onclick="switchAdminTab('login-history')">
+                        <i class="fas fa-history"></i> <span class="nav-text">Login History</span>
+                    </button>
                 </li>
 
             </ul>
