@@ -407,6 +407,14 @@ def _fsq_result_to_row(
     review_count = stats.get("total_ratings") or stats.get("total_tips") or None
     hours = base.get("hours") or {}
     doctor_name = (base.get("related_places") or {}).get("parent", {}).get("name")
+    cats = base.get("categories") or src.get("categories") or []
+    category_label = None
+    for c in cats:
+        if isinstance(c, dict):
+            nm = (c.get("name") or "").strip()
+            if nm:
+                category_label = nm
+                break
     live = _compute_hours_live_foursquare(hours)
     open_now_val = hours.get("open_now")
     if live["state"] == "open":
@@ -432,6 +440,8 @@ def _fsq_result_to_row(
         "business_status": "OPERATIONAL" if base.get("closed_bucket") in (None, "VeryLikelyOpen") else "CLOSED_TEMPORARILY",
         "place_url": f"https://foursquare.com/v/{fsq_id}" if fsq_id else None,
         "website": base.get("website"),
+        "category": category_label,
+        "wheelchair": None,
     }
 
 
@@ -752,6 +762,9 @@ def _element_to_row(
     pid = f"osm_{typ}_{oid}" if oid is not None else f"osm_{typ}_{plat:.5f}_{plng:.5f}"
     opening = str(tags.get("opening_hours", "")).strip()
     doctor_name = (tags.get("contact:person") or tags.get("doctor") or tags.get("operator") or "").strip() or None
+    spec_raw = (tags.get("healthcare:speciality") or tags.get("speciality") or "").strip()
+    category_label = spec_raw.replace("_", " ").strip() or None
+    wh = (tags.get("wheelchair") or "").strip().lower() or None
     hours_lines = _beautify_osm_opening_hours(opening) if opening else None
     live = _compute_hours_live_osm(opening)
     on = None
@@ -776,6 +789,8 @@ def _element_to_row(
         "weekday_text": hours_lines,
         "reviews": [],
         "business_status": None,
+        "category": category_label,
+        "wheelchair": wh,
     }
 
 
@@ -943,6 +958,8 @@ async def _fetch_nominatim_rows(client: httpx.AsyncClient, lat: float, lng: floa
                         "weekday_text": None,
                         "reviews": [],
                         "business_status": None,
+                        "category": None,
+                        "wheelchair": None,
                         "_osm_type": it.get("osm_type"),
                         "_osm_id": it.get("osm_id"),
                     }

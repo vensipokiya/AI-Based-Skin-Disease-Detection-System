@@ -827,6 +827,85 @@ function buildGoogleMapsSearchUrl(lat, lon, name, address) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
 }
 
+/** Doctor line for listing (avoids duplicating the venue name). */
+function nearbyFormatDoctorLine(place, venueName) {
+    const raw = (place._doctorName || '').trim();
+    if (!raw) return '';
+    const v = (venueName || '').trim().toLowerCase();
+    const normalizedDoc = raw.replace(/^Dr\.?\s*/i, '').trim().toLowerCase();
+    if (v && normalizedDoc === v) return '';
+    if (v && raw.toLowerCase() === v) return '';
+    return raw.match(/^Dr\.?\s+/i) ? raw : `Dr. ${raw}`;
+}
+
+/** Primary heading: clinic / hospital plus dermatologist when known. */
+function nearbyCombinedListingTitle(venueName, doctorLine) {
+    const v = (venueName || '').trim();
+    const d = (doctorLine || '').trim();
+    if (v && d) return `${v} — ${d}`;
+    if (v) return v;
+    return d || 'Dermatology clinic';
+}
+
+function nearbyCategoryLabel(place) {
+    const c = (place._category || '').trim();
+    if (!c) return 'Dermatologist';
+    return c.replace(/_/g, ' ');
+}
+
+function nearbyWheelchairIconHtml(place) {
+    const w = String(place._wheelchair || '').toLowerCase();
+    if (w !== 'yes' && w !== 'limited') return '';
+    const t = w === 'limited' ? 'Limited wheelchair access' : 'Wheelchair accessible';
+    return `<i class="fas fa-wheelchair" style="color:#2563eb;margin-left:8px;font-size:0.8rem;" title="${escHtml(t)}"></i>`;
+}
+
+function nearbyStarIconsHtml(rating) {
+    const r = Math.max(0, Math.min(5, Number(rating)));
+    if (!Number.isFinite(r)) return '';
+    const roundedHalf = Math.round(r * 2) / 2;
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+        if (roundedHalf >= i) {
+            html += '<i class="fas fa-star" style="color:#fbbf24;font-size:0.82rem;"></i>';
+        } else if (roundedHalf >= i - 0.5) {
+            html += '<i class="fas fa-star-half-alt" style="color:#fbbf24;font-size:0.82rem;"></i>';
+        } else {
+            html += '<i class="far fa-star" style="color:#e2e8f0;font-size:0.82rem;"></i>';
+        }
+    }
+    return html;
+}
+
+function nearbyRatingSummaryHtml(place) {
+    const r = place._apiRating;
+    const n = place._userRatingsTotal;
+    if (typeof r === 'number' && Number.isFinite(r)) {
+        const stars = nearbyStarIconsHtml(r);
+        const countStr = n != null && n !== ''
+            ? `<span style="color:#64748b;margin-left:6px;">(${escHtml(String(n))})</span>`
+            : '';
+        return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin-top:6px;">
+            <span style="color:#0f172a;font-weight:600;font-size:0.88rem;">${escHtml(r.toFixed(1))}</span>
+            <span style="letter-spacing:-3px;line-height:1;">${stars}</span>
+            ${countStr}
+        </div>`;
+    }
+    return `<div style="margin-top:6px;font-size:0.8rem;color:#94a3b8;">No public rating for this listing</div>`;
+}
+
+/** Live hours line + optional weekday list (maps-style, no clock icon on the status line). */
+function nearbyListingHoursSectionHtml(place, scheduleLines) {
+    const liveHtml = nearbyLiveHoursStatusHtml(place);
+    const schedule = nearbyOpeningHoursBlock(scheduleLines);
+    if (!liveHtml && !schedule) return '';
+    return `
+                    <div style="margin-top: 10px; font-size: 0.85rem; line-height: 1.5; color: #64748b;">
+                        ${liveHtml || ''}
+                        ${schedule}
+                    </div>`;
+}
+
 /** Second line under title: facility name when the title is the doctor; otherwise omit (no provider labels). */
 function nearbyVenueSubtitle(place, doctorDisplay, venueName, operatorTag) {
     const vn = (venueName || '').trim();
@@ -849,7 +928,7 @@ function nearbyLiveHoursStatusHtml(place) {
         const extra = live.closes_at
             ? `<span style="color:#64748b;font-weight:500;"> · ${escHtml(live.closes_at)}</span>`
             : '';
-        return `<div style="line-height:1.45;"><span style="color:#10b981;font-weight:700;">Open now</span>${extra}</div>`;
+        return `<div style="line-height:1.45;"><span style="color:#10b981;font-weight:700;">Open</span>${extra}</div>`;
     }
     if (live && live.state === 'closed') {
         const extra = live.opens_next
@@ -858,7 +937,7 @@ function nearbyLiveHoursStatusHtml(place) {
         return `<div style="line-height:1.45;"><span style="color:#ef4444;font-weight:700;">Closed</span>${extra}</div>`;
     }
     if (place._openNow === true) {
-        return `<div style="line-height:1.45;"><span style="color:#10b981;font-weight:700;">Open now</span></div>`;
+        return `<div style="line-height:1.45;"><span style="color:#10b981;font-weight:700;">Open</span></div>`;
     }
     if (place._openNow === false) {
         return `<div style="line-height:1.45;"><span style="color:#ef4444;font-weight:700;">Closed</span></div>`;
@@ -920,7 +999,9 @@ function normalizeDoctorPlace(p) {
             _businessStatus: p.business_status || null,
             _placeUrl: p.place_url || null,
             _website: p.website || null,
-            _providerLabel: provider || 'openstreetmap'
+            _providerLabel: provider || 'openstreetmap',
+            _category: p.category || null,
+            _wheelchair: p.wheelchair || null
         };
     }
     return p;
@@ -1368,62 +1449,54 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             address = place.street;
         }
 
-        let doctorDisplay;
-        let clinicDisplay;
         let hoursRowHtml;
 
         const googleReviewsUrl = buildGoogleMapsSearchUrl(place.lat, place.lon, name, address);
 
         if (fromFoursquare) {
-            doctorDisplay = place._doctorName
-                ? `Dr. ${place._doctorName}`
-                : (name.length > 40 ? name.substring(0, 40) + '…' : name);
-            clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
-            const liveHtml = nearbyLiveHoursStatusHtml(place);
             const wd = (place._weekdayText || []).slice(0, 8);
-            hoursRowHtml = nearbyClockCardHtml(liveHtml, wd.length ? wd : null);
+            hoursRowHtml = nearbyListingHoursSectionHtml(place, wd.length ? wd : null);
         } else if (fromOsm) {
-            doctorDisplay = place._doctorName
-                ? `Dr. ${place._doctorName}`
-                : (name.length > 40 ? name.substring(0, 40) + '…' : name);
-            clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
-            const liveHtml = nearbyLiveHoursStatusHtml(place);
             const wd = (place._weekdayText || []).slice(0, 12);
-            hoursRowHtml = nearbyClockCardHtml(liveHtml, wd.length ? wd : null);
+            hoursRowHtml = nearbyListingHoursSectionHtml(place, wd.length ? wd : null);
         } else {
             const hour = new Date().getHours();
             const openHour = 8 + (seed % 2);
             const closeHour = 18 + (seed % 4);
             const isOpen = hour >= openHour && hour < closeHour;
-            doctorDisplay = operator ? `Dr. ${operator}` : (name.length > 25 ? name.substring(0, 25) + '...' : name);
-            clinicDisplay = nearbyVenueSubtitle(place, doctorDisplay, name, operator);
             const st = isOpen ? '#10b981' : '#ef4444';
             const sub = isOpen ? `Closes ${closeHour}:00` : `Opens ${openHour}:00`;
             hoursRowHtml = `
-                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem;">
-                        <i class="fas fa-clock" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <div style="flex:1;min-width:0;line-height:1.45;">
-                            <span style="color:${st};font-weight:700;">${isOpen ? 'Open now' : 'Closed'}</span>
+                    <div style="margin-top: 10px; font-size: 0.85rem; line-height: 1.5; color: #64748b;">
+                        <div style="line-height:1.45;">
+                            <span style="color:${st};font-weight:700;">${isOpen ? 'Open' : 'Closed'}</span>
                             <span style="color:#64748b;font-weight:500;"> · ${sub}</span>
                         </div>
                     </div>`;
         }
 
+        let docLine = nearbyFormatDoctorLine(place, name);
+        if (!docLine && !fromFoursquare && !fromOsm && operator) {
+            const op = String(operator).trim();
+            if (op && op.toLowerCase() !== String(name || '').trim().toLowerCase()) {
+                docLine = op.match(/^Dr\.?\s+/i) ? op : `Dr. ${op}`;
+            }
+        }
+        const combinedTitle = nearbyCombinedListingTitle(name, docLine);
+        const ratingRowHtml = nearbyRatingSummaryHtml(place);
+        const categoryLabel = nearbyCategoryLabel(place);
+        const wheelchairRowHtml = nearbyWheelchairIconHtml(place);
+
         const popupLine = `${typeof distance === 'number' ? distance.toFixed(2) : distance} km away`;
 
-        const ed = escHtml(doctorDisplay);
-        const ec = escHtml(clinicDisplay);
+        const titleHtml = escHtml(combinedTitle);
         const ea = escHtml(address);
         const googleReviewsHref = escHtml(googleReviewsUrl);
-        const popupSub = ec
-            ? `<span style="font-size:0.8rem;color:#64748b">${ec}</span><br>`
-            : '';
 
         const marker = L.marker([place.lat, place.lon], { icon: doctorIcon })
             .addTo(leafletMap)
             .bindPopup(`<div style="font-family:'Inter',sans-serif; padding:5px;">
-                            <strong style="color:#2563eb">${ed}</strong><br>
-                            ${popupSub}
+                            <strong style="color:#2563eb">${titleHtml}</strong><br>
                             <span style="font-size:0.85rem">${escHtml(popupLine)}</span>
                         </div>`);
         marker.on('click', () => _highlightNearbyCardForIndex(index));
@@ -1431,8 +1504,8 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
 
         if (listEl) {
             const bookPayload = {
-                name: doctorDisplay,
-                clinic: clinicDisplay,
+                name: combinedTitle,
+                clinic: docLine || '',
                 typeLabel: 'Skin Specialist',
                 address,
                 distance,
@@ -1444,26 +1517,23 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
 
             listEl.innerHTML += `
             <div class="doctor-card nearby-place-card" data-nearby-place-index="${index}" onclick="focusNearbyDoctorAtIndex(${index})" style="display: flex; flex-direction: column; padding: 1.5rem; background: #fff; border-radius: 16px; margin-bottom: 1.25rem; border: 1px solid #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;">
-                
-                <div style="display: flex; gap: 1.25rem; align-items: flex-start; margin-bottom: 1rem;">
-                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
-                        <i class="fas fa-user-md" style="color: white; font-size: 1.5rem;"></i>
-                    </div>
-                    
+
+                <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.25rem;">
                     <div style="flex: 1; min-width: 0;">
-                        <h3 style="color: #0f172a; margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.2;">${ed}</h3>
-                        ${ec ? `<p style="color: #2563eb; font-weight: 600; font-size: 0.85rem; margin-top: 2px;">${ec}</p>` : ''}
+                        <h3 style="color: #0f172a; margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.3;">${titleHtml}</h3>
+                        ${ratingRowHtml}
+                        <div style="margin-top: 6px; font-size: 0.82rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap;">
+                            <span>${escHtml(categoryLabel)}</span>${wheelchairRowHtml}
+                        </div>
+                        <p style="margin: 8px 0 0 0; font-size: 0.84rem; color: #64748b; line-height: 1.45;">${ea}<span style="color:#94a3b8;"> · ${typeof distance === 'number' ? distance.toFixed(2) : distance} km</span></p>
+                        ${hoursRowHtml}
+                        <p style="margin: 8px 0 0 0; font-size: 0.8rem; color: #64748b;">On-site services</p>
+                    </div>
+                    <div style="width: 72px; height: 72px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: linear-gradient(145deg, #e2e8f0, #f1f5f9); display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
+                        <i class="fas fa-hospital" style="font-size: 1.75rem; color: #94a3b8;"></i>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-bottom: 1.25rem;">
-                    <div style="display: flex; align-items: flex-start; gap: 8px; color: #64748b; font-size: 0.85rem;">
-                        <i class="fas fa-map-marker-alt" style="margin-top: 3px; color: #94a3b8; width: 14px;"></i>
-                        <span style="line-height: 1.4;">${ea} <strong>(${typeof distance === 'number' ? distance.toFixed(2) : distance} km)</strong></span>
-                    </div>
-                    ${hoursRowHtml}
-                </div>
-                
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button type="button" onclick="${bookOnclick}" class="btn btn-primary" style="flex: 2; min-width: 140px; justify-content: center; border-radius: 10px; height: 44px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Book Appointment
