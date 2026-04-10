@@ -1368,7 +1368,13 @@ function saveLocationToBackend(lat, lng) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ latitude: lat, longitude: lng, location_name: name })
-                }).catch(() => { });
+                })
+                    .then((res) => {
+                        if (res.status === 401) {
+                            try { localStorage.removeItem('dermacare_token'); } catch (e) { /* noop */ }
+                        }
+                    })
+                    .catch(() => { });
             }
         }).catch(() => { });
 }

@@ -21,13 +21,11 @@ logger = get_logger(__name__)
 
 MIN_RESULTS_TARGET = 40
 MAX_RETURN = 40
-AROUND_METERS = 22000
-PRIMARY_RADIUS_KM = 5.0
-FALLBACK_RADIUS_KM = 10.0
-EXTENDED_RADIUS_KM = 22.0
-MIN_ACCEPTABLE_COUNT = 3
-# When Overpass finds fewer than this after filtering, merge Nominatim keyword hits (deduped).
-MERGE_NOMINATIM_IF_FEWER_THAN = 10
+AROUND_METERS = 32000
+# Single cutoff: closest-first up to MIN_RESULTS_TARGET within this radius (km).
+EXTENDED_RADIUS_KM = 50.0
+# Merge Nominatim keywords when Overpass list is still short of MIN_RESULTS_TARGET.
+MERGE_NOMINATIM_IF_FEWER_THAN = 40
 
 FOURSQUARE_SEARCH_URL = "https://api.foursquare.com/v3/places/search"
 FOURSQUARE_DETAILS_URL = "https://api.foursquare.com/v3/places/{fsq_id}"
@@ -55,14 +53,10 @@ NOMINATIM_KEYWORDS = (
     "skin clinic",
     "hospital dermatology",
     "skin specialist",
+    "skin doctor",
+    "cosmetic clinic",
+    "laser clinic",
 )
-# Fewer Nominatim round-trips when supplementing Overpass (opening hours skipped).
-NOMINATIM_KEYWORDS_MERGE = (
-    "dermatologist",
-    "dermatology clinic",
-    "skin clinic",
-)
-
 USER_AGENT = "DermaCareAI/2.0 (nearby health POIs; student project)"
 
 
@@ -78,21 +72,14 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def _limit_to_nearby_radius(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Prefer 5km, then 10km, then up to EXTENDED_RADIUS_KM if still sparse.
+    Closest-first, up to MIN_RESULTS_TARGET, within EXTENDED_RADIUS_KM.
+    (Older logic stopped at 5 km whenever ≥3 hits hid farther clinics.)
     """
     rows_sorted = sorted(rows, key=lambda x: float(x.get("distance_km", 9999)))
-
-    def _within(km: float) -> List[Dict[str, Any]]:
-        return [r for r in rows_sorted if float(r.get("distance_km", 9999)) <= km]
-
-    w5 = _within(PRIMARY_RADIUS_KM)
-    if len(w5) >= MIN_ACCEPTABLE_COUNT:
-        return w5[:MIN_RESULTS_TARGET]
-    w10 = _within(FALLBACK_RADIUS_KM)
-    if len(w10) >= MIN_ACCEPTABLE_COUNT:
-        return w10[:MIN_RESULTS_TARGET]
-    w_ext = _within(EXTENDED_RADIUS_KM)
-    return w_ext[:MIN_RESULTS_TARGET]
+    within = [
+        r for r in rows_sorted if float(r.get("distance_km", 9999)) <= EXTENDED_RADIUS_KM
+    ]
+    return within[:MIN_RESULTS_TARGET]
 
 
 def _row_dedupe_key(r: Dict[str, Any]) -> str:
@@ -1064,8 +1051,8 @@ async def _fetch_nominatim_rows(
     keywords: Optional[Tuple[str, ...]] = None,
 ) -> List[Dict[str, Any]]:
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-    # ~15–18km bounding box to keep results relevant
-    margin = 0.15
+    # Viewbox ~matches EXTENDED_RADIUS_KM so distant Nominatim hits still appear.
+    margin = max(0.18, min(0.55, EXTENDED_RADIUS_KM / 90.0))
     viewbox = f"{lng-margin},{lat+margin},{lng+margin},{lat-margin}"
     rows: List[Dict[str, Any]] = []
     seen: Set[str] = set()
@@ -1158,7 +1145,7 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
                         lat,
                         lng,
                         enrich_opening_hours=False,
-                        keywords=NOMINATIM_KEYWORDS_MERGE,
+                        keywords=NOMINATIM_KEYWORDS,
                     )
                     seen_k = {_row_dedupe_key(r) for r in rows}
                     for r in n_rows:

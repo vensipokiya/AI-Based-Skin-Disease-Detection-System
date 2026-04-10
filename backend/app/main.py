@@ -21,7 +21,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 
@@ -115,6 +115,12 @@ app.include_router(admin_routes.router)
 app.include_router(nearby_routes.router, prefix="/api")
 
 # ── User Page Routes ────────────────────────────────────────────────────────
+@app.get("/favicon.ico")
+def favicon():
+    """Browsers request /favicon.ico by default; serve branded SVG from static."""
+    return RedirectResponse(url="/static/user/favicon.svg", status_code=307)
+
+
 @app.get("/", response_class=HTMLResponse)
 def read_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
