@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <!-- Logged In State -->
             <div id="user-profile-menu" class="user-profile-dropdown" style="display: none;">
                 <div class="profile-trigger" id="profile-trigger">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=" alt="User Avatar" id="header-avatar" class="header-avatar">
+                    <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20150%20150%22%3E%3Crect%20width%3D%22150%22%20height%3D%22150%22%20fill%3D%22%232563eb%22%2F%3E%3Cpath%20fill%3D%22%23fff%22%20d%3D%22M75%2048a18%2018%200%201%201%200%2036%2018%2018%200%200%201%200-36zm0%2044c-18%200-34%209-44%2023.5C37%20130%2052%20134%2075%20134s38-4%2044-18.5C109%20101%2093%2092%2075%2092z%22%2F%3E%3C%2Fsvg%3E" alt="User Avatar" id="header-avatar" class="header-avatar">
                     <span id="header-username" class="header-user-name">User</span>
                     <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i>
                 </div>
@@ -134,9 +134,13 @@ function initializeHeader() {
 
         const avatarKey = `dermacare_avatar_${user.email || 'guest'}`;
         const savedAvatar = localStorage.getItem(avatarKey);
-        const fallbackAvatar = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTUwIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik03NSA0NWMxMS4wNSAwIDIwIDguOTUgMjAgMjBzLTguOTUgMjAtMjAgMjAtMjAtOC45NS0yMC0yMCA4Ljk1LTIwIDIwLTIwem0wIDQ1Yy0yMC44MyAwLTM5LjAzIDEwLjY1LTUwIDI2LjgyLjI1LTE2LjU2IDMzLTE4LjE0IDUwLTE4LjE0czQ5Ljc1IDEuNTggNTAgMTguMTRjLTEwLjk3LTE2LjE3LTI5LjE3LTI2LjgyLTUwLTI2LjgyeiaIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4=";
+        const fallbackAvatar =
+            'data:image/svg+xml;charset=UTF-8,' +
+            encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><rect width="150" height="150" fill="#2563eb"/><path fill="#fff" d="M75 48a18 18 0 1 1 0 36 18 18 0 0 1 0-36zm0 44c-18 0-34 9-44 23.5C37 130 52 134 75 134s38-4 44-18.5C109 101 93 92 75 92z"/></svg>'
+            );
         if (headerAvatar) {
-            headerAvatar.src = savedAvatar ? savedAvatar : fallbackAvatar;
+            headerAvatar.src = savedAvatar || fallbackAvatar;
         }
 
         // Logout Event
