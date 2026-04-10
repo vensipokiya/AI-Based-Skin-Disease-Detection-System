@@ -197,8 +197,10 @@ def _compute_hours_live_foursquare(hours: Dict[str, Any]) -> Dict[str, Any]:
                     out["state"] = "closed"
                     out["opens_next"] = f"Opens {_format_ampm(om // 60, om % 60)}"
                     return out
-            # Past today's last interval or in a between-slots gap — still closed.
-            out["state"] = "closed"
+            if now_mins >= intervals[-1][1]:
+                out["state"] = "closed"
+            else:
+                out["state"] = "closed"
         else:
             out["state"] = "closed"
 
@@ -626,11 +628,7 @@ def _details_to_row(
     dkm = round(dist, 2)
     oh = result.get("opening_hours") or {}
     reviews_out: List[Dict[str, Any]] = []
-    raw_reviews = result.get("reviews")
-    review_items: List[Dict[str, Any]] = [
-        x for x in (raw_reviews if isinstance(raw_reviews, list) else []) if isinstance(x, dict)
-    ]
-    for r in review_items[:5]:
+    for r in (result.get("reviews") or [])[:5]:
         reviews_out.append(
             {
                 "author_name": r.get("author_name"),
