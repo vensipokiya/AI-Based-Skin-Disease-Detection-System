@@ -1308,9 +1308,7 @@ function addLocationSearchBox(listEl) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         try {
             // Global search (removed country restriction)
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`, {
-                headers: { 'User-Agent': 'DermaCareAI/1.0' }
-            });
+            const res = await fetch(`${API_URL}/api/geocode/search?q=${encodeURIComponent(q)}&limit=6`);
             const data = await res.json();
 
             if (!data || data.length === 0) {
@@ -1354,9 +1352,7 @@ function addLocationSearchBox(listEl) {
 
 // ──── Save location to backend ──────────────────────────────────────────────
 function saveLocationToBackend(lat, lng) {
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`, {
-        headers: { 'Accept-Language': 'en' }
-    })
+    fetch(`${API_URL}/api/geocode/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14`)
         .then(r => r.json())
         .then(geo => {
             const city = geo.address?.city || geo.address?.town || geo.address?.village || 'Unknown';

@@ -111,8 +111,8 @@ function populateProfile(data) {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     try {
-                        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-                        const resp = await fetch(url, { headers: { "Accept-Language": "en-US,en;q=0.9" } });
+                        const url = `${API_URL}/api/geocode/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+                        const resp = await fetch(url);
                         if (resp.ok) {
                             const resData = await resp.json();
                             const addr = resData.address || {};

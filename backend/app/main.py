@@ -28,7 +28,7 @@ from contextlib import asynccontextmanager
 from .config.database import DatabaseSingleton
 from .utils.logger import get_logger
 from .config.settings import settings
-from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin_routes, nearby_routes
+from .routes import auth_routes, user_routes, scan_routes, predict_routes, admin_routes, nearby_routes, geocode_routes
 from .services.predict_service import PredictService
 from .utils.websocket import manager
 
@@ -113,6 +113,7 @@ app.include_router(scan_routes.router)
 app.include_router(predict_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(nearby_routes.router, prefix="/api")
+app.include_router(geocode_routes.router, prefix="/api")
 
 # ── User Page Routes ────────────────────────────────────────────────────────
 @app.get("/favicon.ico")
