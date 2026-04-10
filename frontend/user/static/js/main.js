@@ -880,12 +880,12 @@ function nearbyCombinedListingTitle(venueName, doctorLine) {
     const d = (doctorLine || '').trim();
     if (v && d) return `${v} — ${d}`;
     if (v) return v;
-    return d || 'Dermatology clinic';
+    return d || 'Hospital';
 }
 
 function nearbyCategoryLabel(place) {
     const c = (place._category || '').trim();
-    if (!c) return 'Dermatologist';
+    if (!c) return 'Hospital';
     return c.replace(/_/g, ' ');
 }
 
@@ -1416,7 +1416,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
     }
 
     try {
-        const res = await fetch(`${API_URL}/api/nearby?lat=${lat}&lng=${lng}`, { signal: ac.signal });
+        const res = await fetch(`${API_URL}/api/nearby/hospitals?lat=${lat}&lng=${lng}`, { signal: ac.signal });
         if (mySeq !== _nearbySearchSeq) return;
 
         const doctors = await res.json().catch(() => null);
@@ -1424,7 +1424,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
 
         if (!res.ok) {
             const msg = (doctors && doctors.detail) ? doctors.detail : `Server error ${res.status}`;
-            console.error('[nearby] /api/nearby failed:', msg);
+            console.error('[nearby] /api/nearby/hospitals failed:', msg);
             if (listEl) {
                 const safeMsg = typeof msg === 'string' ? escHtml(msg) : escHtml('OpenStreetMap (Overpass) could not be reached. Try again shortly.');
                 listEl.innerHTML = `
@@ -1438,10 +1438,10 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
             }
             return;
         }
-        console.log('[nearby] /api/nearby response length:', Array.isArray(doctors) ? doctors.length : 0);
+        console.log('[nearby] /api/nearby/hospitals response length:', Array.isArray(doctors) ? doctors.length : 0);
 
         if (!Array.isArray(doctors)) {
-            console.error('[nearby] /api/nearby returned non-array:', doctors);
+            console.error('[nearby] /api/nearby/hospitals returned non-array:', doctors);
             if (listEl) {
                 listEl.innerHTML = `
                     <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
@@ -1499,7 +1499,7 @@ async function searchNearbyDermatologists(lat, lng, listEl) {
             }
             return;
         }
-        console.error('Backend /api/nearby failed:', err);
+        console.error('Backend /api/nearby/hospitals failed:', err);
         if (listEl && mySeq === _nearbySearchSeq) {
             listEl.innerHTML = `
                 <div style="text-align:center;padding:2rem;background:#fef2f2;border:1px solid #fecaca;border-radius:16px;margin:0.5rem;">
@@ -1545,7 +1545,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
 
     const doctorIcon = L.divIcon({
         className: 'doctor-marker',
-        html: `<div style="width: 36px; height: 36px; background: #2563eb; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.4); color: white;"><i class="fas fa-user-md"></i></div>`,
+        html: `<div style="width: 36px; height: 36px; background: #2563eb; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.4); color: white;"><i class="fas fa-hospital"></i></div>`,
         iconSize: [36, 36],
         iconAnchor: [18, 18]
     });
@@ -1632,11 +1632,11 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
             const bookPayload = {
                 name: combinedTitle,
                 clinic: docLine || '',
-                typeLabel: 'Skin Specialist',
+                typeLabel: 'Hospital',
                 address,
                 distance,
                 googleReviewsUrl,
-                isSpecialist: true,
+                isSpecialist: false,
                 placeId: place._placeId || null
             };
             const bookOnclick = `event.stopPropagation();checkLoginAndBook('${encodeURIComponent(JSON.stringify(bookPayload)).replace(/'/g, "%27")}')`;
@@ -1664,7 +1664,7 @@ function renderDermatologistList(finalPlaces, listEl, lat, lng) {
                         ${addrSecondaryHtml}
                         <p style="margin:6px 0 0 20px;font-size:0.75rem;color:#80868b;">${typeof distance === 'number' ? distance.toFixed(2) : distance} km away</p>
                         ${hoursRowHtml}
-                        <p style="margin:8px 0 0 0;font-size:0.75rem;color:#70757a;">On-site services</p>
+                        <p style="margin:8px 0 0 0;font-size:0.75rem;color:#70757a;">General & emergency care (verify on map)</p>
                     </div>
                     <div class="nearby-card-thumb">
                         ${thumbImgHtml}

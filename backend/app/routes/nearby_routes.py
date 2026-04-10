@@ -5,7 +5,7 @@ Uses Foursquare (if configured) with OpenStreetMap fallback.
 """
 from fastapi import APIRouter, HTTPException, Query
 
-from ..services.nearby_places_service import fetch_nearby_dermatologists
+from ..services.nearby_places_service import fetch_nearby_dermatologists, fetch_nearby_hospitals
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,6 +27,20 @@ async def _nearby_response(lat: float, lng: float):
             detail="OpenStreetMap data service is temporarily unavailable. Try again in a moment.",
         )
     logger.info("[api/nearby] lat=%s lng=%s count=%s source=%s", lat, lng, len(results), source)
+    return results
+
+
+@router.get("/nearby/hospitals")
+async def get_nearby_hospitals(lat: float = Query(..., description="Latitude"), lng: float = Query(..., description="Longitude")):
+    """Nearby hospitals from OpenStreetMap (Overpass)."""
+    results, source = await fetch_nearby_hospitals(lat, lng)
+    if source == "error_api":
+        logger.error("[api/nearby/hospitals] Overpass request failed")
+        raise HTTPException(
+            status_code=502,
+            detail="OpenStreetMap data service is temporarily unavailable. Try again in a moment.",
+        )
+    logger.info("[api/nearby/hospitals] lat=%s lng=%s count=%s", lat, lng, len(results))
     return results
 
 

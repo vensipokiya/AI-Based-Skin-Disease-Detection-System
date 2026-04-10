@@ -60,4 +60,7 @@ class Settings:
     # Free tier available; used for richer nearby place metadata (ratings/hours/tips when provided).
     FOURSQUARE_API_KEY: str = os.environ.get("FOURSQUARE_API_KEY", "").strip()
 
+    # Public Nominatim policy: identify your app with a contact email to reduce 403 blocks.
+    NOMINATIM_CONTACT_EMAIL: str = os.environ.get("NOMINATIM_CONTACT_EMAIL", "").strip()
+
 settings = Settings()

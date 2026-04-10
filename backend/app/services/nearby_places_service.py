@@ -22,6 +22,8 @@ logger = get_logger(__name__)
 MIN_RESULTS_TARGET = 40
 MAX_RETURN = 40
 AROUND_METERS = 32000
+# Hospitals: slightly smaller radius keeps Overpass responses fast; list still sorted by distance.
+HOSPITAL_AROUND_METERS = 28000
 # Single cutoff: closest-first up to MIN_RESULTS_TARGET within this radius (km).
 EXTENDED_RADIUS_KM = 50.0
 # Merge Nominatim keywords when Overpass list is still short of MIN_RESULTS_TARGET.
@@ -842,6 +844,82 @@ out center tags 60;
 """
 
 
+def _hospital_tags(tags: Dict[str, Any]) -> bool:
+    amenity = str(tags.get("amenity") or "").lower()
+    healthcare = str(tags.get("healthcare") or "").lower()
+    building = str(tags.get("building") or "").lower()
+    return amenity == "hospital" or healthcare == "hospital" or building == "hospital"
+
+
+def _overpass_query_hospitals(lat: float, lng: float) -> str:
+    r = HOSPITAL_AROUND_METERS
+    return f"""[out:json][timeout:22];
+(
+  nwr["amenity"="hospital"](around:{r},{lat},{lng});
+  nwr["healthcare"="hospital"](around:{r},{lat},{lng});
+  nwr["building"="hospital"](around:{r},{lat},{lng});
+);
+out center tags 80;
+"""
+
+
+def _element_to_hospital_row(
+    el: Dict[str, Any],
+    origin_lat: float,
+    origin_lng: float,
+) -> Optional[Dict[str, Any]]:
+    tags = el.get("tags") or {}
+    if not _hospital_tags(tags):
+        return None
+    name = (tags.get("name") or tags.get("name:en") or tags.get("operator") or "").strip()
+    if not name:
+        name = "Hospital"
+    ll = _element_lat_lon(el)
+    if not ll:
+        return None
+    plat, plng = ll
+    dist = haversine_km(origin_lat, origin_lng, plat, plng)
+    dkm = round(dist, 2)
+    addr = _tags_addr(tags) or name
+    oid = el.get("id")
+    typ = el.get("type", "x")
+    pid = f"osm_{typ}_{oid}" if oid is not None else f"osm_{typ}_{plat:.5f}_{plng:.5f}"
+    opening = str(tags.get("opening_hours", "")).strip()
+    emergency = str(tags.get("emergency") or "").strip().lower()
+    category_label = "Emergency hospital" if emergency in ("yes", "only") else "Hospital"
+    wh = (tags.get("wheelchair") or "").strip().lower() or None
+    hours_lines = _beautify_osm_opening_hours(opening) if opening else None
+    live = _compute_hours_live_osm(opening)
+    on = None
+    if live["state"] == "open":
+        on = True
+    elif live["state"] == "closed":
+        on = False
+    otype = str(typ).lower() if typ else ""
+    return {
+        "name": name,
+        "doctor_name": None,
+        "rating": None,
+        "user_ratings_total": None,
+        "address": addr,
+        "distance_km": dkm,
+        "distance": dkm,
+        "lat": plat,
+        "lng": plng,
+        "place_id": pid,
+        "provider": "openstreetmap",
+        "open_now": on,
+        "hours_live": live,
+        "weekday_text": hours_lines,
+        "reviews": [],
+        "business_status": None,
+        "category": category_label,
+        "wheelchair": wh,
+        "_osm_type": otype if otype in ("node", "way", "relation") else None,
+        "_osm_id": int(oid) if oid is not None else None,
+    }
+
+
 _PLACE_ID_OSM_RE = re.compile(r"^(?:osm|nominatim)_(node|way|relation)_(\d+)$", re.I)
 
 
@@ -957,6 +1035,26 @@ async def _fetch_overpass(client: httpx.AsyncClient, lat: float, lng: float) -> 
         except Exception as e:
             last_err = e
             logger.warning("[nearby-osm] endpoint failed %s: %s", url, e)
+    if last_err:
+        raise last_err
+    return []
+
+
+async def _fetch_overpass_hospitals(client: httpx.AsyncClient, lat: float, lng: float) -> List[Dict[str, Any]]:
+    q = _overpass_query_hospitals(lat, lng)
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    last_err: Optional[Exception] = None
+    for url in OVERPASS_ENDPOINTS:
+        try:
+            resp = await client.post(url, data={"data": q}, headers=headers, timeout=26.0)
+            resp.raise_for_status()
+            data = resp.json()
+            els = data.get("elements") or []
+            logger.info("[nearby-hospitals] endpoint=%s elements=%s", url, len(els))
+            return els
+        except Exception as e:
+            last_err = e
+            logger.warning("[nearby-hospitals] endpoint failed %s: %s", url, e)
     if last_err:
         raise last_err
     return []
@@ -1200,6 +1298,38 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
                     return n_rows, "openstreetmap"
         except Exception as ne:
             logger.warning("[nearby-nominatim] fallback failed: %s", ne)
+        return [], "error_api"
+
+
+async def fetch_nearby_hospitals(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]:
+    """
+    Nearby hospitals from OpenStreetMap (Overpass only — no Nominatim, no Foursquare).
+    Returns (results, source) with source openstreetmap | error_api.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            elements = await _fetch_overpass_hospitals(client, lat, lng)
+            seen: Set[str] = set()
+            rows: List[Dict[str, Any]] = []
+            for el in elements:
+                row = _element_to_hospital_row(el, lat, lng)
+                if not row:
+                    continue
+                key = f"{row['name'].lower()}|{round(row['lat'], 4)}|{round(row['lng'], 4)}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                rows.append(row)
+
+            rows.sort(key=lambda x: x["distance_km"])
+            rows = _limit_to_nearby_radius(rows)
+            if rows:
+                await _batch_enrich_opening_hours(client, rows)
+            _strip_osm_internal_refs(rows)
+            logger.info("[nearby-hospitals] lat=%s lng=%s count=%s", lat, lng, len(rows))
+            return rows, "openstreetmap"
+    except Exception as e:
+        logger.exception("[nearby-hospitals] failed: %s", e)
         return [], "error_api"
 
 

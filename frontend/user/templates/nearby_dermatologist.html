@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Nearby Specialists - DermaCare AI{% endblock %}
+{% block title %}Nearby Hospitals - DermaCare AI{% endblock %}
 
 {% block extra_css %}
     <!-- Leaflet.js for Nearby Dermatologist (Free - No API Key Needed) -->
@@ -153,15 +153,14 @@
             <div class="left-panel-doctors">
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                    <h2 style="font-size: 1.5rem; margin: 0;">Nearby <span class="text-gradient">Specialists</span></h2>
+                    <h2 style="font-size: 1.5rem; margin: 0;">Nearby <span class="text-gradient">Hospitals</span></h2>
                     <button class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;"
                         onclick="window.location.href='/detect'">&larr; Back</button>
                 </div>
 
                 <div id="loading-doctors" style="text-align: center; padding: 2rem; display: none;">
                     <i class="fas fa-spinner fa-spin fa-2x text-gradient"></i>
-                    <p class="mt-2" style="color: var(--text-muted);">Detecting your location & searching nearby
-                        dermatologists...</p>
+                    <p class="mt-2" style="color: var(--text-muted);">Detecting your location and loading nearby hospitals from OpenStreetMap…</p>
                 </div>
 
                 <div class="nearby-list" id="dermatologist-list"
