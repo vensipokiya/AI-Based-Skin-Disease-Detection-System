@@ -32,13 +32,13 @@ async def _nearby_response(lat: float, lng: float):
 
 @router.get("/nearby/hospitals")
 async def get_nearby_hospitals(lat: float = Query(..., description="Latitude"), lng: float = Query(..., description="Longitude")):
-    """Nearby hospitals from OpenStreetMap (Overpass)."""
+    """Nearby hospitals/clinics (Nominatim local search, Overpass fallback)."""
     results, source = await fetch_nearby_hospitals(lat, lng)
     if source == "error_api":
-        logger.error("[api/nearby/hospitals] Overpass request failed")
+        logger.error("[api/nearby/hospitals] place data request failed")
         raise HTTPException(
             status_code=502,
-            detail="OpenStreetMap data service is temporarily unavailable. Try again in a moment.",
+            detail="Location search is temporarily unavailable. Try again in a moment.",
         )
     logger.info("[api/nearby/hospitals] lat=%s lng=%s count=%s", lat, lng, len(results))
     return results

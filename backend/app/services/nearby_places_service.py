@@ -59,6 +59,8 @@ NOMINATIM_KEYWORDS = (
     "cosmetic clinic",
     "laser clinic",
 )
+# Bounded local search (1 req/s policy: staggered in _fetch_nominatim_hospitals_bounded).
+NOMINATIM_HOSPITAL_KEYWORDS = ("hospital", "clinic", "medical centre")
 USER_AGENT = "DermaCareAI/2.0 (nearby health POIs; student project)"
 
 
@@ -1301,16 +1303,126 @@ async def _fetch_osm(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]
         return [], "error_api"
 
 
+def _nominatim_item_health_facility(it: Dict[str, Any]) -> bool:
+    """Keep hospitals/clinics; drop bus stops, villages named Hospital, fire extinguishers, etc."""
+    cls = str(it.get("class") or "").lower()
+    typ = str(it.get("type") or "").lower()
+    if cls == "amenity" and typ in ("hospital", "clinic", "doctors", "health_centre"):
+        return True
+    if cls == "healthcare" and typ in ("hospital", "clinic", "doctor"):
+        return True
+    if cls in ("highway", "place", "emergency", "military", "tourism"):
+        return False
+    name = str(it.get("name") or "").strip().lower()
+    if not name:
+        return False
+    if "hospital" in name or "nursing home" in name:
+        return True
+    if name.endswith(" clinic") or name.endswith(" clinic centre") or name.endswith(" medical centre"):
+        return True
+    return False
+
+
+async def _fetch_nominatim_hospitals_bounded(
+    client: httpx.AsyncClient, lat: float, lng: float
+) -> List[Dict[str, Any]]:
+    """
+    Local hospitals/clinics via Nominatim (bounded viewbox). Avoids flaky public Overpass mirrors.
+    """
+    margin = max(0.12, min(0.52, EXTENDED_RADIUS_KM / 82.0))
+    viewbox = f"{lng-margin},{lat+margin},{lng+margin},{lat-margin}"
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    rows: List[Dict[str, Any]] = []
+    seen: Set[str] = set()
+
+    for i, kw in enumerate(NOMINATIM_HOSPITAL_KEYWORDS):
+        if i:
+            await asyncio.sleep(1.1)
+        params = {
+            "q": kw,
+            "format": "json",
+            "limit": "50",
+            "addressdetails": "1",
+            "viewbox": viewbox,
+            "bounded": "1",
+        }
+        try:
+            resp = await client.get(NOMINATIM_URL, params=params, headers=headers, timeout=22.0)
+            resp.raise_for_status()
+            items = resp.json() or []
+        except Exception as e:
+            logger.warning("[nearby-hospitals] nominatim q=%r failed: %s", kw, e)
+            continue
+
+        for it in items:
+            if not _nominatim_item_health_facility(it):
+                continue
+            name = (it.get("name") or "").strip()
+            if not name:
+                name = ((it.get("display_name") or "").split(",")[0] or "").strip()
+            if not name:
+                continue
+            ilat, ilon = it.get("lat"), it.get("lon")
+            if ilat is None or ilon is None:
+                continue
+            plat, plng = float(ilat), float(ilon)
+            dist = round(haversine_km(lat, lng, plat, plng), 2)
+            if dist > EXTENDED_RADIUS_KM:
+                continue
+            key = f"{name.lower()}|{round(plat, 4)}|{round(plng, 4)}"
+            if key in seen:
+                continue
+            seen.add(key)
+            typ = str(it.get("type") or "").lower()
+            category_label = "Hospital" if typ == "hospital" else typ.replace("_", " ").title() or "Hospital"
+            rows.append(
+                {
+                    "name": name,
+                    "doctor_name": None,
+                    "rating": None,
+                    "user_ratings_total": None,
+                    "address": it.get("display_name") or name,
+                    "distance_km": dist,
+                    "distance": dist,
+                    "lat": plat,
+                    "lng": plng,
+                    "place_id": f"nominatim_{it.get('osm_type', 'x')}_{it.get('osm_id', '')}",
+                    "provider": "openstreetmap",
+                    "open_now": None,
+                    "hours_live": {"state": "unknown", "closes_at": None, "opens_next": None},
+                    "weekday_text": None,
+                    "reviews": [],
+                    "business_status": None,
+                    "category": category_label,
+                    "wheelchair": None,
+                }
+            )
+
+    rows.sort(key=lambda x: x["distance_km"])
+    return _limit_to_nearby_radius(rows)
+
+
 async def fetch_nearby_hospitals(lat: float, lng: float) -> Tuple[List[Dict[str, Any]], str]:
     """
-    Nearby hospitals from OpenStreetMap (Overpass only — no Nominatim, no Foursquare).
+    Nearby hospitals/clinics: Nominatim bounded search first (reliable), Overpass optional enrichment.
     Returns (results, source) with source openstreetmap | error_api.
     """
     try:
         async with httpx.AsyncClient() as client:
-            elements = await _fetch_overpass_hospitals(client, lat, lng)
+            rows = await _fetch_nominatim_hospitals_bounded(client, lat, lng)
+            if rows:
+                _strip_osm_internal_refs(rows)
+                logger.info("[nearby-hospitals] nominatim lat=%s lng=%s count=%s", lat, lng, len(rows))
+                return rows, "openstreetmap"
+
+            try:
+                elements = await _fetch_overpass_hospitals(client, lat, lng)
+            except Exception as oe:
+                logger.warning("[nearby-hospitals] overpass fallback failed: %s", oe)
+                return [], "error_api"
+
             seen: Set[str] = set()
-            rows: List[Dict[str, Any]] = []
+            orows: List[Dict[str, Any]] = []
             for el in elements:
                 row = _element_to_hospital_row(el, lat, lng)
                 if not row:
@@ -1319,15 +1431,17 @@ async def fetch_nearby_hospitals(lat: float, lng: float) -> Tuple[List[Dict[str,
                 if key in seen:
                     continue
                 seen.add(key)
-                rows.append(row)
+                orows.append(row)
 
-            rows.sort(key=lambda x: x["distance_km"])
-            rows = _limit_to_nearby_radius(rows)
-            if rows:
-                await _batch_enrich_opening_hours(client, rows)
-            _strip_osm_internal_refs(rows)
-            logger.info("[nearby-hospitals] lat=%s lng=%s count=%s", lat, lng, len(rows))
-            return rows, "openstreetmap"
+            orows.sort(key=lambda x: x["distance_km"])
+            orows = _limit_to_nearby_radius(orows)
+            if orows:
+                await _batch_enrich_opening_hours(client, orows)
+            _strip_osm_internal_refs(orows)
+            logger.info("[nearby-hospitals] overpass lat=%s lng=%s count=%s", lat, lng, len(orows))
+            if orows:
+                return orows, "openstreetmap"
+            return [], "error_zero_results"
     except Exception as e:
         logger.exception("[nearby-hospitals] failed: %s", e)
         return [], "error_api"
