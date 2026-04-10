@@ -79,29 +79,37 @@
             </div>
 
 
-            <ul class="sidebar-menu">
-                <li class="active" onclick="switchAdminTab('users')">
+            <ul class="sidebar-menu" role="menu">
+                <li class="active" role="menuitem" tabindex="0" data-admin-tab="users"
+                    onclick="switchAdminTab('users')" onkeydown="adminSidebarNavKeydown(event, 'users')">
                     <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
                 </li>
-                <li onclick="switchAdminTab('scans')">
+                <li role="menuitem" tabindex="0" data-admin-tab="scans"
+                    onclick="switchAdminTab('scans')" onkeydown="adminSidebarNavKeydown(event, 'scans')">
                     <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
                 </li>
-                <li onclick="switchAdminTab('medical')">
+                <li role="menuitem" tabindex="0" data-admin-tab="medical"
+                    onclick="switchAdminTab('medical')" onkeydown="adminSidebarNavKeydown(event, 'medical')">
                     <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
                 </li>
-                <li onclick="switchAdminTab('appointments')">
+                <li role="menuitem" tabindex="0" data-admin-tab="appointments"
+                    onclick="switchAdminTab('appointments')" onkeydown="adminSidebarNavKeydown(event, 'appointments')">
                     <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
                 </li>
-                <li onclick="switchAdminTab('activity')">
+                <li role="menuitem" tabindex="0" data-admin-tab="activity"
+                    onclick="switchAdminTab('activity')" onkeydown="adminSidebarNavKeydown(event, 'activity')">
                     <i class="fas fa-chart-line"></i> <span class="nav-text">System Logs</span>
                 </li>
-                <li onclick="switchAdminTab('locations')">
+                <li role="menuitem" tabindex="0" data-admin-tab="locations"
+                    onclick="switchAdminTab('locations')" onkeydown="adminSidebarNavKeydown(event, 'locations')">
                     <i class="fas fa-map-marker-alt"></i> <span class="nav-text">User Locations</span>
                 </li>
-                <li onclick="switchAdminTab('otps')">
+                <li role="menuitem" tabindex="0" data-admin-tab="otps"
+                    onclick="switchAdminTab('otps')" onkeydown="adminSidebarNavKeydown(event, 'otps')">
                     <i class="fas fa-key"></i> <span class="nav-text">OTP Verifications</span>
                 </li>
-                <li onclick="switchAdminTab('login-history')">
+                <li role="menuitem" tabindex="0" data-admin-tab="login-history"
+                    onclick="switchAdminTab('login-history')" onkeydown="adminSidebarNavKeydown(event, 'login-history')">
                     <i class="fas fa-history"></i> <span class="nav-text">Login History</span>
                 </li>
 
