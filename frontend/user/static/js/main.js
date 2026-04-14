@@ -4,49 +4,23 @@ var API_URL = (typeof window !== 'undefined' && window.DERMACARE_API_BASE) ? win
 // State
 let videoStream = null;
 
+// DOM page map — populated in DOMContentLoaded to ensure body is parsed
+const pages = {};
+let header = null;
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements - Selected inside listener to ensure body is ready
-    const pages = {
-        splash: document.getElementById('splash-screen'),
-        dashboard: document.getElementById('dashboard'),
-        detection: document.getElementById('detection-page'),
-        result: document.getElementById('result-page'),
-        nearby: document.getElementById('nearby-dermatologists'),
-        login: document.getElementById('login-page'),
-        details: document.getElementById('dermatologist-details'),
-        booking: document.getElementById('booking-page')
-    };
 
-    const header = document.getElementById('main-header');
-
-    // Navigation function redefined locally or globally
-    window.showPage = function(pageId) {
-        // Hide all pages
-        Object.values(pages).forEach(page => {
-            if (page && page.id !== 'splash-screen') {
-                page.classList.add('hidden');
-                page.classList.remove('fade-in');
-            }
-        });
-
-        // Show specific page
-        const target = pages[pageId];
-        if (target) {
-            target.classList.remove('hidden');
-            target.classList.add('fade-in');
-        } else {
-            // Redirect to separate files if sections are missing
-            if (pageId === 'nearby') window.location.href = '/nearby';
-            if (pageId === 'details' || pageId === 'booking') window.location.href = '/booking';
-            return;
-        }
-
-        // Stop camera if leaving detection page
-        if (pageId !== 'detection' && videoStream) {
-            stopCamera();
-        }
-    };
+    // Populate DOM references after body is fully loaded
+    pages.splash    = document.getElementById('splash-screen');
+    pages.dashboard = document.getElementById('dashboard');
+    pages.detection = document.getElementById('detection-page');
+    pages.result    = document.getElementById('result-page');
+    pages.nearby    = document.getElementById('nearby-dermatologists');
+    pages.login     = document.getElementById('login-page');
+    pages.details   = document.getElementById('dermatologist-details');
+    pages.booking   = document.getElementById('booking-page');
+    header          = document.getElementById('main-header');
 
     // -----------------------------------------
     // Set Login/Logout Button based on Auth
@@ -119,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 pages.splash.style.display = 'none';
                 if (header) header.classList.remove('hidden');
                 showPage('dashboard');
-            }, 500);
-        }, 1000);
+            }, 400);
+        }, 1500); // 1.5s splash — fast and professional
     }
     // If no splash screen (Detection Page)
     else if (pages.detection) {
@@ -249,27 +223,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Camera Handling
 async function startCamera() {
-    const video = document.getElementById('webcam');
-    const loadingOverlay = document.getElementById('loading-overlay');
+    const video = document.getElementById('camera-feed');
+    const cameraInitial = document.getElementById('camera-initial');
+    const cameraUi = document.getElementById('camera-ui');
 
     try {
-        // SECURITY REVIEW: Camera access is only triggered by the user selecting the "Camera" tab
-        // to capture skin images for medical analysis.
-        videoStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" } // Prefer back camera on mobile
-        });
-        
-        if (video) {
-            video.srcObject = videoStream;
-            video.style.display = 'block';
-        }
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = videoStream;
+        video.style.display = 'block';
 
-        if (loadingOverlay) loadingOverlay.classList.add('hidden');
+        if (cameraInitial) cameraInitial.classList.add('hidden');
+        if (cameraUi) cameraUi.classList.remove('hidden');
 
     } catch (err) {
         console.error("Camera error:", err);
-        const status = document.getElementById('analysis-status');
-        if (status) status.innerText = "Camera access denied. Please allow permissions.";
+        alert("Could not access camera. Please allow permissions.");
     }
 }
 
@@ -278,53 +246,57 @@ function stopCamera() {
         videoStream.getTracks().forEach(track => track.stop());
         videoStream = null;
     }
+
+    // Reset UI
+    const cameraInitial = document.getElementById('camera-initial');
+    const cameraUi = document.getElementById('camera-ui');
+
+    if (cameraUi) cameraUi.classList.add('hidden');
+    if (cameraInitial) cameraInitial.classList.remove('hidden');
 }
 
-// Unify showTab/switchTab to use the new UI IDs
-window.showTab = function(tabId) {
-    // Update button states
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        const isTarget = btn.getAttribute('onclick').includes(tabId);
-        btn.classList.toggle('active', isTarget);
-    });
+function stopCameraAndReset() {
+    stopCamera();
+}
 
-    // Toggle panels
-    const tabs = ['camera-tab', 'upload-tab'];
-    tabs.forEach(id => {
-        const panel = document.getElementById(id);
-        if (panel) panel.classList.toggle('active', id === tabId);
-    });
+function switchTab(tab) {
+    const uploadBtn = document.getElementById('tab-upload');
+    const cameraBtn = document.getElementById('tab-camera');
+    const uploadView = document.getElementById('upload-view');
+    const cameraView = document.getElementById('camera-view');
 
-    // Start/Stop Camera stream based on tab
-    if (tabId === 'camera-tab') {
-        startCamera();
+    if (!uploadBtn || !cameraBtn || !uploadView || !cameraView) return;
+
+    if (tab === 'camera') {
+        uploadBtn.classList.remove('active');
+        cameraBtn.classList.add('active');
+        uploadView.classList.add('hidden');
+        cameraView.classList.remove('hidden');
     } else {
-        stopCamera();
+        cameraBtn.classList.remove('active');
+        uploadBtn.classList.add('active');
+        cameraView.classList.add('hidden');
+        uploadView.classList.remove('hidden');
+        stopCameraAndReset();
     }
-};
+}
 
 function captureImage() {
-    const video = document.getElementById('webcam');
-    const canvas = document.createElement('canvas'); // Clean temporary canvas
-    
-    if (!video || !video.srcObject) return;
+    const video = document.getElementById('camera-feed');
+    const canvas = document.getElementById('camera-canvas');
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
 
-    // Convert to blob and analyze
+    // Convert to blob/file and predict
     canvas.toBlob(blob => {
         const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
         handleFileUpload(file);
     }, 'image/jpeg');
 
-    // Switch to status view
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+    stopCamera();
 }
-
-// Logic handled in showTab or captured via unified controllers
 
 // File Upload
 function handleFiles(files) {
@@ -335,24 +307,37 @@ function handleFiles(files) {
 
 // Prediction Logic
 async function handleFileUpload(file) {
-    const status = document.getElementById('analysis-status');
-    if (status) {
-        status.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing image...`;
-        status.style.color = "#3b82f6";
-    }
+    const status = document.getElementById('upload-status');
+    status.innerHTML = `<i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Image uploaded successfully! Analyzing...`;
+    status.style.color = "var(--primary-color)";
 
-    // Show image preview in the new UI
+    // Show image preview
     const reader = new FileReader();
     reader.onload = function (e) {
-        const preview = document.getElementById('preview-image');
-        const placeholder = document.getElementById('placeholder-content');
+        let preview = document.getElementById('uploaded-preview');
+        const uploadContent = document.getElementById('upload-content');
 
-        if (preview) {
-            preview.src = e.target.result;
-            preview.classList.remove('hidden');
+        if (!preview) {
+            preview = document.createElement('img');
+            preview.id = 'uploaded-preview';
+            preview.style.width = '100%';
+            preview.style.height = '150px';
+            preview.style.objectFit = 'cover';
+            preview.style.borderRadius = '8px';
+            preview.style.marginTop = '1rem';
+            preview.style.marginBottom = '1rem';
+
+            // Hide other elements in the card temporarily to focus on the image
+            if (uploadContent) {
+                Array.from(uploadContent.children).forEach(child => {
+                    if (child.tagName !== 'INPUT' && child.tagName !== 'BUTTON') {
+                        child.classList.add('hidden');
+                    }
+                });
+                uploadContent.insertBefore(preview, uploadContent.querySelector('button'));
+            }
         }
-        if (placeholder) placeholder.classList.add('hidden');
-        
+        preview.src = e.target.result;
         sessionStorage.setItem('uploaded_image_base64', e.target.result);
     }
     reader.readAsDataURL(file);
@@ -406,60 +391,67 @@ async function handleFileUpload(file) {
 }
 
 function displayResult(data) {
-    // ── Update Disease Name ──
+    // ── Update Disease Name with Confidence Percentage ──
     const diseaseEl = document.getElementById('disease-name');
-    if (diseaseEl) diseaseEl.innerText = data.disease || "Unknown Condition";
+    if (diseaseEl) {
+        // Clear previous content and set new one with score
+        const confidenceScore = data.confidence || 0;
+        diseaseEl.innerHTML = `${data.disease} <span style="font-size: 0.85em; opacity: 0.85;">(${confidenceScore}%)</span>`;
+    }
 
-    // ── Update Confidence Gauge (SVG Circle) ──
+    // ── Update Confidence Circle Text ──
     const confidenceText = document.getElementById('confidence-text');
-    const circle = document.getElementById('confidence-circle');
-    const confidence = data.confidence || 0;
-
-    if (confidenceText) confidenceText.innerText = Math.round(confidence) + "%";
-    
-    if (circle) {
-        const circumference = 2 * Math.PI * 45; // r=45
-        const offset = circumference - (confidence / 100) * circumference;
-        circle.style.strokeDashoffset = offset;
-        
-        // Color based on risk
-        let statusColor = '#10b981'; // Green
-        if (confidence >= 85) statusColor = '#ef4444'; // Red (High risk of condition)
-        else if (confidence >= 60) statusColor = '#f59e0b'; // Amber
-        
-        circle.style.stroke = statusColor;
-
-        // Update Accuracy Badge
-        const accLevel = document.getElementById('accuracy-level');
-        const accIndicator = document.getElementById('accuracy-indicator');
-        if (accLevel && accIndicator) {
-            accLevel.innerText = confidence >= 85 ? 'HIGH' : (confidence >= 60 ? 'MEDIUM' : 'LOW');
-            accIndicator.style.borderColor = statusColor;
-            accIndicator.style.color = statusColor;
-        }
+    if (confidenceText) {
+        confidenceText.innerText = (data.confidence || 0) + "%";
+        confidenceText.style.display = 'block'; // Ensure visibility
     }
 
     // ── Show Uploaded Image Preview ──
     const scannedImageFinal = document.getElementById('scanned-image-final');
     if (scannedImageFinal) {
         const uploadedImg = (data.image_base64) ? `data:image/jpeg;base64,${data.image_base64}` : sessionStorage.getItem('uploaded_image_base64');
-        if (uploadedImg) scannedImageFinal.src = uploadedImg;
+        if (uploadedImg) {
+            scannedImageFinal.src = uploadedImg;
+            const imgWrap = document.getElementById('scanned-image-wrap');
+            if (imgWrap) imgWrap.style.display = 'block';
+            else scannedImageFinal.style.display = 'block';
+        }
     }
 
-    // ── Populate Recommendation Cards ──
-    const listMap = {
-        'home-remedies-list': data.remedy || ["Keep skin clean", "Avoid irritants"],
-        'routine-list': data.routine || ["Apply moisturizer daily", "Use sun protection"],
-        'diet-list': data.diet || ["Drink plenty of water", "Eat antioxidant-rich foods"]
-    };
+    // ── Determine Status Color Based on Accuracy ──
+    const accuracyIndicator = document.getElementById('accuracy-indicator');
+    const accuracyLevel = document.getElementById('accuracy-level');
+    let statusColor = '#3b82f6'; // Default Blue
+    let bgOpacity = 'rgba(59, 130, 246, 0.1)';
 
-    Object.keys(listMap).forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.innerHTML = listMap[id].map(item => `<li>${item}</li>`).join('');
+    if (accuracyIndicator && accuracyLevel) {
+        accuracyIndicator.style.display = 'inline-block';
+        let levelLabel = 'LOW';
+        
+        if (data.confidence >= 85) {
+            levelLabel = 'HIGH';
+            statusColor = '#ef4444'; // Red
+            bgOpacity = 'rgba(239, 68, 68, 0.1)';
+        } else if (data.confidence >= 60) {
+            levelLabel = 'MEDIUM';
+            statusColor = '#f59e0b'; // Amber
+            bgOpacity = 'rgba(245, 158, 11, 0.1)';
+        } else {
+            statusColor = '#10b981'; // Green
+            bgOpacity = 'rgba(16, 185, 129, 0.1)';
         }
-    });
-}
+
+        accuracyLevel.innerText = levelLabel;
+        accuracyIndicator.style.backgroundColor = bgOpacity;
+        accuracyIndicator.style.color = statusColor;
+        accuracyIndicator.style.border = `1px solid ${statusColor}`;
+    }
+
+    // ── Update Circular Confidence Meter ──
+    const circle = document.getElementById('confidence-circle');
+    if (circle) {
+        circle.style.background = `conic-gradient(${statusColor} ${data.confidence}%, #e2e8f0 0%)`;
+    }
 
     // ── Find Doctors Button Logic ──
     const isHealthy = ['normal skin', 'normal'].includes(data.disease.toLowerCase().trim());
@@ -746,7 +738,129 @@ async function finalizeBooking() {
 }
 
 
-// Note: loadGoogleMapsNearby has been moved to nearby_dermatologist.js to resolve security hotspots in core files.
+// Leaflet.js + OpenStreetMap Integration (Free - No API Key Required)
+let mapLoaded = false;
+let leafletMap = null;
+
+function loadGoogleMapsNearby() {
+    if (mapLoaded) return; // Only load once if already done successfully
+
+    const list = document.getElementById("dermatologist-list");
+    const mapContainer = document.getElementById('map-container');
+    const loading = document.getElementById('loading-doctors');
+
+    if (!window.L) {
+        console.warn("Leaflet.js not loaded.");
+        return;
+    }
+
+    if (navigator.geolocation) {
+        if (list) list.style.display = 'none';
+        if (loading) loading.style.display = 'block';
+
+        navigator.geolocation.getCurrentPosition(position => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            console.log("Latitude:", latitude);
+            console.log("Longitude:", longitude);
+
+            // Reverse Geocoding using Nominatim (Free)
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`, {
+                headers: { 'Accept-Language': 'en' }
+            })
+                .then(res => res.json())
+                .then(geoData => {
+                    const city = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.county || "Unknown";
+                    const state = geoData.address.state || "";
+                    const location_name = state ? `${city}, ${state}` : city;
+
+                    // Store in Backend DB using the location endpoint with human-readable name
+                    const token = localStorage.getItem('dermacare_token');
+                    if (token) {
+                        fetch(`${API_URL}/api/scan/location`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                latitude,
+                                longitude,
+                                location_name: location_name
+                            })
+                        }).catch(err => console.error("Error saving location:", err));
+                    }
+                })
+                .catch(err => console.error("Reverse geocoding error:", err));
+
+
+            if (loading) loading.style.display = 'none';
+            if (mapContainer) mapContainer.style.display = 'block';
+            if (list) list.style.display = 'block';
+
+            // Initialize Leaflet map
+            if (leafletMap) {
+                leafletMap.remove();
+            }
+            leafletMap = L.map('map').setView([latitude, longitude], 14);
+
+            // Add CartoDB Positron tiles (free, no API key, no referer required — works with file:// URLs)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(leafletMap);
+
+            // Add user location marker (blue pulsing circle)
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                html: `<div style="
+                    width: 20px; height: 20px;
+                    background: #2563eb;
+                    border: 3px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+                "></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            L.marker([latitude, longitude], { icon: userIcon })
+                .addTo(leafletMap)
+                .bindPopup('<strong>📍 Your Location</strong>')
+                .openPopup();
+
+            // Search for nearby dermatologists using Overpass API (free)
+            searchNearbyDermatologists(latitude, longitude, list);
+
+            // Show Google Maps action bar with dynamic link
+            const googleMapsBar = document.getElementById('google-maps-bar');
+            const googleMapsLink = document.getElementById('google-maps-link');
+            if (googleMapsBar && googleMapsLink) {
+                googleMapsLink.href = `https://www.google.com/maps/search/dermatologist/@${latitude},${longitude},14z`;
+                googleMapsBar.style.display = 'block';
+            }
+
+            mapLoaded = true;
+
+        }, error => {
+            console.error("Geolocation error:", error);
+            if (loading) loading.style.display = 'none';
+            if (list) list.style.display = 'block';
+            if (list) list.innerHTML = `
+                <div style="text-align: center; padding: 2rem; background: #fef2f2; border-radius: var(--border-radius-md); border: 1px solid #fca5a5;">
+                    <i class="fas fa-location-crosshairs" style="font-size: 2rem; color: #ef4444; margin-bottom: 1rem;"></i>
+                    <h3 style="color: #dc2626; margin-bottom: 0.5rem;">Location Access Required</h3>
+                    <p style="color: #991b1b;">Please allow location access in your browser to find dermatologists near you.</p>
+                </div>`;
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
+    }
+}
 
 // Search nearby dermatologists using Overpass API (OpenStreetMap data - completely free)
 async function searchNearbyDermatologists(lat, lng, listEl) {
@@ -1072,37 +1186,3 @@ function timeSince(date) {
     // Handle less than 60 seconds
     return "Just now";
 }
-
-// Initialization for Scanner UI
-document.addEventListener('DOMContentLoaded', () => {
-    const captureBtn = document.getElementById('btn-capture');
-    if (captureBtn) captureBtn.addEventListener('click', captureImage);
-
-    const switchCamBtn = document.getElementById('btn-switch-camera');
-    if (switchCamBtn) switchCamBtn.addEventListener('click', () => {
-        // Toggle camera logic could go here if specifically needed
-        stopCamera();
-        startCamera();
-    });
-
-    const dropZone = document.getElementById('drop-area');
-    const fileInput = document.getElementById('upload-image');
-
-    if (dropZone && fileInput) {
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
-    }
-});

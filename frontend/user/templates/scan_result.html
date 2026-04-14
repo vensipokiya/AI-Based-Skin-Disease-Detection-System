@@ -1,119 +1,123 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Analysis Report - DermaCare AI{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Result - DermaCare AI</title>
+    <link rel="stylesheet" href="/user/static/css/style.css">
+    <link rel="stylesheet" href="/shared/static/css/header.css">
+    <link rel="stylesheet" href="/shared/static/css/footer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+    <link rel="stylesheet" href="/user/static/css/scan_result.css">
 
-{% block extra_css %}
-<link rel="stylesheet" href="/user/static/css/scan_result.css">
-{% endblock %}
+</head>
 
-{% block content %}
-    <!-- Clinical Analysis Report Section -->
+<body>
+    <div id="header-container"></div>
+
     <section id="result-page" class="fade-in">
-        <div class="container container-report">
-            <div class="report-layout">
-                
-                <!-- Left Sidebar: Diagnostic Overview -->
-                <div class="report-sidebar">
-                    <div class="sidebar-top">
-                        <span class="badge-complete">SCAN COMPLETE</span>
-                        <div class="scanned-image-wrap">
-                            <img id="scanned-image-final" src="/shared/static/images/placeholder-skin.jpg" alt="Scanned Sample">
-                        </div>
-                    </div>
+        <div style="position: relative; min-height: 80vh;">
+            <div id="result-content-container" style="display: none;">
+                <div class="main-container">
 
-                    <div class="confidence-display">
-                        <div class="circular-meter">
-                            <svg viewBox="0 0 100 100">
-                                <circle class="meter-bg" cx="50" cy="50" r="45"></circle>
-                                <circle id="confidence-circle" class="meter-fill" cx="50" cy="50" r="45"></circle>
-                            </svg>
-                            <div class="meter-content">
-                                <span id="confidence-text">0%</span>
+                    <!-- ── Left Section (Image + Result) ─────────────────────────────────── -->
+                    <div class="left-section">
+                        <div class="scan-badge">SCAN COMPLETE</div>
+
+                        <!-- Uploaded image -->
+                        <div class="scanned-image-wrap" id="scanned-image-wrap">
+                            <img id="scanned-image-final" alt="Scanned skin image" />
+                        </div>
+
+                        <!-- Confidence circle -->
+                        <div class="confidence-meter" id="confidence-circle">
+                            <div class="confidence-inner">
+                                <div class="confidence-pct" id="confidence-text">0%</div>
+                                <div class="confidence-label-small">CONFIDENCE</div>
                             </div>
                         </div>
-                        <div id="accuracy-indicator" class="accuracy-badge">
-                            Accuracy: <span id="accuracy-level">Calculating</span>
+
+                        <!-- Accuracy level badge -->
+                        <div id="accuracy-indicator">
+                            Accuracy: <span id="accuracy-level"></span>
+                        </div>
+
+                        <!-- Disease name -->
+                        <div class="disease-box">
+                            <div class="label">DETECTION RESULT</div>
+                            <h2 id="disease-name">Analyzing…</h2>
+                        </div>
+
+                    </div>
+
+
+                    <!-- ── Right Section (Report) ──────────────────────────────────── -->
+                    <div class="right-section">
+                        <h3>Analysis Report</h3>
+
+                        <div class="remedy-grid" id="remedy-grid">
+                            <!-- Injected via JS -->
+
+                            <!-- Disclaimer always shown -->
+                            <div class="remedy-card disclaimer-card">
+                                <h4><i class="fas fa-exclamation-circle"></i> Disclaimer</h4>
+                                <div style="font-size: 0.92rem; color: #334155; line-height: 1.7;">
+                                    This AI-based diagnosis is <strong>not a substitute</strong> for professional
+                                    medical advice. Consult a healthcare provider for a confirmation of this result.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="result-card-main">
-                        <span class="label">DETECTION RESULT</span>
-                        <h2 id="disease-name">Eczema</h2>
-                    </div>
                 </div>
 
-                <!-- Right Content: Detailed Analysis -->
-                <div class="report-main">
-                    <h1>Analysis Report</h1>
-
-                    <div class="report-grid">
-                        <!-- Home Remedies Card -->
-                        <div class="report-card">
-                            <div class="card-header">
-                                <i class="fas fa-house-user text-primary"></i>
-                                <span>Home Remedies</span>
-                            </div>
-                            <ul id="home-remedies-list" class="remedy-list">
-                                <li>Keep skin moisturized</li>
-                                <li>Use gentle soap</li>
-                            </ul>
-                        </div>
-
-                        <!-- Skincare Routine Card -->
-                        <div class="report-card">
-                            <div class="card-header">
-                                <i class="fas fa-spa text-primary"></i>
-                                <span>Skincare Routine</span>
-                            </div>
-                            <ul id="routine-list" class="remedy-list">
-                                <li>Apply moisturizer after bathing</li>
-                            </ul>
-                        </div>
-
-                        <!-- Diet Suggestions Card -->
-                        <div class="report-card">
-                            <div class="card-header">
-                                <i class="fas fa-utensils text-primary"></i>
-                                <span>Diet Suggestions</span>
-                            </div>
-                            <ul id="diet-list" class="remedy-list">
-                                <li>Include omega-3 rich foods</li>
-                            </ul>
-                        </div>
-
-                        <!-- Disclaimer Card -->
-                        <div class="report-card">
-                            <div class="card-header">
-                                <i class="fas fa-exclamation-circle text-muted"></i>
-                                <span>Disclaimer</span>
-                            </div>
-                            <p class="disclaimer-text">
-                                This AI-based diagnosis is not a substitute for professional medical advice. 
-                                Consult a healthcare provider for a confirmation of this result.
-                            </p>
-                        </div>
-                    </div>
+                <!-- Action Bar outside main-container at the bottom -->
+                <div class="global-action-bar">
+                    <button class="btn-scan-new" onclick="window.location.href='/detect'">
+                        Scan New
+                    </button>
+                    <button id="btn-find-nearby-doctor" onclick="window.location.href='/nearby'"
+                        class="btn-find-doctors" style="display:none;">
+                        <i class="fas fa-map-marker-alt" style="color:#3b82f6;"></i> Find Doctors
+                    </button>
                 </div>
+
             </div>
 
-            <!-- Global Action Bar -->
-            <div class="report-actions">
-                <a href="/detect" class="btn btn-primary btn-lg">Scan New</a>
-                <a href="/nearby" class="btn btn-outline btn-lg"><i class="fas fa-user-md"></i> Find Doctors</a>
+            <!-- Auth Overlay -->
+            <div id="result-auth-overlay" class="hidden"
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; flex-direction:column; align-items:center; justify-content:center; z-index:50; background: rgba(255,255,255,0.1); backdrop-filter: blur(4px);">
+                <div
+                    style="background:white;padding:3rem;border-radius:1.5rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;max-width:90%;width:450px;border:2px solid var(--primary-color);">
+                    <i class="fas fa-lock" style="font-size:4rem;color:var(--primary-color);margin-bottom:1.5rem;"></i>
+                    <h3 style="margin-bottom:1rem;color:var(--text-dark);font-size:1.5rem;">Secure Results Ready</h3>
+                    <p style="color:var(--text-light);margin-bottom:2rem;font-size:1.1rem;line-height:1.6;">Your AI skin
+                        analysis is complete! Sign in to save your data and unlock the full report.</p>
+                    <div style="display:flex;gap:1rem;justify-content:center;flex-direction:column;">
+                        <a href="/register" class="btn btn-primary" style="justify-content:center;">
+                            <i class="fas fa-user-plus" style="margin-right:8px;"></i> Register Now (Free)
+                        </a>
+                        <a href="/login" class="btn btn-secondary" style="justify-content:center;">
+                            <i class="fas fa-sign-in-alt" style="margin-right:8px;"></i> Sign In
+                        </a>
+                        <p style="font-size:0.9rem;margin-top:0.5rem;color:var(--text-light);">
+                            <i class="fas fa-shield-alt"></i> All medical data is securely encrypted.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Passing the data to predict.js -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const data = JSON.parse(sessionStorage.getItem('scan_result') || '{}');
-            if (data.disease) {
-                // Handle the update via main.js logic (which we previously updated)
-                if (typeof displayResult === 'function') {
-                    displayResult(data);
-                }
-            }
-        });
-    </script>
-{% endblock %}
+    <div id="footer"></div>
+    <script src="/shared/static/js/footer.js"></script>
+    <script src="/shared/static/js/dermacare-api.js"></script>
+    <script src="/user/static/js/main.js"></script>
+    <script src="/shared/static/js/header.js"></script>
+
+</body>
+
+</html>
