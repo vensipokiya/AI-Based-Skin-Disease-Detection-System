@@ -4,22 +4,50 @@ var API_URL = (typeof window !== 'undefined' && window.DERMACARE_API_BASE) ? win
 // State
 let videoStream = null;
 
-// DOM Elements
-const pages = {
-    splash: document.getElementById('splash-screen'),
-    dashboard: document.getElementById('dashboard'),
-    detection: document.getElementById('detection-page'),
-    result: document.getElementById('result-page'),
-    nearby: document.getElementById('nearby-dermatologists'),
-    login: document.getElementById('login-page'),
-    details: document.getElementById('dermatologist-details'),
-    booking: document.getElementById('booking-page')
-};
-
-const header = document.getElementById('main-header');
-
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements - Selected inside listener to ensure body is ready
+    const pages = {
+        splash: document.getElementById('splash-screen'),
+        dashboard: document.getElementById('dashboard'),
+        detection: document.getElementById('detection-page'),
+        result: document.getElementById('result-page'),
+        nearby: document.getElementById('nearby-dermatologists'),
+        login: document.getElementById('login-page'),
+        details: document.getElementById('dermatologist-details'),
+        booking: document.getElementById('booking-page')
+    };
+
+    const header = document.getElementById('main-header');
+
+    // Navigation function redefined locally or globally
+    window.showPage = function(pageId) {
+        // Hide all pages
+        Object.values(pages).forEach(page => {
+            if (page && page.id !== 'splash-screen') {
+                page.classList.add('hidden');
+                page.classList.remove('fade-in');
+            }
+        });
+
+        // Show specific page
+        const target = pages[pageId];
+        if (target) {
+            target.classList.remove('hidden');
+            target.classList.add('fade-in');
+        } else {
+            // Redirect to separate files if sections are missing
+            if (pageId === 'nearby') window.location.href = '/nearby';
+            if (pageId === 'details' || pageId === 'booking') window.location.href = '/booking';
+            return;
+        }
+
+        // Stop camera if leaving detection page
+        if (pageId !== 'detection' && videoStream) {
+            stopCamera();
+        }
+    };
+
     // -----------------------------------------
     // Set Login/Logout Button based on Auth
     // -----------------------------------------
@@ -87,10 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pages.splash) {
         setTimeout(() => {
             pages.splash.classList.add('fade-out');
-            pages.splash.style.display = 'none';
-            if (header) header.classList.remove('hidden');
-            showPage('dashboard');
-        }, 3500);
+            setTimeout(() => {
+                pages.splash.style.display = 'none';
+                if (header) header.classList.remove('hidden');
+                showPage('dashboard');
+            }, 500);
+        }, 1000);
     }
     // If no splash screen (Detection Page)
     else if (pages.detection) {
