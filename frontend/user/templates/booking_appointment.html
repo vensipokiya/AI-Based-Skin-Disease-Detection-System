@@ -5,18 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doctor Details - DermaCare AI</title>
-    <link rel="stylesheet" href="../../user/static/css/style.css"><link rel="stylesheet" href="../../shared/static/css/header.css">
-    <link rel="stylesheet" href="../../shared/static/css/footer.css">
+    <link rel="stylesheet" href="/user/static/css/style.css">
+    <link rel="stylesheet" href="/shared/static/css/header.css">
+    <link rel="stylesheet" href="/shared/static/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
 </head>
 
 <body style="background-color: #f1f5f9;">
 
     <!-- Header -->
-    <!-- Reusable Header -->
     <div id="header-container"></div>
+
 
     <!-- Doctor Details Section -->
     <section id="dermatologist-details" class="container fade-in" style="padding: 4rem 1rem;">
@@ -119,40 +120,12 @@
     </section>
 
     <!-- JS functionality -->
-    <script src="../../user/static/js/main.js"></script>
-    <script>
-        // Populate doctor data on load if available in localStorage
-        window.addEventListener('DOMContentLoaded', () => {
-            const dataStr = localStorage.getItem('selectedDoctorDetails');
-            if (dataStr) {
-                try {
-                    const data = JSON.parse(dataStr);
-                    // Populate Details
-                    document.getElementById('doc-detail-name').innerText = data.name;
-                    document.getElementById('doc-detail-address').innerText = data.address || 'N/A';
-                    document.getElementById('doc-detail-phone').innerText = data.phone || 'N/A';
-                    document.getElementById('doc-detail-time').innerText = data.time || 'N/A';
-                    document.getElementById('doc-detail-rating').innerHTML = `<i class="fas fa-star"></i> ${data.rating || '4.5'} (${data.reviews || '0'} reviews)`;
-                    if (data.review) {
-                        document.getElementById('doc-detail-review').innerText = `"${data.review}"`;
-                    }
-
-                    if (data.isSpecialist) {
-                        document.getElementById('doc-detail-title').innerText = 'Skin Specialist / Surgeon';
-                        document.getElementById('doc-detail-img-container').style.background = 'linear-gradient(135deg, #10b981, #34d399)';
-                    } else {
-                        document.getElementById('doc-detail-title').innerText = 'General Dermatologist';
-                        document.getElementById('doc-detail-img-container').style.background = 'linear-gradient(135deg, #2563eb, #38bdf8)';
-                    }
-                } catch (e) {
-                    console.error("Error populating booking page", e);
-                }
-            }
-        });
-    </script>
+    <script src="/user/static/js/main.js"></script>
+    <script src="/user/static/js/booking.js"></script>
     <div id="footer"></div>
-    <script src="../../shared/static/js/footer.js"></script>
-    <script src="../../shared/static/js/header.js"></script>
+    <script src="/shared/static/js/footer.js"></script>
+    <script src="/shared/static/js/header.js"></script>
+
 </body>
 
 </html>
