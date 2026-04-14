@@ -4,7 +4,7 @@ import os
 # Add parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.db.connection import DatabaseSingleton
+from backend.app.config.database import DatabaseSingleton
 
 db = DatabaseSingleton()
 conn = db.get_connection()

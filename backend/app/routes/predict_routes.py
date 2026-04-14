@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from backend.services.scan_service import ScanService
-from backend.core.security import optional_login
+from backend.app.services.scan_service import ScanService
+from backend.app.middleware.auth_middleware import optional_login
 from backend.app.utils.remedies import get_remedies
 from typing import Optional
 import os

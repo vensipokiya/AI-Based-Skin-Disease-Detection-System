@@ -28,7 +28,7 @@ def setup_all():
         conn.close()
 
         # 2. Use the standard connection logic to create tables
-        from backend.db.connection import DatabaseSingleton
+        from backend.app.config.database import DatabaseSingleton
         db = DatabaseSingleton()
         db._ensure_tables()
         print("[SUCCESS] All tables created and synchronized successfully!")
