@@ -1062,3 +1062,17 @@ function timeSince(date) {
     // Handle less than 60 seconds
     return "Just now";
 }
+
+// Tab Switching logic for Detection Page
+window.showTab = function(tabId) {
+    // Update buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const isTarget = btn.getAttribute('onclick').includes(tabId);
+        btn.classList.toggle('active', isTarget);
+    });
+
+    // Update panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === tabId);
+    });
+};

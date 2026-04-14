@@ -17,36 +17,56 @@
 
             <!-- Scanner Component -->
             <div class="scanner-wrapper">
-                <div class="scanner-container" id="scanner-container">
-                    <div class="scanner-frame">
-                        <div class="corner top-left"></div>
-                        <div class="corner top-right"></div>
-                        <div class="corner bottom-left"></div>
-                        <div class="corner bottom-right"></div>
-                        <div class="scanning-line"></div>
+                <div class="scanner-tabs">
+                    <button class="tab-btn active" onclick="showTab('camera-tab')">
+                        <i class="fas fa-video"></i> Live Camera
+                    </button>
+                    <button class="tab-btn" onclick="showTab('upload-tab')">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload Image
+                    </button>
+                </div>
+
+                <div id="camera-tab" class="tab-panel active">
+                    <div class="scanner-container">
+                        <div class="scanner-frame">
+                            <div class="corner top-left"></div>
+                            <div class="corner top-right"></div>
+                            <div class="corner bottom-left"></div>
+                            <div class="corner bottom-right"></div>
+                            <div class="scanning-line"></div>
+                        </div>
+                        <video id="webcam" autoplay playsinline muted></video>
+                        <canvas id="canvas" class="hidden"></canvas>
+                        
+                        <div id="loading-overlay" class="hidden">
+                            <div class="spinner"></div>
+                            <p>AI Analyzing...</p>
+                        </div>
                     </div>
                     
-                    <video id="webcam" autoplay playsinline muted></video>
-                    <canvas id="canvas" class="hidden"></canvas>
-                    
-                    <div id="loading-overlay" class="hidden">
-                        <div class="spinner"></div>
-                        <p>AI Analyzing...</p>
+                    <div class="scanner-controls">
+                        <button class="btn btn-secondary btn-icon" id="btn-switch-camera" title="Switch Camera">
+                            <i class="fas fa-camera-rotate"></i>
+                        </button>
+                        <button class="btn btn-primary btn-lg btn-icon-main" id="btn-capture">
+                            <div class="shutter-inner"></div>
+                        </button>
+                        <div style="width: 48px;"></div> <!-- Spacer for symmetry -->
                     </div>
                 </div>
 
-                <!-- Controls -->
-                <div class="scanner-controls">
-                    <button class="btn btn-secondary btn-icon" id="btn-switch-camera" title="Switch Camera">
-                        <i class="fas fa-camera-rotate"></i>
-                    </button>
-                    <button class="btn btn-primary btn-lg btn-icon-main" id="btn-capture">
-                        <div class="shutter-inner"></div>
-                    </button>
-                    <label for="upload-image" class="btn btn-secondary btn-icon" title="Upload Photo">
-                        <i class="fas fa-image"></i>
+                <div id="upload-tab" class="tab-panel">
+                    <div class="upload-area" id="drop-area">
+                        <div class="upload-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <h3>Drag & Drop Image</h3>
+                        <p>or click to browse your files</p>
                         <input type="file" id="upload-image" accept="image/*" class="hidden">
-                    </label>
+                        <button class="btn btn-primary" onclick="document.getElementById('upload-image').click()">
+                            Select File
+                        </button>
+                    </div>
                 </div>
             </div>
 
