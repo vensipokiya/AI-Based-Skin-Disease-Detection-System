@@ -7,82 +7,85 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Detection Interface -->
+    <!-- AI Analysis Section -->
     <section id="detection-interface" class="fade-in">
-        <div class="container" style="max-width: 900px;">
-            <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
-                <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Real-Time <span class="text-gradient">Skin Analysis</span></h1>
-                <p style="font-size: 1.1rem; color: var(--text-light);">Position the area of interest within the frame. Our AI will analyze it instantly.</p>
+        <div class="container container-analysis">
+            <div class="section-header">
+                <h1>AI Skin <span class="text-gradient">Analysis</span></h1>
+                <p>Upload a photo or use your camera for instant diagnostic insight.</p>
             </div>
 
-            <!-- Scanner Component -->
-            <div class="scanner-wrapper">
-                <div class="scanner-tabs">
-                    <button class="tab-btn active" onclick="showTab('camera-tab')">
-                        <i class="fas fa-video"></i> Live Camera
-                    </button>
-                    <button class="tab-btn" onclick="showTab('upload-tab')">
-                        <i class="fas fa-cloud-upload-alt"></i> Upload Image
-                    </button>
-                </div>
+            <div class="analysis-grid">
+                <!-- Left: Scanner Card -->
+                <div class="scanner-card">
+                    <div class="scanner-tabs">
+                        <button class="tab-btn active" onclick="showTab('upload-tab')">
+                            <i class="fas fa-image"></i> Upload
+                        </button>
+                        <button class="tab-btn" onclick="showTab('camera-tab')">
+                            <i class="fas fa-camera"></i> Camera
+                        </button>
+                    </div>
 
-                <div id="camera-tab" class="tab-panel active">
-                    <div class="scanner-container">
-                        <div class="scanner-frame">
-                            <div class="corner top-left"></div>
-                            <div class="corner top-right"></div>
-                            <div class="corner bottom-left"></div>
-                            <div class="corner bottom-right"></div>
-                            <div class="scanning-line"></div>
+                    <div id="upload-tab" class="tab-panel active">
+                        <div class="upload-drop-zone" id="drop-area">
+                            <div class="upload-placeholder">
+                                <img id="preview-image" src="" class="hidden" alt="Preview">
+                                <div id="placeholder-content">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Click or drag image here</p>
+                                </div>
+                            </div>
+                            <input type="file" id="upload-image" accept="image/*" class="hidden">
                         </div>
-                        <video id="webcam" autoplay playsinline muted></video>
-                        <canvas id="canvas" class="hidden"></canvas>
-                        
-                        <div id="loading-overlay" class="hidden">
-                            <div class="spinner"></div>
-                            <p>AI Analyzing...</p>
+                        <div class="status-msg" id="analysis-status">
+                            Error analyzing image. Ensure backend is running.
                         </div>
                     </div>
+
+                    <div id="camera-tab" class="tab-panel">
+                        <div class="camera-preview-zone">
+                            <video id="webcam" autoplay playsinline muted></video>
+                            <div class="scan-overlay">
+                                <div class="scan-line"></div>
+                            </div>
+                        </div>
+                        <div class="camera-actions">
+                            <button class="btn btn-primary btn-capture" id="btn-capture">
+                                <i class="fas fa-circle"></i> Capture & Analyze
+                            </button>
+                            <button class="btn btn-secondary" id="btn-switch-camera">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Scanning Guide -->
+                <div class="guide-card">
+                    <h2>Scanning Guide</h2>
                     
-                    <div class="scanner-controls">
-                        <button class="btn btn-secondary btn-icon" id="btn-switch-camera" title="Switch Camera">
-                            <i class="fas fa-camera-rotate"></i>
-                        </button>
-                        <button class="btn btn-primary btn-lg btn-icon-main" id="btn-capture">
-                            <div class="shutter-inner"></div>
-                        </button>
-                        <div style="width: 48px;"></div> <!-- Spacer for symmetry -->
-                    </div>
-                </div>
-
-                <div id="upload-tab" class="tab-panel">
-                    <div class="upload-area" id="drop-area">
-                        <div class="upload-icon">
-                            <i class="fas fa-images"></i>
+                    <div class="guide-section">
+                        <div class="guide-title text-success">
+                            <i class="fas fa-check-circle"></i> Best Practices
                         </div>
-                        <h3>Drag & Drop Image</h3>
-                        <p>or click to browse your files</p>
-                        <input type="file" id="upload-image" accept="image/*" class="hidden">
-                        <button class="btn btn-primary" onclick="document.getElementById('upload-image').click()">
-                            Select File
-                        </button>
+                        <ul>
+                            <li>Use bright, natural daylight</li>
+                            <li>Wipe your camera lens first</li>
+                            <li>Ensure the area is centered</li>
+                        </ul>
                     </div>
-                </div>
-            </div>
 
-            <!-- Guidance -->
-            <div class="scanner-guidance">
-                <div class="guidance-item">
-                    <i class="fas fa-lightbulb"></i>
-                    <span>Ensure good lighting</span>
-                </div>
-                <div class="guidance-item">
-                    <i class="fas fa-compress-arrows-alt"></i>
-                    <span>Keep center of frame</span>
-                </div>
-                <div class="guidance-item">
-                    <i class="fas fa-hand-holding-medical"></i>
-                    <span>Hold steady</span>
+                    <div class="guide-section">
+                        <div class="guide-title text-danger">
+                            <i class="fas fa-times-circle"></i> Things to Avoid
+                        </div>
+                        <ul>
+                            <li>Avoid blurry or shaky shots</li>
+                            <li>Don't use flash if too close</li>
+                            <li>Remove any hair or obstructions</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
