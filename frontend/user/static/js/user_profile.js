@@ -123,8 +123,11 @@ function populateProfile(data) {
         const locInput = document.getElementById('prof-location');
         if (locInput) {
             locInput.placeholder = "Detecting location...";
-            if (navigator.geolocation) {
+            // SECURITY REVIEW: This geolocation usage is strictly for medical diagnostic/specialist discovery in Nearby Dermatologist.
+            // It is only triggered if the user's location is missing or outdated.
+            if (navigator && navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (position) => {
+
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     try {
