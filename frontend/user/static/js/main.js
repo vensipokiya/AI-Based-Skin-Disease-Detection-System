@@ -805,10 +805,10 @@ function loadGoogleMapsNearby() {
             }
             leafletMap = L.map('map').setView([latitude, longitude], 14);
 
-            // Force recalculate size after display:block
+            // Force recalculate size after display:block (slightly longer delay for reliability)
             setTimeout(() => {
                 leafletMap.invalidateSize();
-            }, 100);
+            }, 250);
 
             // Add CartoDB Positron tiles (best for clinical/clean aesthetics)
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
