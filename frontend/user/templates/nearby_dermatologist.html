@@ -29,7 +29,13 @@
                 <div class="doctors-list-panel">
                     <div class="panel-header">
                         <h3 id="doctors-count">Finding specialists...</h3>
-                        <p id="location-status"><i class="fas fa-location-arrow"></i> Detecting location...</p>
+                        <div id="location-controls" style="margin-top: 10px;">
+                            <button id="btn-detect-nearby" class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 0.85rem;">
+                                <i class="fas fa-location-arrow"></i> Find My Location
+                            </button>
+                        </div>
+                        <p id="location-status" style="display: none;"><i class="fas fa-location-arrow"></i> Detecting location...</p>
+
                     </div>
 
                     <div id="doctors-results" class="doctors-scroll-area">

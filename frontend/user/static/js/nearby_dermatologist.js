@@ -1,10 +1,15 @@
-/**
- * nearby_dermatologist.js
- * DermaCare AI — Nearby Dermatologist Page
- * Triggers the map load automatically on DOMContentLoaded.
- */
 window.addEventListener('DOMContentLoaded', () => {
-    if (typeof loadGoogleMapsNearby === 'function') {
-        loadGoogleMapsNearby();
+    const detectBtn = document.getElementById('btn-detect-nearby');
+    const locationStatus = document.getElementById('location-status');
+    const locationControls = document.getElementById('location-controls');
+
+    if (detectBtn) {
+        detectBtn.addEventListener('click', () => {
+            if (typeof loadGoogleMapsNearby === 'function') {
+                if (locationStatus) locationStatus.style.display = 'block';
+                if (locationControls) locationControls.style.display = 'none';
+                loadGoogleMapsNearby();
+            }
+        });
     }
 });

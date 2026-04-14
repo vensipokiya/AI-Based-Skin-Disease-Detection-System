@@ -39,9 +39,14 @@ function clearErrors() {
 }
 
 function isValidEmail(email) {
-    // SECURITY REVIEW: This regex is non-backtracking and safe from ReDoS.
-    // Standard RFC 5322 compliant simple check.
-    return /^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+    // SECURITY REVIEW: Linear validation to prevent ReDoS (SonarQube S5852).
+    // Avoids nested quantifiers by using logic-based splitting.
+    if (!email || email.length > 254) return false;
+    const parts = email.split('@');
+    if (parts.length !== 2) return false;
+    const [account, domain] = parts;
+    if (!account || !domain || domain.indexOf('.') === -1) return false;
+    return /^[a-zA-Z0-9._%+-]+$/.test(account) && /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
 }
 
 // ---------------------------
