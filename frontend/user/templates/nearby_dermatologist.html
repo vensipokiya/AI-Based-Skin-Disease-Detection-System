@@ -5,13 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nearby Specialists - DermaCare AI</title>
-    <link rel="stylesheet" href="../../user/static/css/style.css"><link rel="stylesheet" href="../../shared/static/css/header.css">
-    <link rel="stylesheet" href="../../shared/static/css/footer.css">
+    <link rel="stylesheet" href="/user/static/css/style.css">
+    <link rel="stylesheet" href="/shared/static/css/header.css">
+    <link rel="stylesheet" href="/shared/static/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+    <link rel="stylesheet" href="/user/static/css/nearby_dermatologist.css">
 
-    <!-- Leaflet.js for Nearby Dermatologist (Free - No API Key Needed) -->
+    <!-- Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -19,85 +21,7 @@
 <body style="background-color: #f1f5f9;">
 
     <!-- Header -->
-    <!-- Reusable Header -->
     <div id="header-container"></div>
-
-    <!-- Nearby Dermatologists -->
-    <style>
-        body {
-            overflow: hidden;
-            /* Prevent body scroll on desktop for true app feel */
-        }
-
-        .horizontal-layout {
-            display: grid;
-            grid-template-columns: 450px 1fr;
-            height: calc(100vh - 72px);
-            /* Account for header height */
-            background: var(--white);
-            width: 100%;
-        }
-
-        .left-panel-doctors {
-            height: 100%;
-            overflow-y: auto;
-            padding: 2rem;
-            border-right: 1px solid #e2e8f0;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-            z-index: 10;
-        }
-
-        /* Custom scrollbar for left panel */
-        .left-panel-doctors::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .left-panel-doctors::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .left-panel-doctors::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        .right-panel-map {
-            height: 100%;
-            position: relative;
-            background: #f8fafc;
-        }
-
-        /* Hide footer to maintain full-screen interface */
-        #footer {
-            display: none !important;
-        }
-
-        @media (max-width: 900px) {
-            body {
-                overflow: auto;
-            }
-
-            .horizontal-layout {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-
-            .left-panel-doctors {
-                height: 50vh;
-                border-right: none;
-                box-shadow: none;
-                padding: 1.5rem;
-            }
-
-            .right-panel-map {
-                height: 50vh;
-            }
-
-            #footer {
-                display: block !important;
-            }
-        }
-    </style>
 
     <section id="nearby-dermatologists" class="fade-in" style="padding: 0; margin: 0; max-width: 100%;">
         <div class="horizontal-layout">
@@ -154,17 +78,10 @@
     </section>
 
     <div id="footer"></div>
-    <script src="../../shared/static/js/footer.js"></script>
-    <script src="../../user/static/js/main.js"></script>
-    <script>
-        // Trigger map load automatically on this page
-        window.addEventListener('DOMContentLoaded', () => {
-            if (typeof loadGoogleMapsNearby === 'function') {
-                loadGoogleMapsNearby();
-            }
-        });
-    </script>
-    <script src="../../shared/static/js/header.js"></script>
+    <script src="/shared/static/js/footer.js"></script>
+    <script src="/user/static/js/main.js"></script>
+    <script src="/user/static/js/nearby_dermatologist.js"></script>
+    <script src="/shared/static/js/header.js"></script>
 </body>
 
 </html>

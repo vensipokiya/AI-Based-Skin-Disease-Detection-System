@@ -7,59 +7,14 @@
     <title>Admin Dashboard - DermaCare</title>
     <!-- Fonts and Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
 
     <!-- Component CSS -->
-    <link rel="stylesheet" href="../../user/static/css/style.css"><link rel="stylesheet" href="../../shared/static/css/header.css">
-    <link rel="stylesheet" href="../../admin/static/css/admin.css">
+    <link rel="stylesheet" href="/user/static/css/style.css">
+    <link rel="stylesheet" href="/shared/static/css/header.css">
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+    <link rel="stylesheet" href="/admin/static/css/toast.css">
 
-    <!-- Toast UI CSS -->
-    <style>
-        #toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-        }
-
-        .toast {
-            background: #1e1e2f;
-            color: #fff;
-            padding: 12px 18px;
-            margin-top: 10px;
-            border-radius: 8px;
-            min-width: 250px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            animation: slideIn 0.3s ease;
-        }
-
-        .toast.success { background: #28a745; }
-        .toast.error { background: #dc3545; }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-
-        /* Appointment Status UI */
-        .status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .status.pending {
-            background: #ffe58f;
-            color: #ad6800;
-        }
-
-        .status.done {
-            background: #d4edda;
-            color: #155724;
-        }
-    </style>
 </head>
 
 <body style="background-color: #f8fafc;">
@@ -351,7 +306,7 @@
     </div>
 
     <!-- Admin Logic -->
-    <script src="../../admin/static/js/admin.js?v=4"></script>
+    <script src="/admin/static/js/admin.js?v=4"></script>
 </body>
 
 </html>
