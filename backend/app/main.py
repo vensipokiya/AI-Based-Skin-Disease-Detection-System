@@ -48,7 +48,7 @@ async def add_security_headers(request: Request, call_next):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https://images.unsplash.com https://ui-avatars.com https://*.basemaps.cartocdn.com https://unpkg.com https://*.tile.openstreetmap.org; "
-        "connect-src 'self' https://127.0.0.1:8000 https://nominatim.openstreetmap.org https://*.overpass-api.de https://overpass.kumi.systems; "
+        "connect-src 'self' https://127.0.0.1:8000 https://nominatim.openstreetmap.org https://*.overpass-api.de https://overpass.kumi.systems;"
     )
     response.headers["Content-Security-Policy"] = csp
     response.headers["X-Content-Type-Options"] = "nosniff"
