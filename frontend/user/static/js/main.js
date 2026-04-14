@@ -219,23 +219,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Camera Handling
 async function startCamera() {
-    const video = document.getElementById('camera-feed');
-    const cameraInitial = document.getElementById('camera-initial');
-    const cameraUi = document.getElementById('camera-ui');
+    const video = document.getElementById('webcam');
+    const loadingOverlay = document.getElementById('loading-overlay');
 
     try {
-        // SECURITY REVIEW: Camera access is only triggered by the user clicking "Open Camera" 
-        // for skin image capture as part of the primary diagnostic feature.
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = videoStream;
-        video.style.display = 'block';
+        // SECURITY REVIEW: Camera access is only triggered by the user selecting the "Camera" tab
+        // to capture skin images for medical analysis.
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment" } // Prefer back camera on mobile
+        });
+        
+        if (video) {
+            video.srcObject = videoStream;
+            video.style.display = 'block';
+        }
 
-        if (cameraInitial) cameraInitial.classList.add('hidden');
-        if (cameraUi) cameraUi.classList.remove('hidden');
+        if (loadingOverlay) loadingOverlay.classList.add('hidden');
 
     } catch (err) {
         console.error("Camera error:", err);
-        alert("Could not access camera. Please allow permissions.");
+        const status = document.getElementById('analysis-status');
+        if (status) status.innerText = "Camera access denied. Please allow permissions.";
     }
 }
 
@@ -244,57 +248,53 @@ function stopCamera() {
         videoStream.getTracks().forEach(track => track.stop());
         videoStream = null;
     }
-
-    // Reset UI
-    const cameraInitial = document.getElementById('camera-initial');
-    const cameraUi = document.getElementById('camera-ui');
-
-    if (cameraUi) cameraUi.classList.add('hidden');
-    if (cameraInitial) cameraInitial.classList.remove('hidden');
 }
 
-function stopCameraAndReset() {
-    stopCamera();
-}
+// Unify showTab/switchTab to use the new UI IDs
+window.showTab = function(tabId) {
+    // Update button states
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const isTarget = btn.getAttribute('onclick').includes(tabId);
+        btn.classList.toggle('active', isTarget);
+    });
 
-function switchTab(tab) {
-    const uploadBtn = document.getElementById('tab-upload');
-    const cameraBtn = document.getElementById('tab-camera');
-    const uploadView = document.getElementById('upload-view');
-    const cameraView = document.getElementById('camera-view');
+    // Toggle panels
+    const tabs = ['camera-tab', 'upload-tab'];
+    tabs.forEach(id => {
+        const panel = document.getElementById(id);
+        if (panel) panel.classList.toggle('active', id === tabId);
+    });
 
-    if (!uploadBtn || !cameraBtn || !uploadView || !cameraView) return;
-
-    if (tab === 'camera') {
-        uploadBtn.classList.remove('active');
-        cameraBtn.classList.add('active');
-        uploadView.classList.add('hidden');
-        cameraView.classList.remove('hidden');
+    // Start/Stop Camera stream based on tab
+    if (tabId === 'camera-tab') {
+        startCamera();
     } else {
-        cameraBtn.classList.remove('active');
-        uploadBtn.classList.add('active');
-        cameraView.classList.add('hidden');
-        uploadView.classList.remove('hidden');
-        stopCameraAndReset();
+        stopCamera();
     }
-}
+};
 
 function captureImage() {
-    const video = document.getElementById('camera-feed');
-    const canvas = document.getElementById('camera-canvas');
+    const video = document.getElementById('webcam');
+    const canvas = document.createElement('canvas'); // Clean temporary canvas
+    
+    if (!video || !video.srcObject) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
 
-    // Convert to blob/file and predict
+    // Convert to blob and analyze
     canvas.toBlob(blob => {
         const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
         handleFileUpload(file);
     }, 'image/jpeg');
 
-    stopCamera();
+    // Switch to status view
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 }
+
+// Logic handled in showTab or captured via unified controllers
 
 // File Upload
 function handleFiles(files) {
@@ -305,37 +305,24 @@ function handleFiles(files) {
 
 // Prediction Logic
 async function handleFileUpload(file) {
-    const status = document.getElementById('upload-status');
-    status.innerHTML = `<i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Image uploaded successfully! Analyzing...`;
-    status.style.color = "var(--primary-color)";
+    const status = document.getElementById('analysis-status');
+    if (status) {
+        status.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing image...`;
+        status.style.color = "#3b82f6";
+    }
 
-    // Show image preview
+    // Show image preview in the new UI
     const reader = new FileReader();
     reader.onload = function (e) {
-        let preview = document.getElementById('uploaded-preview');
-        const uploadContent = document.getElementById('upload-content');
+        const preview = document.getElementById('preview-image');
+        const placeholder = document.getElementById('placeholder-content');
 
-        if (!preview) {
-            preview = document.createElement('img');
-            preview.id = 'uploaded-preview';
-            preview.style.width = '100%';
-            preview.style.height = '150px';
-            preview.style.objectFit = 'cover';
-            preview.style.borderRadius = '8px';
-            preview.style.marginTop = '1rem';
-            preview.style.marginBottom = '1rem';
-
-            // Hide other elements in the card temporarily to focus on the image
-            if (uploadContent) {
-                Array.from(uploadContent.children).forEach(child => {
-                    if (child.tagName !== 'INPUT' && child.tagName !== 'BUTTON') {
-                        child.classList.add('hidden');
-                    }
-                });
-                uploadContent.insertBefore(preview, uploadContent.querySelector('button'));
-            }
+        if (preview) {
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
         }
-        preview.src = e.target.result;
+        if (placeholder) placeholder.classList.add('hidden');
+        
         sessionStorage.setItem('uploaded_image_base64', e.target.result);
     }
     reader.readAsDataURL(file);
@@ -1063,16 +1050,36 @@ function timeSince(date) {
     return "Just now";
 }
 
-// Tab Switching logic for Detection Page
-window.showTab = function(tabId) {
-    // Update buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        const isTarget = btn.getAttribute('onclick').includes(tabId);
-        btn.classList.toggle('active', isTarget);
+// Initialization for Scanner UI
+document.addEventListener('DOMContentLoaded', () => {
+    const captureBtn = document.getElementById('btn-capture');
+    if (captureBtn) captureBtn.addEventListener('click', captureImage);
+
+    const switchCamBtn = document.getElementById('btn-switch-camera');
+    if (switchCamBtn) switchCamBtn.addEventListener('click', () => {
+        // Toggle camera logic could go here if specifically needed
+        stopCamera();
+        startCamera();
     });
 
-    // Update panels
-    document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === tabId);
-    });
-};
+    const dropZone = document.getElementById('drop-area');
+    const fileInput = document.getElementById('upload-image');
+
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+    }
+});
