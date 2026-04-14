@@ -437,3 +437,75 @@ class AuthService:
 
         except Exception as e:
             return {"success": False, "error": f"Internal Apple Auth Error: {str(e)}"}
+    async def google_callback(self, request) -> dict:
+        from ..utils.oauth import oauth
+        try:
+            token = await oauth.google.authorize_access_token(request)
+            user_info = token.get('userinfo')
+            if not user_info:
+                return {"success": False, "error": "Could not retrieve user info from Google."}
+            
+            email = user_info.get('email')
+            name = user_info.get('name', 'Google User')
+            picture = user_info.get('picture')
+            google_id = user_info.get('sub')
+            
+            first_name = user_info.get('given_name') or name.split(' ')[0]
+            last_name = user_info.get('family_name') or (name.split(' ')[1] if ' ' in name else 'User')
+            
+            db_conn = self.user_dao.db.get_connection()
+            if not db_conn: return {"success": False, "error": "DB connection error"}
+            
+            try:
+                cursor = db_conn.cursor(dictionary=True)
+                # Ensure columns exist
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'google_id'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL")
+                
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'profile_image'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN profile_image TEXT DEFAULT NULL")
+                
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'auth_provider'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN auth_provider VARCHAR(50) DEFAULT NULL")
+
+                # Find user
+                cursor.execute("SELECT * FROM users WHERE google_id = %s OR email = %s", (google_id, email))
+                user = cursor.fetchone()
+                
+                if not user:
+                    # Create new
+                    cursor.execute("""
+                        INSERT INTO users (first_name, last_name, email, password_hash, google_id, auth_provider, profile_image, role)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (first_name, last_name, email, "google_oauth_token", google_id, "google", picture, "User"))
+                    db_conn.commit()
+                    user = self.user_dao.get_user_by_id(cursor.lastrowid)
+                else:
+                    # Update/Link
+                    cursor.execute("""
+                        UPDATE users SET google_id=%s, auth_provider='google', profile_image=%s 
+                        WHERE id=%s
+                    """, (google_id, picture, user["id"]))
+                    db_conn.commit()
+                    user = self.user_dao.get_user_by_id(user["id"])
+            finally:
+                db_conn.close()
+
+            # Create session and token
+            session_id = str(uuid.uuid4())
+            access_token = SecurityService.create_access_token({
+                "sub": user["email"], "user_id": user["id"], "role": user.get("role", "User"), "session_id": session_id
+            })
+            
+            ip_address = request.client.host if request.client else "Unknown"
+            device_info = request.headers.get("user-agent", "Unknown")
+            self.user_dao.update_login_status(user["id"], True)
+            self.user_dao.record_login(user["id"], session_id, device_info, ip_address)
+            
+            return {"success": True, "token": access_token, "user": user}
+            
+        except Exception as e:
+            return {"success": False, "error": f"OAuth Error: {str(e)}"}

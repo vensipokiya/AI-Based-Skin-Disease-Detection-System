@@ -60,12 +60,12 @@ async function loadProfile() {
 
     } catch (err) {
         // Fallback to localStorage
-        console.warn('API error, using localStorage fallback:', err);
+        console.warn('Profile load error:', err);
         const cached = localStorage.getItem('dermacare_current_user');
         if (cached) {
             populateProfile(JSON.parse(cached));
         } else {
-            showToast('Could not load profile. Please try again.', 'error');
+            showToast('Unable to load profile from server. Using local data if available.', 'error');
         }
     }
 }
@@ -203,33 +203,44 @@ async function saveProfile(e) {
 
         if (res.ok && data.success) {
             showToast('Profile updated successfully!', 'success');
-            // Update localStorage cache
-            const cached = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
-            const updatedUser = { ...cached, ...payload };
-            localStorage.setItem('dermacare_current_user', JSON.stringify(updatedUser));
+            
+            // Safe Local Storage Updates
+            try {
+                const cached = JSON.parse(localStorage.getItem('dermacare_current_user') || '{}');
+                const updatedUser = { ...cached, ...payload };
+                localStorage.setItem('dermacare_current_user', JSON.stringify(updatedUser));
 
-            // Permanently save the avatar if one was staged
-            if (window.pendingAvatarUrl) {
-                const avatarKey = `dermacare_avatar_${updatedUser.email || 'guest'}`;
-                localStorage.setItem(avatarKey, window.pendingAvatarUrl);
-                setAttr('sidebar-avatar', 'src', window.pendingAvatarUrl);
-                setAttr('header-avatar', 'src', window.pendingAvatarUrl);
-                window.pendingAvatarUrl = null; // Clear staged avatar
+                // Permanently save the avatar if one was staged
+                if (window.pendingAvatarUrl) {
+                    const avatarKey = `dermacare_avatar_${updatedUser.email || 'guest'}`;
+                    localStorage.setItem(avatarKey, window.pendingAvatarUrl);
+                    setAttr('sidebar-avatar', 'src', window.pendingAvatarUrl);
+                    setAttr('header-avatar', 'src', window.pendingAvatarUrl);
+                    window.pendingAvatarUrl = null; // Clear staged avatar
+                }
+            } catch (storageErr) {
+                console.warn('LocalStorage Quota exceeded or update error:', storageErr);
+                // We don't show a toast here to not confuse the user, 
+                // as the server update was successful.
             }
 
-            // Refresh display
-            loadProfile();
+            // Refresh display from server
+            await loadProfile();
         } else {
             let errorMsg = data.error;
             if (!errorMsg && data.detail) {
                 if (typeof data.detail === 'string') errorMsg = data.detail;
                 else if (Array.isArray(data.detail)) errorMsg = data.detail[0].loc.join('.') + ': ' + data.detail[0].msg;
             }
-            showToast(errorMsg || 'Update failed. Please try again.', 'error');
+            showToast(errorMsg || 'Update failed. Please check your information.', 'error');
         }
     } catch (err) {
-        console.error('Save profile error:', err);
-        showToast('Could not connect to server. Check if backend is running.', 'error');
+        console.error('Save profile exception:', err);
+        if (err.name === 'QuotaExceededError') {
+            showToast('Local storage full. Profile saved but avatar might not persist locally.', 'info');
+        } else {
+            showToast('Could not connect to server. Check if backend is running.', 'error');
+        }
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';

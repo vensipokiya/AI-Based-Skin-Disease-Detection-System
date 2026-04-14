@@ -53,3 +53,22 @@ class AuthController:
         if not result["success"]:
             raise HTTPException(status_code=401, detail=result.get("error"))
         return result
+
+    async def google_callback(self, request):
+        result = await self.auth_service.google_callback(request)
+        if not result["success"]:
+            # For callback, we might want to redirect to login with error rather than raise HTTPException
+            # but for now let's stick to the controller pattern
+            raise HTTPException(status_code=401, detail=result.get("error"))
+        
+        from fastapi.responses import RedirectResponse
+        import json
+        import urllib.parse
+        
+        token = result["token"]
+        user_json = json.dumps(result.get("user", {}))
+        encoded_user = urllib.parse.quote(user_json)
+        
+        # Redirect to the frontend login page with the token and user data so Javascript can finalize it
+        response = RedirectResponse(url=f"/login?token={token}&user={encoded_user}")
+        return response

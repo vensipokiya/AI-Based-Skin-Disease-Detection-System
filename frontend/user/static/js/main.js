@@ -104,24 +104,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (header) header.classList.remove('hidden');
 
         const storedResult = sessionStorage.getItem('scan_result');
-        const isAuthenticated = sessionStorage.getItem('scan_result_authenticated') === 'true';
-
         if (storedResult) {
-            const result = JSON.parse(storedResult);
-            displayResult(result);
-
             const blurContainer = document.getElementById('result-content-container');
             const authOverlay = document.getElementById('result-auth-overlay');
 
-            if (isAuthenticated) {
-                // User is logged in — show full results
-                if (blurContainer) blurContainer.style.filter = 'none';
-                if (authOverlay) authOverlay.classList.add('hidden');
+            // Render the results for everyone (will be blurred if not logged in)
+            const result = JSON.parse(storedResult);
+            displayResult(result);
+
+            if (token) {
+                // User is authenticated - show results clearly
+                if (blurContainer) {
+                    blurContainer.style.display = 'block';
+                    blurContainer.style.filter = 'none';
+                    blurContainer.style.pointerEvents = 'auto';
+                    blurContainer.style.userSelect = 'auto';
+                }
+                if (authOverlay) authOverlay.style.display = 'none';
             } else {
-                // Not logged in — blur results and show auth overlay
+                // Not logged in — show results with BLUR and show auth overlay
                 sessionStorage.setItem('pending_scan_result', storedResult);
                 if (blurContainer) {
-                    blurContainer.style.filter = 'blur(12px)';
+                    blurContainer.style.display = 'block';
+                    blurContainer.style.filter = 'blur(15px)';
                     blurContainer.style.pointerEvents = 'none';
                     blurContainer.style.userSelect = 'none';
                 }
@@ -358,7 +363,8 @@ async function handleFileUpload(file) {
 
             // Save result to sessionStorage so scan_result.html can read it
             sessionStorage.setItem('scan_result', JSON.stringify(result));
-            sessionStorage.setItem('scan_result_authenticated', token ? 'true' : 'false');
+            // Updated: Ensure the flag is set so main.js knows we are now authorized
+            sessionStorage.setItem('scan_result_authenticated', (localStorage.getItem('dermacare_token') || sessionStorage.getItem('scan_result_authenticated') === 'true') ? 'true' : 'false');
 
             // Redirect to the dedicated result page
             window.location.href = '/scan-result';
@@ -508,7 +514,7 @@ function displayResult(data) {
             grid.innerHTML += makeCard('fas fa-utensils', 'Diet Suggestions', data.remedies.diet_suggestions);
 
             const doctorAdvice = data.remedies.consult_doctor;
-            if (doctorAdvice && doctorAdvice.length > 0 && data.confidence >= 60 && !isNormalSkin) {
+            if (doctorAdvice && doctorAdvice.length > 0 && data.confidence >= 60 && !isHealthy) {
                 grid.innerHTML += makeCard('fas fa-user-md', 'When to Consult a Doctor', doctorAdvice, 'warning-card');
             }
         } else if (data.remedy) {

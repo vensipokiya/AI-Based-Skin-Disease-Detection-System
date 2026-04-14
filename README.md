@@ -4,13 +4,14 @@
   <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" />
   <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" />
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
 </p>
 
 <h1 align="center">🩺 DermaCare AI</h1>
 <h3 align="center">AI-Based Skin Disease Detection System</h3>
 
 <p align="center">
-  A full-stack health-tech web application that leverages deep learning to analyze skin condition images and provide real-time diagnostic insights, nearby dermatologist recommendations, and appointment booking — all wrapped in a premium, modern UI.
+  A full-stack health-tech web application that leverages deep learning to analyze skin condition images and provide real-time diagnostic insights, nearby dermatologist recommendations, and appointment booking — all wrapped in a premium, modern UI with custom AI-generated branding.
 </p>
 
 ---
@@ -21,12 +22,14 @@
 |---|---|
 | 🤖 **AI Skin Analysis** | Real-time skin disease classification using EfficientNetV2 with confidence scoring and top-3 prediction breakdown |
 | 🔐 **Secure Authentication** | JWT-based login/register system with bcrypt password hashing, session tracking, and OTP verification |
+| 🛡️ **Code Quality & Security** | SonarQube verified 0-issue clean architecture with deep security hardening and Subresource Integrity (SRI) |
 | 📊 **Admin Dashboard** | Full admin panel with real-time user management, scan history, login tracking, and system logs |
 | 🗺️ **Find Dermatologists** | Geolocation-powered nearby dermatologist search using OpenStreetMap/Overpass API with interactive Leaflet maps |
 | 📅 **Appointment Booking** | Complete doctor appointment booking workflow with date/time selection and confirmation |
 | 📜 **Scan History** | Persistent scan history with Base64 image storage, confidence tracking, and detailed remedy reports |
 | 👤 **User Profiles** | Medical profile management with symptom tracking and health history |
 | 🎨 **Premium UI/UX** | Modern glassmorphism design, smooth animations, responsive layout, and dark-mode inspired aesthetics |
+| 🖼️ **Custom Logo & Favicon** | AI-generated professional logo used as favicon across all pages for cohesive brand identity |
 
 ---
 
@@ -93,13 +96,14 @@ Each diagnosis includes:
 - **TensorFlow/Keras** — EfficientNetV2 model for image classification
 - **MySQL** — Relational database with connection pooling
 - **JWT + Bcrypt** — Secure authentication and password hashing
-- **Jinja2** — Server-side template rendering
+- **Jinja2** — Server-side template rendering with base template inheritance
 
 ### Frontend Stack
 - **Vanilla HTML/CSS/JS** — No framework dependency, fully custom
+- **Jinja2 Templating** — `base.html` master layout for DRY, consistent head/favicon across all pages
 - **Leaflet.js** — Interactive maps for dermatologist discovery
-- **Font Awesome** — Icon library
-- **Google Fonts (Inter)** — Modern typography
+- **Font Awesome** — Icon library (self-hosted)
+- **Inter (self-hosted)** — Modern typography, no external font dependency
 
 ---
 
@@ -109,6 +113,7 @@ Each diagnosis includes:
 AI-Based-Skin-Disease-Detection-System/
 │
 ├── main.py                          # Application entry point
+├── Dockerfile                       # Container build definition
 │
 ├── backend/
 │   ├── app/
@@ -137,8 +142,8 @@ AI-Based-Skin-Disease-Detection-System/
 │
 ├── frontend/
 │   ├── user/
-│   │   ├── templates/               # User-facing HTML pages
-│   │   │   ├── index.html           # Home page
+│   │   ├── templates/               # User-facing HTML pages (extend base.html)
+│   │   │   ├── index.html           # Home page (with animated splash screen)
 │   │   │   ├── login.html           # Authentication
 │   │   │   ├── register.html        # User registration
 │   │   │   ├── detection.html       # AI scanner (upload/camera)
@@ -160,8 +165,19 @@ AI-Based-Skin-Disease-Detection-System/
 │   │       └── js/admin.js
 │   │
 │   └── shared/
-│       ├── templates/               # Reusable header, footer, error pages
-│       └── static/                  # Shared CSS, JS, API config
+│       ├── templates/
+│       │   ├── base.html            # Master layout (favicon, CSS, JS imports)
+│       │   ├── header.html          # Reusable nav with logo image
+│       │   ├── footer.html
+│       │   ├── 404.html
+│       │   └── 500.html
+│       └── static/
+│           ├── css/                 # Shared stylesheets (header, footer, icons)
+│           ├── js/                  # Shared JS (API config, header, footer)
+│           ├── fonts/               # Self-hosted Inter font
+│           ├── img/
+│           │   └── logo.png         # ← AI-generated brand logo / favicon
+│           └── webfonts/            # Font Awesome webfonts
 │
 └── database/
     └── schema.sql                   # MySQL table definitions
@@ -186,7 +202,7 @@ cd AI-Based-Skin-Disease-Detection-System
 ### Step 2: Install Python Dependencies
 
 ```bash
-pip install fastapi uvicorn mysql-connector-python tensorflow pillow python-jose bcrypt python-dotenv python-multipart jinja2 pydantic
+pip install -r backend/requirements.txt
 ```
 
 ### Step 3: Set Up the Database
@@ -209,6 +225,7 @@ DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_NAME=dermacare_db
 JWT_SECRET_KEY=your_secret_key_here
+SECRET_KEY=your_session_secret_here
 ```
 
 ### Step 5: Add the AI Model
@@ -226,6 +243,49 @@ backend/app/models/skin_disease_efficientnetV2_final.h5
 python -m uvicorn backend.app.main:app --reload --port 8000
 ```
 
+---
+
+## 🐳 Docker Deployment
+
+You can run the entire application securely inside a Docker container:
+
+```bash
+# Build the Docker image
+docker build -t dermacare-ai .
+
+# Run the container
+# Make sure your MySQL is accessible (use --network host on Linux,
+# or set DB_HOST=host.docker.internal on Windows/Mac)
+docker run -p 8000:8000 --env-file backend/.env dermacare-ai
+```
+
+### Docker with docker-compose (recommended for local dev)
+
+```yaml
+# docker-compose.yml (create manually)
+version: "3.9"
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    depends_on:
+      - db
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: dermacare_db
+      MYSQL_ROOT_PASSWORD: your_password
+    ports:
+      - "3306:3306"
+```
+
+```bash
+docker-compose up --build
+```
+
 ### Step 7: Access the Application
 
 | Page | URL |
@@ -234,6 +294,22 @@ python -m uvicorn backend.app.main:app --reload --port 8000
 | 🔬 AI Scanner | [http://127.0.0.1:8000/detect](http://127.0.0.1:8000/detect) |
 | 📜 Scan History | [http://127.0.0.1:8000/history](http://127.0.0.1:8000/history) |
 | 🛡️ Admin Panel | [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin) |
+
+---
+
+## 🎨 Branding
+
+DermaCare AI uses a custom AI-generated logo placed at:
+
+```
+frontend/shared/static/img/logo.png
+```
+
+The logo is used as:
+- **Browser Favicon** — appears in the tab on all pages (set in `base.html` and `dashboard.html`)
+- **Navigation Header Logo** — displayed in the top nav bar (`header.html`)
+- **Splash Screen Icon** — shown during the app loading animation (`index.html`)
+- **Admin Sidebar Logo** — shown in the admin panel sidebar (`dashboard.html`)
 
 ---
 
@@ -336,6 +412,8 @@ erDiagram
     }
 ```
 
+---
+
 ## 🧪 Tech Specifications
 
 | Component | Technology |
@@ -346,9 +424,22 @@ erDiagram
 | Database | MySQL 8.0 |
 | Authentication | JWT (python-jose) + Bcrypt |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
+| Templating | Jinja2 (base template inheritance) |
 | Maps | Leaflet.js + OpenStreetMap |
-| Icons | Font Awesome 6 |
-| Typography | Google Fonts (Inter) |
+| Icons | Font Awesome 6 (self-hosted) |
+| Typography | Inter (self-hosted) |
+| Containerization | Docker |
+
+---
+
+## 📋 Changelog
+
+### Latest Updates
+- 🖼️ **Favicon & Logo** — Custom AI-generated logo now used as favicon across all pages, nav header, splash screen, and admin sidebar
+- 🏗️ **Base Template** — Introduced `base.html` master layout for DRY template inheritance; all pages share consistent favicon, fonts, and script imports
+- 🔒 **Security Headers** — Added Content Security Policy (CSP) via meta tag in base template
+- 🗺️ **Nearby Dermatologists** — Expanded keyword database with 15 search categories, results up to 15 within 15km radius
+- 🧹 **SonarQube** — Resolved all reliability, maintainability, and security issues to achieve 0-issue clean code status
 
 ---
 

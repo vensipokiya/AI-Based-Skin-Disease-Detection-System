@@ -348,73 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------
-    // Google Sign-In Implementation
-    // ---------------------------
-    const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
-
-    // Standard handler for Google Login
-    async function handleSuccessfulLogin(token, refreshToken, user) {
-        localStorage.setItem('dermacare_token', token);
-        localStorage.setItem('dermacare_refresh_token', refreshToken);
-        localStorage.setItem('dermacare_logged_in', 'true');
-        localStorage.setItem('dermacare_current_user', JSON.stringify(user));
-        
-        console.log('[OK] Google Auth Successful!', user.email);
-        
-        // Show Success Modal first
-        const successModal = document.getElementById('success-modal');
-        if (successModal) {
-            const h2 = successModal.querySelector('h2');
-            const p = successModal.querySelector('p');
-            if(h2) h2.innerText = "Welcome back!";
-            if(p) p.innerText = `Successfully signed in as ${user.first_name || user.email}`;
-            successModal.classList.remove('hidden');
-        }
-
-        setTimeout(() => {
-            window.location.href = '/';
-        }, 1500);
-    }
-
-    window.handleGoogleRegister = async (response) => {
-        const token = response.credential;
-        const btnContainer = document.getElementById("google-register-btn");
-        if(btnContainer) btnContainer.innerHTML = '<div style="display:flex; align-items:center; gap:10px; color:#64748b; font-size:0.9rem;"><i class="fas fa-spinner fa-spin"></i> Initializing Secure Join...</div>';
-
-        try {
-            const apiRes = await fetch(API_BASE + '/api/auth/google', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-
-            const result = await apiRes.json();
-
-            if (apiRes.ok && result.success) {
-                handleSuccessfulLogin(result.token, result.refresh_token, result.user);
-            } else {
-                alert(result.error || 'Google registration failed.');
-                location.reload(); // Re-render Google button
-            }
-        } catch (error) {
-            console.error('[ERROR] Google Reg error:', error);
-            alert('Could not connect to server.');
-        }
-    };
-
-    if (typeof google !== 'undefined') {
-        google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: window.handleGoogleRegister
-        });
-        google.accounts.id.renderButton(
-            document.getElementById("google-register-btn"),
-            { theme: "outline", size: "large", width: 280, text: "signup_with" }
-        );
-    }
-
-    // ---------------------------
-    // Apple Sign-In Implementation
+    // 6. Apple Sign-In Implementation
     // ---------------------------
     const APPLE_CLIENT_ID = "com.your.app.service"; 
     const APPLE_REDIRECT_URL = window.location.origin + "/register";
@@ -459,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.handleAppleRegister(event.detail.data);
         });
     }
-});
 
     // Set Login/Logout Button state
     const navAuthBtn = document.getElementById('nav-login-hist');
@@ -496,6 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+
 
 window.closeSuccessModal = function() {
     const successModal = document.getElementById('success-modal');

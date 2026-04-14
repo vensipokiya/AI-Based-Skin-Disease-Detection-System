@@ -71,6 +71,7 @@ function handleSuccessfulLogin(token, refreshToken, user) {
         if (user.role === 'Admin') {
             window.location.href = '/admin';
         } else if (sessionStorage.getItem('pending_scan_result') || sessionStorage.getItem('scan_result')) {
+            // Mark as authenticated so scan-result page shows high-quality data
             sessionStorage.setItem('scan_result_authenticated', 'true');
             window.location.href = '/scan-result';
         } else {
@@ -170,32 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------------------
-    // 5. Google Sign-In Implementation
-    // ---------------------------
-    window.handleGoogleLogin = async (response) => {
-        const token = response.credential;
-        console.log("[OK] Received Google Credential");
-
-        try {
-            const apiRes = await fetch(API_BASE + '/api/auth/google', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-
-            const result = await apiRes.json();
-            if (apiRes.ok && result.success) {
-                if (typeof showToast === 'function') showToast("Login successful ✅", "success");
-                handleSuccessfulLogin(result.token, result.refresh_token, result.user);
-            } else {
-                alert(result.error || 'Google login failed ❌');
-            }
-        } catch (error) {
-            console.error('[ERROR] Google Login error:', error);
-        }
-    };
-
-    // ---------------------------
     // 6. Apple Sign-In Implementation
     // ---------------------------
     const APPLE_CLIENT_ID = "com.your.app.service"; 
@@ -244,5 +219,32 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('AppleIDSignInOnFailure', (event) => {
             console.error('Apple Sign-In failed:', event.detail.error);
         });
+    }
+});
+
+// ---------------------------
+// 7. Google Sign-In Trigger
+// ---------------------------
+window.googleLogin = function() {
+    window.location.href = API_BASE + "/api/auth/google/login";
+};
+
+// Handle OAuth Return from Backend Redirect
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const userStr = urlParams.get('user');
+
+    if (token) {
+        try {
+            const user = userStr ? JSON.parse(decodeURIComponent(userStr)) : { role: 'User' };
+            // Clear the URL so we don't have token sitting in history
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            if (typeof showToast === 'function') showToast("Google Login Successful ✅", "success");
+            handleSuccessfulLogin(token, token, user);
+        } catch(e) {
+            console.error("Failed to parse Google login data:", e);
+        }
     }
 });
