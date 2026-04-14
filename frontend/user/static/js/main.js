@@ -376,67 +376,60 @@ async function handleFileUpload(file) {
 }
 
 function displayResult(data) {
-    // ── Update Disease Name with Confidence Percentage ──
+    // ── Update Disease Name ──
     const diseaseEl = document.getElementById('disease-name');
-    if (diseaseEl) {
-        // Clear previous content and set new one with score
-        const confidenceScore = data.confidence || 0;
-        diseaseEl.innerHTML = `${data.disease} <span style="font-size: 0.85em; opacity: 0.85;">(${confidenceScore}%)</span>`;
-    }
+    if (diseaseEl) diseaseEl.innerText = data.disease || "Unknown Condition";
 
-    // ── Update Confidence Circle Text ──
+    // ── Update Confidence Gauge (SVG Circle) ──
     const confidenceText = document.getElementById('confidence-text');
-    if (confidenceText) {
-        confidenceText.innerText = (data.confidence || 0) + "%";
-        confidenceText.style.display = 'block'; // Ensure visibility
+    const circle = document.getElementById('confidence-circle');
+    const confidence = data.confidence || 0;
+
+    if (confidenceText) confidenceText.innerText = Math.round(confidence) + "%";
+    
+    if (circle) {
+        const circumference = 2 * Math.PI * 45; // r=45
+        const offset = circumference - (confidence / 100) * circumference;
+        circle.style.strokeDashoffset = offset;
+        
+        // Color based on risk
+        let statusColor = '#10b981'; // Green
+        if (confidence >= 85) statusColor = '#ef4444'; // Red (High risk of condition)
+        else if (confidence >= 60) statusColor = '#f59e0b'; // Amber
+        
+        circle.style.stroke = statusColor;
+
+        // Update Accuracy Badge
+        const accLevel = document.getElementById('accuracy-level');
+        const accIndicator = document.getElementById('accuracy-indicator');
+        if (accLevel && accIndicator) {
+            accLevel.innerText = confidence >= 85 ? 'HIGH' : (confidence >= 60 ? 'MEDIUM' : 'LOW');
+            accIndicator.style.borderColor = statusColor;
+            accIndicator.style.color = statusColor;
+        }
     }
 
     // ── Show Uploaded Image Preview ──
     const scannedImageFinal = document.getElementById('scanned-image-final');
     if (scannedImageFinal) {
         const uploadedImg = (data.image_base64) ? `data:image/jpeg;base64,${data.image_base64}` : sessionStorage.getItem('uploaded_image_base64');
-        if (uploadedImg) {
-            scannedImageFinal.src = uploadedImg;
-            const imgWrap = document.getElementById('scanned-image-wrap');
-            if (imgWrap) imgWrap.style.display = 'block';
-            else scannedImageFinal.style.display = 'block';
+        if (uploadedImg) scannedImageFinal.src = uploadedImg;
+    }
+
+    // ── Populate Recommendation Cards ──
+    const listMap = {
+        'home-remedies-list': data.remedy || ["Keep skin clean", "Avoid irritants"],
+        'routine-list': data.routine || ["Apply moisturizer daily", "Use sun protection"],
+        'diet-list': data.diet || ["Drink plenty of water", "Eat antioxidant-rich foods"]
+    };
+
+    Object.keys(listMap).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerHTML = listMap[id].map(item => `<li>${item}</li>`).join('');
         }
-    }
-
-    // ── Determine Status Color Based on Accuracy ──
-    const accuracyIndicator = document.getElementById('accuracy-indicator');
-    const accuracyLevel = document.getElementById('accuracy-level');
-    let statusColor = '#3b82f6'; // Default Blue
-    let bgOpacity = 'rgba(59, 130, 246, 0.1)';
-
-    if (accuracyIndicator && accuracyLevel) {
-        accuracyIndicator.style.display = 'inline-block';
-        let levelLabel = 'LOW';
-        
-        if (data.confidence >= 85) {
-            levelLabel = 'HIGH';
-            statusColor = '#ef4444'; // Red
-            bgOpacity = 'rgba(239, 68, 68, 0.1)';
-        } else if (data.confidence >= 60) {
-            levelLabel = 'MEDIUM';
-            statusColor = '#f59e0b'; // Amber
-            bgOpacity = 'rgba(245, 158, 11, 0.1)';
-        } else {
-            statusColor = '#10b981'; // Green
-            bgOpacity = 'rgba(16, 185, 129, 0.1)';
-        }
-
-        accuracyLevel.innerText = levelLabel;
-        accuracyIndicator.style.backgroundColor = bgOpacity;
-        accuracyIndicator.style.color = statusColor;
-        accuracyIndicator.style.border = `1px solid ${statusColor}`;
-    }
-
-    // ── Update Circular Confidence Meter ──
-    const circle = document.getElementById('confidence-circle');
-    if (circle) {
-        circle.style.background = `conic-gradient(${statusColor} ${data.confidence}%, #e2e8f0 0%)`;
-    }
+    });
+}
 
     // ── Find Doctors Button Logic ──
     const isHealthy = ['normal skin', 'normal'].includes(data.disease.toLowerCase().trim());

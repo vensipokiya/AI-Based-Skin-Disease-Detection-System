@@ -1,77 +1,119 @@
 {% extends "base.html" %}
 
-{% block title %}Scan Result - DermaCare AI{% endblock %}
+{% block title %}Analysis Report - DermaCare AI{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="/user/static/css/scan_result.css">
 {% endblock %}
 
-{% block extra_js %}
-<script src="/user/static/js/predict.js"></script>
-{% endblock %}
-
 {% block content %}
-    <!-- Scan Analysis Results Page -->
+    <!-- Clinical Analysis Report Section -->
     <section id="result-page" class="fade-in">
-        <div class="container" style="max-width: 1200px;">
-            <div class="result-header">
-                <a href="/detect" class="btn-back"><i class="fas fa-arrow-left"></i> Analyze New Image</a>
-                <div class="header-main-text">
-                    <h1>Analysis <span class="text-gradient">Report</span></h1>
-                    <p id="result-timestamp">Generated on April 14, 2026</p>
+        <div class="container container-report">
+            <div class="report-layout">
+                
+                <!-- Left Sidebar: Diagnostic Overview -->
+                <div class="report-sidebar">
+                    <div class="sidebar-top">
+                        <span class="badge-complete">SCAN COMPLETE</span>
+                        <div class="scanned-image-wrap">
+                            <img id="scanned-image-final" src="/shared/static/images/placeholder-skin.jpg" alt="Scanned Sample">
+                        </div>
+                    </div>
+
+                    <div class="confidence-display">
+                        <div class="circular-meter">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="meter-bg" cx="50" cy="50" r="45"></circle>
+                                <circle id="confidence-circle" class="meter-fill" cx="50" cy="50" r="45"></circle>
+                            </svg>
+                            <div class="meter-content">
+                                <span id="confidence-text">0%</span>
+                            </div>
+                        </div>
+                        <div id="accuracy-indicator" class="accuracy-badge">
+                            Accuracy: <span id="accuracy-level">Calculating</span>
+                        </div>
+                    </div>
+
+                    <div class="result-card-main">
+                        <span class="label">DETECTION RESULT</span>
+                        <h2 id="disease-name">Eczema</h2>
+                    </div>
                 </div>
-                <button class="btn btn-secondary" id="btn-share-result"><i class="fas fa-share-nodes"></i> Share</button>
-            </div>
 
-            <div class="analysis-grid">
-                <!-- Left: Visual Data -->
-                <div class="analysis-visuals">
-                    <div class="scanned-image-card">
-                        <div class="card-tag">Uploaded Sample</div>
-                        <img id="scanned-image" src="/shared/static/images/placeholder-skin.jpg" alt="Scanned Image">
-                    </div>
+                <!-- Right Content: Detailed Analysis -->
+                <div class="report-main">
+                    <h1>Analysis Report</h1>
 
-                    <div class="confidence-card">
-                        <h3>AI Confidence Breakdown</h3>
-                        <div id="confidence-chart-container">
-                            <!-- Dynamic Bars will load here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right: Clinical Findings -->
-                <div class="analysis-findings">
-                    <div class="diagnosis-card">
-                        <div class="diag-header">
-                            <span class="status-badge" id="risk-level">AI Probability</span>
-                            <h3>Primary Prediction</h3>
-                        </div>
-                        <h2 id="disease-name" class="detection-result">Calculating...</h2>
-                        <div class="confidence-meter">
-                            <div class="meter-outer"><div class="meter-inner" id="conf-meter-fill"></div></div>
-                            <span id="conf-percentage">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="remedies-section">
-                        <div class="tabs-control">
-                            <button class="tab-btn active" data-tab="home-remedy"><i class="fas fa-house-medical"></i> Home Care</button>
-                            <button class="tab-btn" data-tab="routine"><i class="fas fa-spa"></i> Routine</button>
-                            <button class="tab-btn" data-tab="diet"><i class="fas fa-carrot"></i> Diet</button>
-                        </div>
-
-                        <div class="tab-content active" id="home-remedy">
-                            <ul id="remedies-list" class="remedy-bullets">
-                                <!-- Loaded via predict.js -->
+                    <div class="report-grid">
+                        <!-- Home Remedies Card -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <i class="fas fa-house-user text-primary"></i>
+                                <span>Home Remedies</span>
+                            </div>
+                            <ul id="home-remedies-list" class="remedy-list">
+                                <li>Keep skin moisturized</li>
+                                <li>Use gentle soap</li>
                             </ul>
                         </div>
-                    </div>
 
-                    <a href="/nearby" class="btn btn-primary btn-lg w-full" style="margin-top: 1.5rem;">
-                        <i class="fas fa-user-md"></i> Find Nearby Specialist
-                    </a>
+                        <!-- Skincare Routine Card -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <i class="fas fa-spa text-primary"></i>
+                                <span>Skincare Routine</span>
+                            </div>
+                            <ul id="routine-list" class="remedy-list">
+                                <li>Apply moisturizer after bathing</li>
+                            </ul>
+                        </div>
+
+                        <!-- Diet Suggestions Card -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <i class="fas fa-utensils text-primary"></i>
+                                <span>Diet Suggestions</span>
+                            </div>
+                            <ul id="diet-list" class="remedy-list">
+                                <li>Include omega-3 rich foods</li>
+                            </ul>
+                        </div>
+
+                        <!-- Disclaimer Card -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <i class="fas fa-exclamation-circle text-muted"></i>
+                                <span>Disclaimer</span>
+                            </div>
+                            <p class="disclaimer-text">
+                                This AI-based diagnosis is not a substitute for professional medical advice. 
+                                Consult a healthcare provider for a confirmation of this result.
+                            </p>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Global Action Bar -->
+            <div class="report-actions">
+                <a href="/detect" class="btn btn-primary btn-lg">Scan New</a>
+                <a href="/nearby" class="btn btn-outline btn-lg"><i class="fas fa-user-md"></i> Find Doctors</a>
             </div>
         </div>
     </section>
+
+    <!-- Passing the data to predict.js -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const data = JSON.parse(sessionStorage.getItem('scan_result') || '{}');
+            if (data.disease) {
+                // Handle the update via main.js logic (which we previously updated)
+                if (typeof displayResult === 'function') {
+                    displayResult(data);
+                }
+            }
+        });
+    </script>
 {% endblock %}
