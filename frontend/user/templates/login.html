@@ -1,23 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - DermaCare AI</title>
-    <link rel="stylesheet" href="/user/static/css/style.css">
-    <link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link rel="stylesheet" href="/user/static/css/login.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
-</head>
+{% block title %}Login - DermaCare AI{% endblock %}
 
-<body style="background-color: #f1f5f9;">
-    <!-- Header -->
-    <div id="header-container"></div>
+{% block extra_css %}
+<link rel="stylesheet" href="/user/static/css/login.css">
+{% endblock %}
 
+{% block extra_js %}
+<script src="/user/static/js/login.js"></script>
+{% endblock %}
+
+{% block content %}
     <!-- Login Page -->
     <section id="login-page" class="fade-in">
         <div class="login-container">
@@ -144,12 +137,4 @@
             </div>
         </div>
     </section>
-
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/dermacare-api.js"></script>
-    <script src="/user/static/js/login.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-</body>
-
-</html>
+{% endblock %}

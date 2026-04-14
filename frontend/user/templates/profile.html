@@ -1,304 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile - DermaCare AI</title>
-    <meta name="description"
-        content="Manage your DermaCare AI profile — update personal information, contact details, and change your password.">
+{% block title %}User Profile - DermaCare AI{% endblock %}
 
-    <!-- External Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+{% block extra_css %}
+<link rel="stylesheet" href="/user/static/css/user_profile.css">
+{% endblock %}
 
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="/user/static/css/style.css">
-    <link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link rel="stylesheet" href="/user/static/css/user_profile.css">
-</head>
+{% block extra_js %}
+<script src="/user/static/js/user_profile.js?v=2"></script>
+{% endblock %}
 
-<body>
-
-    <!-- ── Reusable Header ── -->
-    <div id="header-container"></div>
-
-
-    <!-- ── Toast Notifications ── -->
+{% block content %}
+    <!-- Toast Notifications -->
     <div class="toast-container" id="toast-container"></div>
 
-    <!-- ── Dashboard Layout ── -->
-    <main class="dashboard-container">
-
-        <!-- ════════════════════════════════
-             SIDEBAR
-        ════════════════════════════════ -->
-        <aside class="sidebar">
-
-            <!-- User Mini-Card -->
-            <div class="sidebar-user">
-                <div class="sidebar-avatar-wrap">
-                    <img src="https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=100&bold=true"
-                        id="sidebar-avatar" alt="User Avatar">
-                    <span class="sidebar-online-dot"></span>
-                </div>
-                <div class="sidebar-user-info">
-                    <h3 id="sidebar-name">Loading…</h3>
-                    <p id="sidebar-email">Loading…</p>
-                </div>
-            </div>
-
-            <div class="sidebar-divider"></div>
-
-            <!-- Navigation Menu -->
-            <ul class="sidebar-menu">
-                <li>
-                    <a href="/" id="nav-dashboard">
-                        <i class="fas fa-th-large"></i> Dashboard
-                    </a>
-                </li>
-                <li class="active">
-                    <a href="/profile" id="nav-profile">
-                        <i class="fas fa-user-shield"></i> My Profile
-                    </a>
-                </li>
-                <li>
-                    <a href="/history" id="nav-history">
-                        <i class="fas fa-clock-rotate-left"></i> Scan History
-                    </a>
-                </li>
-                <li>
-                    <a href="/detect" id="nav-scan">
-                        <i class="fas fa-microscope"></i> AI Scanner
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="nav-help">
-                        <i class="fas fa-circle-question"></i> Help
-                    </a>
-                </li>
-                <li class="logout-item">
-                    <a href="#" class="logout-btn-trigger" id="nav-logout">
-                        <i class="fas fa-right-from-bracket"></i> Logout
-                    </a>
-                </li>
-            </ul>
-
-        </aside>
-
-        <!-- ════════════════════════════════
-             MAIN PROFILE CONTENT
-        ════════════════════════════════ -->
-        <div class="profile-content">
-
-            <!-- Page Title -->
-            <div class="profile-page-title">
-                <div>
-                    <h2>My Profile</h2>
-                    <p>Manage your personal information and account settings</p>
-                </div>
-            </div>
-
-            <!-- ── Profile Info Card ── -->
-            <div class="profile-card">
-
-                <!-- Left: Avatar Column -->
-                <div class="avatar-section">
-                    <div class="profile-avatar-container">
-                        <img src="https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=200&bold=true"
-                            id="profile-avatar" class="profile-avatar-large" alt="Profile Avatar">
-                        <button class="btn-edit-avatar" title="Change avatar" type="button">
-                            <i class="fas fa-camera"></i>
-                        </button>
+    <!-- Profile Page -->
+    <section id="profile-page" class="fade-in">
+        <div class="container" style="max-width: 1200px;">
+            <div class="profile-layout">
+                
+                <!-- Sidebar: Navigation -->
+                <div class="profile-sidebar">
+                    <div class="user-brief">
+                        <div class="profile-img-wrap">
+                            <img id="display-profile-img" src="/shared/static/images/default-avatar.png" alt="Profile">
+                            <label for="upload-avatar" class="img-edit-badge"><i class="fas fa-camera"></i></label>
+                            <input type="file" id="upload-avatar" class="hidden" accept="image/*">
+                        </div>
+                        <h3 id="display-full-name">Loading...</h3>
+                        <p id="display-email">User Role</p>
                     </div>
-
-                    <span class="avatar-name" id="avatar-display-name">Loading…</span>
-                    <span class="status-badge">Active</span>
-
-                    <div class="avatar-section-divider"></div>
-
-                    <!-- Quick Stats -->
-                    <div class="sidebar-stats">
-                        <div class="sidebar-stat">
-                            <span class="sidebar-stat-label"><i class="fas fa-venus-mars"
-                                    style="margin-right:0.4rem;color:#2563eb;"></i>Gender</span>
-                            <span class="sidebar-stat-value" id="stat-gender">—</span>
+                    
+                    <div class="sidebar-nav">
+                        <button class="nav-btn active" data-tab="account-info">
+                            <i class="fas fa-user-circle"></i> Account Information
+                        </button>
+                        <button class="nav-btn" data-tab="medical-profile">
+                            <i class="fas fa-notes-medical"></i> Medical Profile
                         </div>
-                        <div class="sidebar-stat">
-                            <span class="sidebar-stat-label"><i class="fas fa-birthday-cake"
-                                    style="margin-right:0.4rem;color:#2563eb;"></i>Age</span>
-                            <span class="sidebar-stat-value" id="stat-age">—</span>
-                        </div>
-                        <div class="sidebar-stat">
-                            <span class="sidebar-stat-label"><i class="fas fa-phone"
-                                    style="margin-right:0.4rem;color:#2563eb;"></i>Phone</span>
-                            <span class="sidebar-stat-value" id="stat-phone">—</span>
-                        </div>
+                        <button class="nav-btn" data-tab="security-settings">
+                            <i class="fas fa-shield-alt"></i> Security & Password
+                        </button>
+                        <button class="nav-btn logout-btn" id="btn-logout-profile">
+                            <i class="fas fa-sign-out-alt"></i> Logout Session
+                        </button>
                     </div>
                 </div>
 
-                <!-- Right: Form -->
-                <form class="profile-form-grid" id="profile-form" novalidate>
-
-                    <!-- Personal Info Section -->
-                    <div class="form-section">
-                        <div class="form-section-heading">
-                            <i class="fas fa-user"></i> Personal Information
+                <!-- Main Content: Tab Panels -->
+                <div class="profile-content">
+                    
+                    <!-- Tab 1: Account Info -->
+                    <div class="profile-tab-panel active" id="account-info">
+                        <div class="panel-header">
+                            <h2>Account Information</h2>
+                            <p>Update your personal details and contact information.</p>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="prof-firstname">First Name</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-user"></i>
-                                    <input type="text" id="prof-firstname" placeholder="First name"
-                                        autocomplete="given-name">
+                        <form id="form-account-info" class="profile-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>First Name</label>
+                                    <input type="text" id="prof-first-name" placeholder="John">
+                                </div>
+                                <div class="form-group">
+                                    <label>Last Name</label>
+                                    <input type="text" id="prof-last-name" placeholder="Doe">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="prof-lastname">Last Name</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-user"></i>
-                                    <input type="text" id="prof-lastname" placeholder="Last name"
-                                        autocomplete="family-name">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-row" style="margin-top:1.25rem;">
-                            <div class="form-group">
-                                <label for="prof-email">Email Address</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-envelope"></i>
-                                    <input type="email" id="prof-email" placeholder="Email" readonly
-                                        autocomplete="email">
-                                </div>
+                                <label>Email Address</label>
+                                <input type="email" id="prof-email" disabled style="background: #f8fafc;">
+                                <span class="helper-text">Email cannot be changed after registration.</span>
                             </div>
                             <div class="form-group">
-                                <label for="prof-phone">Phone Number</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-phone"></i>
-                                    <input type="tel" id="prof-phone" placeholder="+91 XXXXX XXXXX" autocomplete="tel">
-                                </div>
+                                <label>Phone Number</label>
+                                <input type="tel" id="prof-phone" placeholder="+1234567890">
                             </div>
-                        </div>
+                            <button type="submit" class="btn btn-primary">Update Information</button>
+                        </form>
                     </div>
 
-                    <!-- Medical / Personal Details Section -->
-                    <div class="form-section">
-                        <div class="form-section-heading">
-                            <i class="fas fa-notes-medical"></i> Personal Details
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="prof-dob">Date of Birth</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <input type="date" id="prof-dob" autocomplete="bday">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="prof-age">Age</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-hashtag"></i>
-                                    <input type="number" id="prof-age" placeholder="Age" min="1" max="120">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-row" style="margin-top:1.25rem;">
-                            <div class="form-group">
-                                <label for="prof-gender">Gender</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-venus-mars"></i>
-                                    <select id="prof-gender">
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                        <option value="prefer-not">Prefer not to say</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="prof-location">Location (City)</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <input type="text" id="prof-location" placeholder="City / State" autocomplete="address-level2">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Save / Cancel Actions -->
-                    <div class="profile-form-actions">
-                        <button type="submit" class="btn-save-profile" id="btn-save-profile">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                        <button type="button" class="btn-cancel-profile" id="btn-cancel-profile">
-                            Cancel
-                        </button>
-                    </div>
-
-                </form>
-            </div>
-
-
-
-        </div><!-- /.profile-content -->
-
-    </main>
-
-    <!-- ── Avatar Selection Modal ── -->
-    <div id="avatar-modal" class="avatar-modal-overlay">
-        <div class="avatar-modal-content">
-            <div class="avatar-modal-header">
-                <h3>Update Profile Picture</h3>
-                <button type="button" class="btn-close-modal" id="btn-close-avatar-modal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="avatar-modal-body">
-                <div class="avatar-options-grid" id="avatar-options-grid">
-                    <button type="button" class="avatar-option-card" id="btn-upload-photo">
-                        <div class="icon-circle"><i class="fas fa-upload"></i></div>
-                        <h4>Upload Photo</h4>
-                        <p>Choose from your device</p>
-                    </button>
-                    <button type="button" class="avatar-option-card" id="btn-take-photo">
-                        <div class="icon-circle"><i class="fas fa-camera"></i></div>
-                        <h4>Take Photo</h4>
-                        <p>Use your camera</p>
-                    </button>
-                </div>
-
-                <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;">
-
-                <div class="camera-container" id="camera-container">
-                    <video id="camera-stream" autoplay playsinline></video>
-                    <canvas id="camera-canvas" style="display: none;"></canvas>
-                    <div class="camera-controls">
-                        <button type="button" class="btn-capture" id="btn-capture-photo">
-                            <i class="fas fa-camera"></i> Capture
-                        </button>
-                        <button type="button" class="btn-cancel-cam" id="btn-cancel-camera">
-                            Cancel
-                        </button>
-                    </div>
+                    <!-- Additional tabs handled via user_profile.js -->
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- ── Footer ── -->
-    <div id="footer"></div>
-
-    <!-- ── Scripts ── -->
-    <script src="/shared/static/js/dermacare-api.js"></script>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-    <script src="/user/static/js/user_profile.js?v=2"></script>
-
-
-</body>
-
-</html>
+    </section>
+{% endblock %}

@@ -1,103 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan History - DermaCare AI</title>
-    <meta name="description" content="View your past AI skin disease scan results and track your skin health journey.">
-    <link rel="stylesheet" href="/user/static/css/style.css">
-    <link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
-</head>
+{% block title %}Scan History - DermaCare AI{% endblock %}
 
-<body style="background-color: #f1f5f9;">
-    <!-- Header -->
-    <div id="header-container"></div>
+{% block extra_js %}
+<script src="/user/static/js/history.js"></script>
+{% endblock %}
 
-
+{% block content %}
     <!-- History Page -->
     <section id="history-page" class="fade-in">
         <div class="container" style="max-width: 1400px; margin:auto;">
-
-            <div class="history-header"
-                style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div class="section-header jc-sb ai-c" style="margin-bottom: 2.5rem;">
                 <div>
-                    <h2 style="font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">Scan <span
-                            class="text-gradient">History</span></h2>
-                    <p style="color: #64748b; font-size: 0.95rem;">Track your past skin analyses and monitor your skin
-                        health over time.</p>
+                    <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">Scan <span class="text-gradient">History</span></h1>
+                    <p style="color: var(--text-light);">Track your skin health journey and previous diagnostics.</p>
                 </div>
                 <div class="history-actions">
-                    <a href="/detect" class="btn btn-primary"
-                        style="padding: 0.8rem 1.5rem; border-radius: 30px; font-weight: 600; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">
-                        <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> New Scan
+                    <button class="btn btn-secondary" id="btn-export-pdf">
+                        <i class="fas fa-file-pdf"></i> Export PDF Report
+                    </button>
+                    <a href="/detect" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> New Scan
                     </a>
                 </div>
             </div>
 
-            <!-- Dashboard Split View -->
-            <div class="split-container">
-                <!-- Left Pane: Stats & List -->
-                <div class="pane-left">
-                    <!-- Stats Overview -->
-                    <div class="history-stats" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-                        <div class="stat-card compact-card">
-                            <div class="stat-icon bg-blue" style="width: 40px; height: 40px; font-size: 0.9rem;">
-                                <i class="fas fa-microscope"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-number" id="stat-total" style="font-size: 1.2rem;">0</span>
-                                <span class="stat-label" style="font-size: 0.7rem;">Scans</span>
-                            </div>
-                        </div>
-                        <div class="stat-card compact-card">
-                            <div class="stat-icon bg-purple" style="width: 40px; height: 40px; font-size: 0.9rem;">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-number" id="stat-avg-confidence" style="font-size: 1.2rem;">0%</span>
-                                <span class="stat-label" style="font-size: 0.7rem;">Avg. Acc</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- History List -->
-                    <div id="history-list" class="history-list">
-                        <!-- Dynamically populated -->
-                    </div>
-
-                    <!-- Empty State -->
-                    <div id="empty-state" class="empty-state hidden">
-                        <div class="empty-state-content">
-                            <i class="fas fa-clock-rotate-left"></i>
-                            <h3>No History Yet</h3>
-                            <p style="font-size: 0.9rem;">Start your first scan to track your skin health.</p>
-                        </div>
+            <!-- Stats Bar -->
+            <div class="history-stats">
+                <div class="h-stat-card">
+                    <div class="h-stat-icon bg-blue"><i class="fas fa-microscope"></i></div>
+                    <div class="h-stat-info">
+                        <h4 id="stat-total-scans">0</h4>
+                        <span>Total Scans</span>
                     </div>
                 </div>
-
-                <!-- Right Pane: Details View -->
-                <div class="pane-right" id="detail-pane">
-                    <div class="empty-detail-state">
-                        <i class="fas fa-file-medical"></i>
-                        <h3>Select a Record</h3>
-                        <p>Click on any scan from the list to view detailed analysis and recommendations.</p>
+                <div class="h-stat-card">
+                    <div class="h-stat-icon bg-orange"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="h-stat-info">
+                        <h4 id="stat-high-risk">0</h4>
+                        <span>High Risk Flags</span>
+                    </div>
+                </div>
+                <div class="h-stat-card">
+                    <div class="h-stat-icon bg-teal"><i class="fas fa-calendar-check"></i></div>
+                    <div class="h-stat-info">
+                        <h4 id="stat-last-scan">N/A</h4>
+                        <span>Last Scan Date</span>
                     </div>
                 </div>
             </div>
 
+            <!-- History List / Grid -->
+            <div class="history-container">
+                <div class="history-filters">
+                    <div class="filter-group">
+                        <label>Filter by Risk</label>
+                        <select id="filter-risk">
+                            <option value="all">All Riskt Levels</option>
+                            <option value="high">High Risk</option>
+                            <option value="medium">Medium Risk</option>
+                            <option value="low">Low Risk</option>
+                        </select>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="history-search" placeholder="Search by disease name...">
+                    </div>
+                </div>
+
+                <div id="history-list" class="history-grid">
+                    <!-- Dynamic Items loaded via history.js -->
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading your scan history...</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="history-empty" class="empty-state hidden">
+                    <i class="fas fa-folder-open fa-4x"></i>
+                    <h3>No scan records found</h3>
+                    <p>You haven't performed any skin scans yet. Start your first analysis today.</p>
+                    <br>
+                    <a href="/detect" class="btn btn-primary">Start First Scan</a>
+                </div>
+            </div>
         </div>
     </section>
-
-    <script src="/shared/static/js/dermacare-api.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-    <script src="/user/static/js/history.js"></script>
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-</body>
-
-</html>
+{% endblock %}

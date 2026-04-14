@@ -94,7 +94,14 @@ class AuthController:
         import urllib.parse
 
         token = result["token"]
-        user_json = json.dumps(result.get("user", {}))
+        user_data = result.get("user", {})
+        # Remove sensitive/internal fields before sending to frontend
+        user_data.pop("password_hash", None)
+        user_data.pop("secret_key", None)
+        
+        user_json = json.dumps(user_data)
         encoded_user = urllib.parse.quote(user_json)
 
-        return RedirectResponse(url=f"/login?token={token}&user={encoded_user}")
+        # Security Fix: Use URL fragment (#) for sensitive tokens to avoid server-side logging
+        return RedirectResponse(url=f"/login#token={token}&user={encoded_user}")
+

@@ -141,8 +141,7 @@ class AuthService:
             if data.email:
                 CommunicationService.send_otp_email(contact, otp)
                 
-            # Send dev_otp in response so frontend demo works smoothly if SMTP is not configured
-            return {"success": True, "message": "OTP sent successfully", "dev_otp": otp}
+            return {"success": True, "message": "OTP sent successfully"}
         except Exception as e:
             return {"success": False, "error": str(e)}
         finally:
