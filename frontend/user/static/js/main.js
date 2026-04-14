@@ -805,9 +805,14 @@ function loadGoogleMapsNearby() {
             }
             leafletMap = L.map('map').setView([latitude, longitude], 14);
 
-            // Add CartoDB Positron tiles (free, no API key, no referer required — works with file:// URLs)
+            // Force recalculate size after display:block
+            setTimeout(() => {
+                leafletMap.invalidateSize();
+            }, 100);
+
+            // Add CartoDB Positron tiles (best for clinical/clean aesthetics)
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                attribution: '© OpenStreetMap, © CARTO',
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(leafletMap);
