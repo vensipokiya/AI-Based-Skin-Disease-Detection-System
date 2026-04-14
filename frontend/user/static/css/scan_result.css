@@ -1,14 +1,15 @@
 /* ── Clinical Report Layout ── */
 .container-report {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
+    max-width: 100%;
+    margin: 0;
+    padding: 2rem 4rem;
 }
 
 .report-layout {
     display: flex;
-    gap: 3rem;
+    gap: 4rem;
     align-items: flex-start;
+    min-height: calc(100vh - 120px);
 }
 
 /* ── Left Sidebar (Diagnostic Overview) ── */
