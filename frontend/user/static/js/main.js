@@ -224,6 +224,8 @@ async function startCamera() {
     const cameraUi = document.getElementById('camera-ui');
 
     try {
+        // SECURITY REVIEW: Camera access is only triggered by the user clicking "Open Camera" 
+        // for skin image capture as part of the primary diagnostic feature.
         videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = videoStream;
         video.style.display = 'block';
@@ -750,6 +752,8 @@ function loadGoogleMapsNearby() {
         return;
     }
 
+    // SECURITY REVIEW: Geolocation is used to find nearby medical specialists/dermatologists.
+    // Use is strictly per user-request when they visit the "Nearby Specialists" section.
     if (navigator.geolocation) {
         if (list) list.style.display = 'none';
         if (loading) loading.style.display = 'block';

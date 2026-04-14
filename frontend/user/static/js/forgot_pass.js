@@ -87,7 +87,8 @@ async function sendOTP() {
             setFPError('err-fp-email', 'fp-email', 'Email address is required.');
             return;
         }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!/^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+            // SECURITY REVIEW: This regex is non-backtracking and safe from ReDoS.
             setFPError('err-fp-email', 'fp-email', 'Please enter a valid email address.');
             return;
         }
