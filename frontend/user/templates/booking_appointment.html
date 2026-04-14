@@ -1,24 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Details - DermaCare AI</title>
-    <link rel="stylesheet" href="/user/static/css/style.css">
-    <link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
-</head>
+{% block title %}Doctor Details - DermaCare AI{% endblock %}
 
-<body style="background-color: #f1f5f9;">
+{% block extra_js %}
+<script src="/user/static/js/booking.js"></script>
+{% endblock %}
 
-    <!-- Header -->
-    <div id="header-container"></div>
-
-
+{% block content %}
     <!-- Doctor Details Section -->
     <section id="dermatologist-details" class="container fade-in" style="padding: 4rem 1rem;">
         <div class="result-card" style="text-align: left; max-width: 800px;">
@@ -118,14 +106,4 @@
             </div>
         </div>
     </section>
-
-    <!-- JS functionality -->
-    <script src="/user/static/js/main.js"></script>
-    <script src="/user/static/js/booking.js"></script>
-    <div id="footer"></div>
-    <script src="/shared/static/js/footer.js"></script>
-    <script src="/shared/static/js/header.js"></script>
-
-</body>
-
-</html>
+{% endblock %}
