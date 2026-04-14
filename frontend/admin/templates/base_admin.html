@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard - DermaCare AI{% endblock %}</title>
+    
+    <!-- Admin Styles -->
+    <link rel="stylesheet" href="/user/static/css/style.css">
+    <link rel="stylesheet" href="/admin/static/css/admin.css">
+    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="admin-body">
+    <div class="admin-wrapper">
+        <!-- Sidebar Navigation -->
+        <nav class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <i class="fas fa-microscope"></i> <span>DERMACARE <b>ADMIN</b></span>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li tabindex="0" class="{% block active_users %}{% endblock %}" onclick="switchAdminTab('users')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('users')">
+                    <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
+                </li>
+                <li tabindex="0" class="{% block active_scans %}{% endblock %}" onclick="switchAdminTab('scans')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('scans')">
+                    <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
+                </li>
+                <li tabindex="0" class="{% block active_medical %}{% endblock %}" onclick="switchAdminTab('medical')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('medical')">
+                    <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
+                </li>
+                <li tabindex="0" class="{% block active_appointments %}{% endblock %}" onclick="switchAdminTab('appointments')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('appointments')">
+                    <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary w-100" onclick="logoutAdmin()">
+                    <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="admin-main">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Admin Core JS -->
+    <script src="/shared/static/js/dermacare-api.js"></script>
+    <script src="/admin/static/js/admin_dashboard.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

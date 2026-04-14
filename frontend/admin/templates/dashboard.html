@@ -1,313 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base_admin.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - DermaCare</title>
-    <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/shared/static/css/all.min.css">
+{% block title %}Admin Dashboard - DermaCare AI{% endblock %}
+{% block active_users %}active{% endblock %}
 
-    <!-- Component CSS -->
-    <link rel="stylesheet" href="/user/static/css/style.css">
-    <link rel="stylesheet" href="/shared/static/css/header.css">
-    <link rel="stylesheet" href="/admin/static/css/admin.css">
-    <link rel="stylesheet" href="/admin/static/css/toast.css">
+{% block content %}
+    <header class="content-header">
+        <div class="header-left">
+            <h1 id="page-title">User Management</h1>
+            <p class="subtitle">Search, view, and manage system users and their roles.</p>
+        </div>
+        <div class="header-actions">
+            <button id="refresh-btn" class="btn btn-primary" onclick="adminLoadUsers()">
+                <i class="fas fa-sync-alt"></i> Refresh Data
+            </button>
+        </div>
+    </header>
 
-</head>
-
-<body style="background-color: #f8fafc;">
-
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
-
-    <!-- Main Admin Dashboard -->
-    <div id="admin-dashboard" style="display: none;">
-        <!-- Admin Sidebar -->
-        <nav class="admin-sidebar" id="admin-sidebar">
-            <div class="sidebar-header">
-                <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fas fa-microscope" style="color: #2563eb; font-size: 1.5rem;"></i>
-                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">DermaCare <span style="background: linear-gradient(135deg, #2563eb, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI</span></h2>
-                </a>
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+            <div class="stat-details">
+                <h3 id="stat-total-users">0</h3>
+                <p>Total Registered Users</p>
             </div>
-
-
-            <ul class="sidebar-menu">
-                <li tabindex="0" onclick="switchAdminTab('users')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('users')">
-                    <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('scans')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('scans')">
-                    <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('medical')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('medical')">
-                    <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('appointments')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('appointments')">
-                    <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('activity')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('activity')">
-                    <i class="fas fa-chart-line"></i> <span class="nav-text">System Logs</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('locations')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('locations')">
-                    <i class="fas fa-map-marker-alt"></i> <span class="nav-text">User Locations</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('otps')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('otps')">
-                    <i class="fas fa-key"></i> <span class="nav-text">OTP Verifications</span>
-                </li>
-                <li tabindex="0" onclick="switchAdminTab('login-history')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('login-history')">
-                    <i class="fas fa-history"></i> <span class="nav-text">Login History</span>
-                </li>
-
-
-            </ul>
-
-            <div class="sidebar-footer">
-                <p class="admin-email" id="admin-active-email">[EMAIL_ADDRESS]</p>
-                <button class="btn btn-secondary w-100" onclick="logoutAdmin()">
-                    <i class="fas fa-sign-out-alt"></i> <span class="nav-text">Secure Logout</span>
-                </button>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
+            <div class="stat-details">
+                <h3 id="stat-active-sessions">0</h3>
+                <p>Active Now</p>
             </div>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="admin-content">
-            <header class="content-header">
-                <h1 id="page-title">User Management</h1>
-                <div class="header-actions">
-                    <button id="refresh-btn" class="btn btn-primary" onclick="adminLoadUsers()"><i class="fas fa-sync-alt"></i> Refresh
-                        Data</button>
-                </div>
-            </header>
-
-            <div class="content-body" id="admin-users-view">
-                <div class="admin-card">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Email Address</th>
-                                    <th>Age</th>
-                                    <th>DOB</th>
-                                    <th>Phone</th>
-                                    <th>Patient Area</th>
-                                    <th>Status</th>
-                                    <th>Role</th>
-                                    <th>Actions</th>
-
-                                </tr>
-                            </thead>
-                            <tbody id="user-table-body">
-                                <tr>
-                                    <td colspan="9" class="text-center">Loading users...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-microscope"></i></div>
+            <div class="stat-details">
+                <h3 id="stat-total-scans">0</h3>
+                <p>Successful Scans</p>
             </div>
-
-            <div class="content-body" id="admin-scans-view" style="display: none;">
-                <div class="admin-card">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Patient ID</th>
-                                    <th>Disease</th>
-                                    <th>Image</th>
-                                    <th>Confidence</th>
-                                    <th>Conditions Details</th>
-                                    <th>Scan Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="scan-table-body">
-                                <tr>
-                                    <td colspan="8" class="text-center">Loading scan history...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-body" id="admin-medical-view" style="display: none;">
-                <div class="admin-card">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Symptoms</th>
-                                    <th>Duration</th>
-                                    <th>Prev. Condition</th>
-                                    <th>Prev. Details</th>
-                                    <th>Created Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="medical-table-body">
-                                <tr>
-                                    <td colspan="8" class="text-center">Loading medical profiles...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-body" id="admin-appointments-view" style="display: none;">
-                <div class="admin-card">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Doctor Name</th>
-                                    <th>Specialty</th>
-                                    <th>Area/Location</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="appointments-table-body">
-                                <tr>
-                                    <td colspan="9" class="text-center">Loading appointments...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-body" id="admin-activity-view" style="display: none;">
-                <div class="admin-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin:0;"><i class="fas fa-terminal"></i> System Activity Logs</h3>
-                        <button class="btn btn-secondary" style="color: #ef4444; border-color: #fca5a5;" onclick="adminClearLogs()">
-                            <i class="fas fa-trash-alt"></i> Clear Logs
-                        </button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>User Email</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                    <th>IP Address</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logs-table-body">
-                                <tr>
-                                    <td colspan="5" class="text-center">Loading logs...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-body" id="admin-locations-view" style="display: none;">
-                <div class="admin-card">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Patient Name</th>
-                                    <th>Email</th>
-                                    <th>Location Name</th>
-                                    <th>Coordinates</th>
-                                    <th>Timestamp</th>
-                                </tr>
-                            </thead>
-                            <tbody id="locations-table-body">
-                                <tr>
-                                    <td colspan="6" class="text-center">Loading locations...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-body" id="admin-otps-view" style="display: none;">
-                <div class="admin-card">
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Contact</th>
-                                    <th>OTP Code</th>
-                                    <th>Expires At</th>
-                                    <th>Created At</th>
-                                </tr>
-                            </thead>
-                            <tbody id="otps-table-body">
-                                <tr>
-                                    <td colspan="5" class="text-center">Loading OTP records...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-body" id="admin-login-history-view" style="display: none;">
-                <div class="admin-card">
-                    <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="loginSearch" placeholder="Search user email..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; max-width: 200px;">
-                        <input type="date" id="loginDateFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; max-width: 150px;">
-                        <select id="loginStatusFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; max-width: 150px;">
-                            <option value="">All Status</option>
-                            <option value="LOGIN">LOGIN</option>
-                            <option value="LOGOUT">LOGOUT</option>
-                            <option value="ACTIVE">ACTIVE</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="adminLoadLoginHistory()"><i class="fas fa-filter"></i> Filter</button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>User Name</th>
-                                    <th>Email</th>
-                                    <th>Login Time</th>
-                                    <th>Logout Time</th>
-                                    <th>Device</th>
-                                    <th>IP Address</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="login-history-table-body">
-                                <tr>
-                                    <td colspan="8" class="text-center">Loading login history...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-        </main>
+        </div>
     </div>
 
-    <!-- Admin Logic -->
-    <script src="/admin/static/js/admin.js?v=4"></script>
-</body>
+    <!-- Data Table Container -->
+    <div class="data-container fade-in">
+        <div class="table-controls">
+            <div class="search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="admin-search-input" placeholder="Search by name, email or ID...">
+            </div>
+            <div class="filter-wrap">
+                <select id="role-filter">
+                    <option value="all">All Roles</option>
+                    <option value="Admin">Administrators</option>
+                    <option value="User">Regular Users</option>
+                </select>
+            </div>
+        </div>
 
-</html>
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr id="table-head">
+                        <!-- Headings dynamic based on tab -->
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows dynamic -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty/Loading States -->
+        <div id="loading-spinner" class="table-state hidden">
+            <div class="spinner"></div>
+            <p>Fetching data from server...</p>
+        </div>
+        <div id="no-results" class="table-state hidden">
+            <i class="fas fa-search-minus"></i>
+            <p>No records found matching your query.</p>
+        </div>
+    </div>
+{% endblock %}
