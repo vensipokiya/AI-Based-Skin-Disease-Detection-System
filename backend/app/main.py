@@ -48,7 +48,8 @@ async def add_security_headers(request: Request, call_next):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https://images.unsplash.com https://ui-avatars.com; "
-        "connect-src 'self' http://127.0.0.1:8000;"
+        "connect-src 'self' https://127.0.0.1:8000;"
+
     )
     response.headers["Content-Security-Policy"] = csp
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -58,7 +59,7 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 # CORS - Restricted in production
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:8000").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://localhost:3000,https://127.0.0.1:8000").split(",")
 
 app.add_middleware(
     CORSMiddleware,
