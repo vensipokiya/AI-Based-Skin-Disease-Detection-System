@@ -289,11 +289,11 @@ async def predict_skin_condition(
     
     # Secure the filename against path traversal
 
-    safe_filename = os.path.basename(file.filename) if file.filename else ""
-    ext = os.path.splitext(safe_filename)[1] or ".jpg"
-    
-    temp_filename = f"upload_{uuid.uuid4().hex}{ext}"
+    # Hardened: Enforce purely internal filename & extension to prevent path traversal
+    # We ignore the user-provided filename extension completely for the temporary path
+    temp_filename = f"upload_{uuid.uuid4().hex}.jpg"
     temp_path = os.path.join(UPLOAD_DIR, temp_filename)
+
 
     import anyio
 

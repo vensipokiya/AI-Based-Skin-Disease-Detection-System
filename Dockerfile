@@ -41,8 +41,12 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy entire project (respects .dockerignore)
-COPY . .
+# Copy specific application directories
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+COPY routes/ ./routes/
+COPY main.py ./main.py
+
 
 # Non-root user for security
 RUN addgroup --system dermacare && \
