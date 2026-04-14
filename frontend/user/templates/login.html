@@ -1,187 +1,138 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - DermaCare AI</title>
-    <meta name="description"
-        content="Sign in to your DermaCare AI account to access your scan history, personalized recommendations, and skin health tracking.">
-    <link rel="stylesheet" href="../../user/static/css/style.css">
-    <link rel="stylesheet" href="../../shared/static/css/header.css">
-    <link rel="stylesheet" href="../../shared/static/css/footer.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="../../shared/static/css/all.min.css">
-    <link rel="stylesheet" href="../../user/static/css/login.css">
-</head>
+{% block title %}Login - DermaCare AI{% endblock %}
 
-<body style="background-color: #f1f5f9;">
-    <!-- Header -->
-    <div id="header-container"></div>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/user/css/login.css">
+{% endblock %}
 
-    <!-- Login Page -->
-    <section id="login-page" class="fade-in">
-        <div class="login-container">
+{% block content %}
+<!-- Login Page -->
+<section id="login-page" class="fade-in">
+    <div class="login-container">
 
-            <!-- Left Panel - Branding -->
-            <div class="login-branding">
-                <div class="branding-content">
-                    <div class="branding-icon-wrapper">
-                        <i class="fas fa-microscope"></i>
-                    </div>
-                    <h1>Welcome Back to <br>DermaCare <span class="text-gradient">AI</span></h1>
-                    <p>Sign in to access your skin health dashboard, view scan history, and get personalized
-                        recommendations.</p>
+        <!-- Left Panel - Branding -->
+        <div class="login-branding">
+            <div class="branding-content">
+                <div class="branding-icon-wrapper">
+                    <i class="fas fa-microscope"></i>
+                </div>
+                <h1>Welcome Back to <br>DermaCare <span class="text-gradient">AI</span></h1>
+                <p>Sign in to access your skin health dashboard, view scan history, and get personalised recommendations.</p>
 
-                    <div class="branding-features">
-                        <div class="branding-feature">
-                            <div class="bf-icon"><i class="fas fa-chart-line"></i></div>
-                            <div>
-                                <h4>Track Progress</h4>
-                                <p>Monitor your skin health journey with detailed scan history.</p>
-                            </div>
-                        </div>
-                        <div class="branding-feature">
-                            <div class="bf-icon"><i class="fas fa-bell"></i></div>
-                            <div>
-                                <h4>Smart Alerts</h4>
-                                <p>Get notified about important changes in your skin condition.</p>
-                            </div>
-                        </div>
-                        <div class="branding-feature">
-                            <div class="bf-icon"><i class="fas fa-user-doctor"></i></div>
-                            <div>
-                                <h4>Doctor Connect</h4>
-                                <p>Instantly connect with dermatologists based on your results.</p>
-                            </div>
+                <div class="branding-features">
+                    <div class="branding-feature">
+                        <div class="bf-icon"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <h4>Track Progress</h4>
+                            <p>Monitor your skin health journey with detailed scan history.</p>
                         </div>
                     </div>
-
-                    <!-- Trust Badges -->
-                    <div class="trust-badges">
-                        <div class="trust-badge">
-                            <i class="fas fa-lock"></i>
-                            <span>Secure Auth</span>
+                    <div class="branding-feature">
+                        <div class="bf-icon"><i class="fas fa-bell"></i></div>
+                        <div>
+                            <h4>Smart Alerts</h4>
+                            <p>Get notified about important changes in your skin condition.</p>
                         </div>
-                        <div class="trust-badge">
-                            <i class="fas fa-shield-halved"></i>
-                            <span>Secure Login</span>
-                        </div>
-                        <div class="trust-badge">
-                            <i class="fas fa-user-shield"></i>
-                            <span>Data Protected</span>
+                    </div>
+                    <div class="branding-feature">
+                        <div class="bf-icon"><i class="fas fa-user-doctor"></i></div>
+                        <div>
+                            <h4>Doctor Connect</h4>
+                            <p>Instantly connect with dermatologists based on your results.</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Right Panel - Login Form -->
-            <div class="login-form-panel">
-                <div class="login-form-wrapper">
-
-                    <div class="login-form-header">
-                        <div class="login-avatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <h2>Sign In</h2>
-                        <p>Enter your credentials to access your account</p>
+                <!-- Trust Badges -->
+                <div class="trust-badges">
+                    <div class="trust-badge">
+                        <i class="fas fa-lock"></i>
+                        <span>Secure Auth</span>
                     </div>
-
-                    <!-- Warning Banner (hidden by default) -->
-                    <div id="register-prompt" class="login-warning-banner hidden">
-                        <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="warning-text">
-                            <strong>Email not registered!</strong>
-                            <p>This email ID is not registered. Please <a href="/register">register your account</a>
-                                first.</p>
-                        </div>
+                    <div class="trust-badge">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>Secure Login</span>
                     </div>
-
-                    <form id="login-form" novalidate>
-                        <div class="form-group">
-                            <label for="login-email">Email Address</label>
-                            <div class="input-wrapper">
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" id="login-email" placeholder="name@example.com" required
-                                    autocomplete="email">
-                            </div>
-                            <span class="field-error" id="error-login-email"></span>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="login-password">
-                                Password
-                            </label>
-                            <div class="input-wrapper">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" id="login-password" placeholder="Enter your password" required
-                                    autocomplete="current-password">
-                                <button type="button" class="toggle-password"
-                                    onclick="togglePasswordVisibility('login-password', this)">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <span class="field-error" id="error-login-password"></span>
-                            <div class="forgot-password-link">
-                                <a href="/forgot-password"><i class="fas fa-key"></i> Forgot Password?</a>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="checkbox-wrapper remember-me">
-                                <input type="checkbox" id="login-remember">
-                                <span class="custom-checkbox"></span>
-                                <span>Remember me for 30 days</span>
-                            </label>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-lg w-full" id="btn-login">
-                            <i class="fas fa-sign-in-alt"></i> Sign In
-                        </button>
-
-                        <!-- Divider -->
-                        <div class="login-divider">
-                            <span>or continue with</span>
-                        </div>
-
-                        <!-- Social Login Buttons -->
-                        <div class="social-login-buttons-container">
-                            <!-- Sign in with Apple -->
-                            <div id="appleid-signin" data-color="black" data-border="true" data-type="sign-in"
-                                style="width: 100%; height: 40px; display: flex; justify-content: center; cursor: pointer;">
-                            </div>
-
-                            <!-- Sign in with Google -->
-                            <button type="button" class="google-btn" onclick="googleLogin()"
-                                style="width: 100%; height: 40px; display: flex; justify-content: center; align-items: center; cursor: pointer; background-color: white; color: #3c4043; border: 1px solid #dadce0; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; margin-top: 10px;">
-                                <img src="https://developers.google.com/identity/images/g-logo.png"
-                                    style="width: 18px; height: 18px; margin-right: 8px;" alt="Google Logo" />
-                                Continue with Google
-                            </button>
-                        </div>
-
-                        <!-- Apple API script -->
-                        <script type="text/javascript"
-                            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
-                    </form>
-
-                    <p class="login-redirect">
-                        Don't have an account? <a href="/register" class="link-primary">Create one now</a>
-                    </p>
+                    <div class="trust-badge">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Data Protected</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
 
-    <script src="../../shared/static/js/dermacare-api.js"></script>
-    <script src="../../shared/static/js/header.js"></script>
-    <script src="../../user/static/js/login.js"></script>
-    <div id="footer"></div>
-    <script src="../../shared/static/js/footer.js"></script>
-</body>
+        <!-- Right Panel - Login Form -->
+        <div class="login-form-panel">
+            <div class="login-form-wrapper">
 
-</html>
+                <div class="login-form-header">
+                    <div class="login-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h2>Sign In</h2>
+                    <p>Enter your credentials to access your account</p>
+                </div>
 
+                <!-- Warning Banner (hidden by default) -->
+                <div id="register-prompt" class="login-warning-banner hidden">
+                    <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="warning-text">
+                        <strong>Email not registered!</strong>
+                        <p>This email ID is not registered. Please <a href="/register">register your account</a> first.</p>
+                    </div>
+                </div>
 
-</html>
+                <form id="login-form" novalidate>
+                    <div class="form-group">
+                        <label for="login-email">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="login-email" placeholder="name@example.com"
+                                   required autocomplete="email">
+                        </div>
+                        <span class="field-error" id="error-login-email"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="login-password" placeholder="Enter your password"
+                                   required autocomplete="current-password">
+                            <button type="button" class="toggle-password"
+                                    onclick="togglePasswordVisibility('login-password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span class="field-error" id="error-login-password"></span>
+                        <div class="forgot-password-link">
+                            <a href="/forgot-password"><i class="fas fa-key"></i> Forgot Password?</a>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-wrapper remember-me">
+                            <input type="checkbox" id="login-remember">
+                            <span class="custom-checkbox"></span>
+                            <span>Remember me for 30 days</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-full" id="btn-login">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </form>
+
+                <p class="login-redirect">
+                    Don't have an account? <a href="/register" class="link-primary">Create one now</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/user/js/login.js"></script>
+{% endblock %}
