@@ -20,7 +20,9 @@ class AdminService:
             if s.get("scan_date"): s["scan_date"] = s["scan_date"].isoformat()
             if s.get("remedies") and isinstance(s["remedies"], str): 
                 try: s["remedies"] = json.loads(s["remedies"]) 
-                except: pass
+                except Exception as e: 
+                    print(f"[AdminService] Remedies JSON parse failed: {e}")
+                    pass
         return {"success": True, "scans": scans}
 
     def get_medical_profiles(self) -> dict:
@@ -45,7 +47,8 @@ class AdminService:
                 else:
                     appointment_dt = datetime.strptime(f"{dt} {tm}", "%Y-%m-%d %H:%M:%S")
                     a["status"] = "Done" if datetime.now() >= appointment_dt else "Pending"
-            except Exception:
+            except Exception as e:
+                print(f"[AdminService] Appointment status calc error: {e}")
                 a["status"] = "Pending"
 
             if a.get("appointment_date"): a["appointment_date"] = a["appointment_date"].isoformat() if hasattr(a["appointment_date"], 'isoformat') else str(a["appointment_date"])

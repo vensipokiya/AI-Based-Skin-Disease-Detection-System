@@ -88,8 +88,10 @@ async def predict_skin_condition(
         # Decode: handle JPEG and PNG
         try:
             img_tensor = tf.image.decode_image(image_bytes, channels=3, expand_animations=False)
-        except Exception:
+        except Exception as e:
+            print(f"[predict_routes] Multi-type decode failed: {e}. Falling back to JPEG-only.")
             img_tensor = tf.image.decode_jpeg(image_bytes, channels=3)
+
 
         # Resize with BILINEAR (exactly as training)
         img_tensor = tf.image.resize(img_tensor, (224, 224), method=tf.image.ResizeMethod.BILINEAR)

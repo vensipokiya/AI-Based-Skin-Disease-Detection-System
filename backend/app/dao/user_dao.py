@@ -39,8 +39,9 @@ class UserDao:
                         loc_record = cursor.fetchone()
                         if loc_record and loc_record.get("location_name") and loc_record["location_name"].lower() != "unknown":
                             user["user_location"] = loc_record["location_name"]
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error(f"[UserDao] Failed to fetch historical location: {e}")
+
             return user
         except Exception as e:
             logger.error(f"DAO Error: {e}")

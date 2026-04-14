@@ -70,7 +70,13 @@ app.add_middleware(
 )
 
 
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=settings.SECRET_KEY,
+    https_only=True,     # Ensures session cookies are only sent over HTTPS
+    same_site="lax"      # Protects against CSRF while allowing standard navigation
+)
+
 
 # ── Static file mounts ──────────────────────────────────────────────────────
 FRONTEND = os.path.join(os.getcwd(), "frontend")

@@ -187,8 +187,9 @@ class AdminDao:
             if not cursor.fetchone():
                 try:
                     cursor.execute("ALTER TABLE user_locations ADD COLUMN location_name VARCHAR(255)")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[AdminDao] Skip dynamic column add (likely already exists): {e}")
+
 
             cursor.execute("""
                 SELECT l.*, CONCAT(u.first_name, ' ', u.last_name) as patient_name, u.email 
