@@ -287,49 +287,42 @@ async def predict_skin_condition(
     # Reset file pointer for the shutil.copyfileobj if we still use it (though we can just write image_bytes)
     file.file.seek(0)
     
-    import uuid
-    import os
-    
     # Secure the filename against path traversal
+
     safe_filename = os.path.basename(file.filename) if file.filename else ""
     ext = os.path.splitext(safe_filename)[1] or ".jpg"
     
     temp_filename = f"upload_{uuid.uuid4().hex}{ext}"
     temp_path = os.path.join(UPLOAD_DIR, temp_filename)
 
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    import anyio
+
+    def save_file_sync(data, path):
+        with open(path, "wb") as f:
+            f.write(data)
+
+    await anyio.to_thread.run_sync(save_file_sync, image_bytes, temp_path)
+
 
     try:
         load_model_assets()
         if model is None:
             raise Exception("AI Model is not available on the server. Please check model file.")
 
+        # ── Image Preprocessing ────────────────────────────────────────────────
+        # Using image_bytes directly instead of reading back from disk (Performance Fix)
         # ────────────────────────────────────────────────────────────────────────
-        # Image Preprocessing
-        #
-        # The EfficientNetV2S model was trained with:
-        #   tf.image.decode_jpeg  → channels=3
-        #   tf.image.resize       → (224, 224), method=BILINEAR  ← default
-        #   tf.cast               → float32, range [0, 255]
-        #   include_preprocessing=True in EfficientNetV2S
-        #     → model internally normalizes pixels (no manual /255 needed)
-        #
-        # We replicate this EXACTLY here using TensorFlow ops.
-        # PIL uses BICUBIC resize by default, which diverges from training.
-        # ────────────────────────────────────────────────────────────────────────
-        img_raw = tf.io.read_file(temp_path)
-
+        
         # Decode: handle JPEG and PNG
         ext_lower = ext.lower()
         if ext_lower in (".png",):
-            img_tensor = tf.image.decode_png(img_raw, channels=3)
+            img_tensor = tf.image.decode_png(image_bytes, channels=3)
         else:
-            # decode_jpeg works for JPEG, and also falls back gracefully for PNG
             try:
-                img_tensor = tf.image.decode_jpeg(img_raw, channels=3)
+                img_tensor = tf.image.decode_jpeg(image_bytes, channels=3)
             except Exception:
-                img_tensor = tf.image.decode_image(img_raw, channels=3, expand_animations=False)
+                img_tensor = tf.image.decode_image(image_bytes, channels=3, expand_animations=False)
+
 
         # Resize with BILINEAR (exactly as training)
         img_tensor = tf.image.resize(img_tensor, (224, 224), method=tf.image.ResizeMethod.BILINEAR)

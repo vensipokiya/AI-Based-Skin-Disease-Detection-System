@@ -35,30 +35,31 @@
 
 
             <ul class="sidebar-menu">
-                <li class="active" onclick="switchAdminTab('users')">
+                <li tabindex="0" onclick="switchAdminTab('users')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('users')">
                     <i class="fas fa-users"></i> <span class="nav-text">User Management</span>
                 </li>
-                <li onclick="switchAdminTab('scans')">
+                <li tabindex="0" onclick="switchAdminTab('scans')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('scans')">
                     <i class="fas fa-history"></i> <span class="nav-text">Scan History</span>
                 </li>
-                <li onclick="switchAdminTab('medical')">
+                <li tabindex="0" onclick="switchAdminTab('medical')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('medical')">
                     <i class="fas fa-notes-medical"></i> <span class="nav-text">Medical Profiles</span>
                 </li>
-                <li onclick="switchAdminTab('appointments')">
+                <li tabindex="0" onclick="switchAdminTab('appointments')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('appointments')">
                     <i class="fas fa-calendar-check"></i> <span class="nav-text">Doctor Appointments</span>
                 </li>
-                <li onclick="switchAdminTab('activity')">
+                <li tabindex="0" onclick="switchAdminTab('activity')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('activity')">
                     <i class="fas fa-chart-line"></i> <span class="nav-text">System Logs</span>
                 </li>
-                <li onclick="switchAdminTab('locations')">
+                <li tabindex="0" onclick="switchAdminTab('locations')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('locations')">
                     <i class="fas fa-map-marker-alt"></i> <span class="nav-text">User Locations</span>
                 </li>
-                <li onclick="switchAdminTab('otps')">
+                <li tabindex="0" onclick="switchAdminTab('otps')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('otps')">
                     <i class="fas fa-key"></i> <span class="nav-text">OTP Verifications</span>
                 </li>
-                <li onclick="switchAdminTab('login-history')">
+                <li tabindex="0" onclick="switchAdminTab('login-history')" onkeydown="if(event.key==='Enter'||event.key===' ') switchAdminTab('login-history')">
                     <i class="fas fa-history"></i> <span class="nav-text">Login History</span>
                 </li>
+
 
             </ul>
 
